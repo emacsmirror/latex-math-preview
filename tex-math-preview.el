@@ -61,6 +61,8 @@
 ;; Version 3 - also images in a buffer using dvipng
 ;; Version 4 - yet better $...$ handling, add some dbtexmath
 ;; Version 5 - add latex \(...\) and \[...\]
+;; Version 5.01 - Cut margin of image and support some latex comand related to equation. 
+;;                (by T. Yamaguchi at 2009/05/01 10:26:31)
 
 ;;; Code:
 
@@ -88,6 +90,46 @@ methods, according to what Emacs and the system supports."
                  function)
   :group 'tex-math-preview)
 
+
+(defvar tex-math-preview-latex-template-header
+  "\\documentclass{article}\n\\usepackage{amsmath, amsfonts, amsthm}\n\\pagestyle{empty}\n\\begin{document}\n"
+  "Insert string to beggining of temporary file to make image.")
+
+(defvar tex-math-preview-latex-template-footer
+  "\\par\n\\end{document}\n"
+  "Insert string to end of temporary file to make image.")
+
+(defvar tex-math-preview-match-expression
+  '(;; <math>...</math>
+    ;; (1 . "<math>\\(\\(.\\|\n\\)*?\\)</math>")
+
+    ;; @math{...}
+    ;; (1 . "@math{\\(\\(.\\|\n\\)*?\\)}")
+
+    ;; <alt role="tex">$...$</alt>
+    ;; <alt role="tex">\[...\]</alt>
+    ;; the contents $..$ or \[..\] of the alt can be recognised
+    ;; on their own, but with this pattern we can work with point
+    ;; in the <alt> part as well as in the expression
+    ;; (1 . "<alt\\s-+role=\"tex\">\\$*\\(\\(.\\|\n\\)+?\\)\\$*</alt>")
+
+    ;; \[...\]
+    (0 . "\\\\\\[\\(.\\|\n\\)*?\\\\]")
+
+    ;; \(...\)
+    (0 . "\\\\(\\(.\\|\n\\)*?\\\\)")
+
+    ;; \begin{math}...\end{math}
+    (0 . "\\\\begin{math}\\(\\(.\\|\n\\)*?\\)\\\\end{math}")
+
+    ;; \begin{displaymath}...\end{displaymath}
+    (0 . "\\\\begin{displaymath}\\(\\(.\\|\n\\)*?\\)\\\\end{displaymath}")
+
+    ;; \begin{equation}...\end{equation}
+    (0 . "\\\\begin{equation\\(\\|\\*\\)}\\(\\(.\\|\n\\)*?\\)\\\\end{equation\\(\\|\\*\\)}")
+    (0 . "\\\\begin{align\\(\\|\\*\\)}\\(\\(.\\|\n\\)*?\\)\\\\end{align\\(\\|\\*\\)}")
+    )
+  "These eqpressions are used for matching to extract tex math expression.")
 
 ;;-----------------------------------------------------------------------------
 
@@ -118,35 +160,11 @@ no recognised expression at or surrounding point."
     (save-excursion
       (while (and (search-backward "$" nil t) ;; $ not preceded by \
                   (eq ?\\ (char-before))))
-      (when (looking-at "\\$+\\(\\(?:\\\\\\$\\|[^$]\\)+?\\)\\$")
+      ;; (when (looking-at "\\$+\\(\\(?:\\\\\\$\\|[^$]\\)+?\\)\\$")
+      (when (looking-at "\\(\\$+\\(?:\\\\\\$\\|[^$]\\)+?\\$\\)")
         (setq beg (match-beginning 1) end (match-end 1))))
 
-    (dolist (elem
-             '(;; <math>...</math>
-               (1 . "<math>\\(\\(.\\|\n\\)*?\\)</math>")
-
-               ;; @math{...}
-               (1 . "@math{\\(\\(.\\|\n\\)*?\\)}")
-
-               ;; <alt role="tex">$...$</alt>
-               ;; <alt role="tex">\[...\]</alt>
-               ;; the contents $..$ or \[..\] of the alt can be recognised
-               ;; on their own, but with this pattern we can work with point
-               ;; in the <alt> part as well as in the expression
-               (1 . "<alt\\s-+role=\"tex\">\\$*\\(\\(.\\|\n\\)+?\\)\\$*</alt>")
-
-               ;; \[...\]
-               (0 . "\\\\\\[\\(.\\|\n\\)*?\\\\]")
-
-               ;; \(...\)
-               (0 . "\\\\(\\(.\\|\n\\)*?\\\\)")
-
-               ;; \begin{math}...\end{math}
-               (0 . "\\\\begin{math}\\(\\(.\\|\n\\)*?\\)\\\\end{math}")
-
-               ;; \begin{displaymath}...\end{displaymath}
-               (0 . "\\\\begin{displaymath}\\(\\(.\\|\n\\)*?\\)\\\\end{displaymath}")))
-
+    (dolist (elem tex-math-preview-match-expression)
       (when (thing-at-point-looking-at (cdr elem))
         ;; if no other match, or this match is later, then override
         (if (or (not beg)
@@ -204,27 +222,27 @@ STR should not have $ or $$ delimiters."
          (dot-log      (concat tex-math-dir "/foo.log"))
          (dot-aux      (concat tex-math-dir "/foo.aux"))
          ;; \[ or \( or \begin anywhere means latex
-         (tex-cmd      (if (string-match "\\\\\\([[(]\\|begin\\)" str)
-                           "latex" "tex")))
+         ;; (tex-cmd      (if (string-match "\\\\\\([[(]\\|begin\\)" str)
+         ;;                   "latex" "tex")))
+	 (tex-cmd "latex"))
 
     (with-temp-file dot-tex
-      (if (equal "tex" tex-cmd)
-          (progn
-            ;; must be careful with the newlines here, a blank line inside
-            ;; $$...$$ would be a paragraph separator, which tex doesn't
-            ;; allow; let any in the user's input go through to see the
-            ;; error, but be careful not to add a \n here before or after $$
-            ;; in case that and the user input makes \n\n
-            (insert "$$ ")
-            (insert str)
-            (insert " $$\n\\par\\bye\n"))
-
-        (insert "\\documentclass{article}\n")
-        (insert "\\pagestyle{empty}\n")
-        (insert "\\begin{document}\n")
+      ;; (if (equal "tex" tex-cmd)
+      ;;     (progn
+      ;;       ;; must be careful with the newlines here, a blank line inside
+      ;;       ;; $$...$$ would be a paragraph separator, which tex doesn't
+      ;;       ;; allow; let any in the user's input go through to see the
+      ;;       ;; error, but be careful not to add a \n here before or after $$
+      ;;       ;; in case that and the user input makes \n\n
+      ;;       (insert "$$ ")
+      ;;       (insert str)
+      ;;       (insert " $$\n\\par\\bye\n"))
+	
+	(insert tex-math-preview-latex-template-header)
         (insert str)
-        (insert "\\par\n")
-        (insert "\\end{document}\n")))
+	(insert tex-math-preview-latex-template-footer)
+        )
+    ;;)
 
     (unwind-protect
         ;; don't show all the tex ramblings in the minibuffer, leave it to
@@ -244,7 +262,8 @@ STR should not have $ or $$ delimiters."
       ;; cleanup temp files
       (dolist (filename (list dot-tex dot-dvi dot-log dot-aux))
         (condition-case nil (delete-file filename) (error)))
-      (delete-directory tex-math-dir))))
+      (delete-directory tex-math-dir)
+      )))
 
 
 ;;-----------------------------------------------------------------------------
@@ -321,7 +340,7 @@ The \"dvipng\" program is used for drawing.  If it fails a shell
 buffer is left showing the messages and the return is nil."
 
   (let ((dot-png (concat tex-math-dir "/foo.png")))
-    (when (eq 0 (shell-command (concat "dvipng -x 1728 -o" dot-png
+    (when (eq 0 (shell-command (concat "dvipng -x 1728 -T tight -o" dot-png
                                        " " filename)))
       (with-temp-buffer
         (set-buffer-multibyte nil)
