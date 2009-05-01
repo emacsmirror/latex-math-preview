@@ -90,6 +90,22 @@ methods, according to what Emacs and the system supports."
                  function)
   :group 'tex-math-preview)
 
+(defvar tex-math-preview-buffer-name
+  "*tex-math-preview*"
+  "Name of buffer which displays preview image.")
+
+(defvar tex-math-preview-latex-command
+  "latex"
+  "Path to latex.")
+
+(defvar tex-math-preview-command-dvipng
+  "dvipng"
+  "Path to dvipng.")
+
+(defvar tex-math-preview-dvipng-option
+  "-x 1728 -T tight"
+  "Option for dvipng.")
+
 
 (defvar tex-math-preview-latex-template-header
   "\\documentclass{article}\n\\usepackage{amsmath, amsfonts, amsthm}\n\\pagestyle{empty}\n\\begin{document}\n"
@@ -100,19 +116,7 @@ methods, according to what Emacs and the system supports."
   "Insert string to end of temporary file to make image.")
 
 (defvar tex-math-preview-match-expression
-  '(;; <math>...</math>
-    ;; (1 . "<math>\\(\\(.\\|\n\\)*?\\)</math>")
-
-    ;; @math{...}
-    ;; (1 . "@math{\\(\\(.\\|\n\\)*?\\)}")
-
-    ;; <alt role="tex">$...$</alt>
-    ;; <alt role="tex">\[...\]</alt>
-    ;; the contents $..$ or \[..\] of the alt can be recognised
-    ;; on their own, but with this pattern we can work with point
-    ;; in the <alt> part as well as in the expression
-    ;; (1 . "<alt\\s-+role=\"tex\">\\$*\\(\\(.\\|\n\\)+?\\)\\$*</alt>")
-
+  '(
     ;; \[...\]
     (0 . "\\\\\\[\\(.\\|\n\\)*?\\\\]")
 
@@ -160,7 +164,6 @@ no recognised expression at or surrounding point."
     (save-excursion
       (while (and (search-backward "$" nil t) ;; $ not preceded by \
                   (eq ?\\ (char-before))))
-      ;; (when (looking-at "\\$+\\(\\(?:\\\\\\$\\|[^$]\\)+?\\)\\$")
       (when (looking-at "\\(\\$+\\(?:\\\\\\$\\|[^$]\\)+?\\$\\)")
         (setq beg (match-beginning 1) end (match-end 1))))
 
@@ -220,29 +223,13 @@ STR should not have $ or $$ delimiters."
          (dot-tex      (concat tex-math-dir "/foo.tex"))
          (dot-dvi      (concat tex-math-dir "/foo.dvi"))
          (dot-log      (concat tex-math-dir "/foo.log"))
-         (dot-aux      (concat tex-math-dir "/foo.aux"))
-         ;; \[ or \( or \begin anywhere means latex
-         ;; (tex-cmd      (if (string-match "\\\\\\([[(]\\|begin\\)" str)
-         ;;                   "latex" "tex")))
-	 (tex-cmd "latex"))
+         (dot-aux      (concat tex-math-dir "/foo.aux")))
 
     (with-temp-file dot-tex
-      ;; (if (equal "tex" tex-cmd)
-      ;;     (progn
-      ;;       ;; must be careful with the newlines here, a blank line inside
-      ;;       ;; $$...$$ would be a paragraph separator, which tex doesn't
-      ;;       ;; allow; let any in the user's input go through to see the
-      ;;       ;; error, but be careful not to add a \n here before or after $$
-      ;;       ;; in case that and the user input makes \n\n
-      ;;       (insert "$$ ")
-      ;;       (insert str)
-      ;;       (insert " $$\n\\par\\bye\n"))
-	
 	(insert tex-math-preview-latex-template-header)
         (insert str)
 	(insert tex-math-preview-latex-template-footer)
         )
-    ;;)
 
     (unwind-protect
         ;; don't show all the tex ramblings in the minibuffer, leave it to
@@ -252,7 +239,7 @@ STR should not have $ or $$ delimiters."
         (let ((max-mini-window-height 1)  ;; force shell-command to buffer
               (windows (current-window-configuration)))
           (if (not (eq 0 (shell-command
-                          (concat tex-cmd " -output-directory " tex-math-dir
+                          (concat tex-math-preview-latex-command " -output-directory " tex-math-dir
                                   " " dot-tex " </dev/null"))))
               (error "TeX processing error")
 
@@ -281,7 +268,7 @@ capabilities and available viewer program(s)."
 
   (if (and (image-type-available-p 'png)
            (display-images-p)
-           (eq 0 (shell-command "dvipng --version >/dev/null 2>&1" nil)))
+           (eq 0 (shell-command (concat tex-math-preview-command-dvipng " --version >/dev/null 2>&1") nil)))
       (tex-math-preview-png-image filename)
       (tex-math-preview-dvi-view filename)))
 
@@ -328,7 +315,7 @@ This can be used in `tex-math-preview-function', but it requires:
   (let ((image (tex-math-preview-dvi-to-image filename)))
     (if image
         (save-selected-window
-          (switch-to-buffer-other-window "*tex-math-preview*")
+          (switch-to-buffer-other-window tex-math-preview-buffer-name)
           (erase-buffer)
           (insert "\n")
           (insert-image image " ")
@@ -340,8 +327,9 @@ The \"dvipng\" program is used for drawing.  If it fails a shell
 buffer is left showing the messages and the return is nil."
 
   (let ((dot-png (concat tex-math-dir "/foo.png")))
-    (when (eq 0 (shell-command (concat "dvipng -x 1728 -T tight -o" dot-png
-                                       " " filename)))
+    (when (eq 0 (shell-command
+		 (concat tex-math-preview-command-dvipng " " tex-math-preview-dvipng-option
+			 " -o" dot-png " " filename)))
       (with-temp-buffer
         (set-buffer-multibyte nil)
         (insert-file-contents-literally dot-png)
