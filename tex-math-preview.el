@@ -63,6 +63,7 @@
 ;; Version 5 - add latex \(...\) and \[...\]
 ;; Version 5.01 - Cut margin of image and support some latex comand related to equation. 
 ;;                (by T. Yamaguchi at 2009/05/01 10:26:31)
+;; Version 5.01 - Add tex-math-preview-map. (by T. Yamaguchi at 2009/05/02 07:24:12)
 
 ;;; Code:
 
@@ -134,6 +135,12 @@ methods, according to what Emacs and the system supports."
     (0 . "\\\\begin{align\\(\\|\\*\\)}\\(\\(.\\|\n\\)*?\\)\\\\end{align\\(\\|\\*\\)}")
     )
   "These eqpressions are used for matching to extract tex math expression.")
+
+(defvar tex-math-preview-map
+  (let ((map (copy-keymap view-mode-map)))
+    (define-key map (kbd "q") 'delete-window)
+    map)
+  "Keymap for tex-math-preview.")
 
 ;;-----------------------------------------------------------------------------
 
@@ -314,12 +321,16 @@ This can be used in `tex-math-preview-function', but it requires:
 
   (let ((image (tex-math-preview-dvi-to-image filename)))
     (if image
-        (save-selected-window
+	(progn
           (switch-to-buffer-other-window tex-math-preview-buffer-name)
+	  (setq view-read-only nil)
           (erase-buffer)
           (insert "\n")
           (insert-image image " ")
-          (goto-char (point-min))))))
+          (goto-char (point-min))
+	  (setq view-read-only t)
+	  (use-local-map tex-math-preview-map)
+	  ))))
 
 (defun tex-math-preview-dvi-to-image (filename)
   "Render dvi FILENAME to an Emacs image and return that.
