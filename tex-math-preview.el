@@ -103,18 +103,21 @@ methods, according to what Emacs and the system supports."
   "dvipng"
   "Path to dvipng.")
 
+(defvar tex-math-preview-temporary-file-prefix
+  "temp_latex_math"
+  "The prefix name of some temporary files which is produced in making an image.")
+
 (defvar tex-math-preview-dvipng-option
   "-x 1728 -T tight"
   "Option for dvipng.")
 
-
 (defvar tex-math-preview-latex-template-header
   "\\documentclass{article}\n\\usepackage{amsmath, amsfonts, amsthm}\n\\pagestyle{empty}\n\\begin{document}\n"
-  "Insert string to beggining of temporary file to make image.")
+  "Insert string to beggining of temporary latex file to make image.")
 
 (defvar tex-math-preview-latex-template-footer
   "\\par\n\\end{document}\n"
-  "Insert string to end of temporary file to make image.")
+  "Insert string to end of temporary latex file to make image.")
 
 (defvar tex-math-preview-match-expression
   '(
@@ -132,7 +135,18 @@ methods, according to what Emacs and the system supports."
 
     ;; \begin{equation}...\end{equation}
     (0 . "\\\\begin{equation\\(\\|\\*\\)}\\(\\(.\\|\n\\)*?\\)\\\\end{equation\\(\\|\\*\\)}")
+
+    ;; \begin{gather}...\end{gather}
+    (0 . "\\\\begin{gather\\(\\|\\*\\)}\\(\\(.\\|\n\\)*?\\)\\\\end{gather\\(\\|\\*\\)}")
+
+    ;; \begin{align}...\end{align}
     (0 . "\\\\begin{align\\(\\|\\*\\)}\\(\\(.\\|\n\\)*?\\)\\\\end{align\\(\\|\\*\\)}")
+
+    ;; \begin{alignat}...\end{alignat}
+    (0 . "\\\\begin{alignat\\(\\|\\*\\)}\\(\\(.\\|\n\\)*?\\)\\\\end{alignat\\(\\|\\*\\)}")
+
+    ;; \begin{multiline}...\end{multiline}
+    (0 . "\\\\begin{multiline\\(\\|\\*\\)}\\(\\(.\\|\n\\)*?\\)\\\\end{multiline\\(\\|\\*\\)}")
     )
   "These eqpressions are used for matching to extract tex math expression.")
 
@@ -227,10 +241,10 @@ For more on the respective formats see
 STR should not have $ or $$ delimiters."
 
   (let* ((tex-math-dir (make-temp-file "tex-math-preview-" t))
-         (dot-tex      (concat tex-math-dir "/foo.tex"))
-         (dot-dvi      (concat tex-math-dir "/foo.dvi"))
-         (dot-log      (concat tex-math-dir "/foo.log"))
-         (dot-aux      (concat tex-math-dir "/foo.aux")))
+         (dot-tex      (concat tex-math-dir "/" tex-math-preview-temporary-file-prefix ".tex"))
+         (dot-dvi      (concat tex-math-dir "/" tex-math-preview-temporary-file-prefix ".dvi"))
+         (dot-log      (concat tex-math-dir "/" tex-math-preview-temporary-file-prefix ".log"))
+         (dot-aux      (concat tex-math-dir "/" tex-math-preview-temporary-file-prefix ".aux")))
 
     (with-temp-file dot-tex
 	(insert tex-math-preview-latex-template-header)
@@ -337,7 +351,7 @@ This can be used in `tex-math-preview-function', but it requires:
 The \"dvipng\" program is used for drawing.  If it fails a shell
 buffer is left showing the messages and the return is nil."
 
-  (let ((dot-png (concat tex-math-dir "/foo.png")))
+  (let ((dot-png (concat tex-math-dir "/" tex-math-preview-temporary-file-prefix ".png")))
     (when (eq 0 (shell-command
 		 (concat tex-math-preview-command-dvipng " " tex-math-preview-dvipng-option
 			 " -o" dot-png " " filename)))
