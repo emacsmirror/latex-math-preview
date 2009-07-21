@@ -1,4 +1,4 @@
-;;; tex-math-preview.el --- preview TeX math expressions.
+;;; latex-math-preview.el --- preview TeX math expressions.
 
 ;; Copyright 2006, 2007, 2008 Kevin Ryde
 
@@ -25,12 +25,12 @@
 
 ;;; Commentary:
 
-;; M-x tex-math-preview previews TeX math expressions.  Put point in a TeX,
+;; M-x latex-math-preview previews TeX math expressions.  Put point in a TeX,
 ;; LaTeX, Texinfo, Wikipedia or DBTexMath math expression and M-x
-;; tex-math-preview shows either an image or TeX error messages.
+;; latex-math-preview shows either an image or TeX error messages.
 ;;
 ;; `tex-mode' has its own far more substantial buffer and region previewing,
-;; but tex-math-preview is intentionally simpler and is geared towards
+;; but latex-math-preview is intentionally simpler and is geared towards
 ;; unsophisticated TeX users.
 
 ;;; Emacsen:
@@ -43,16 +43,16 @@
 
 ;;; Install:
 
-;; To make M-x tex-math-preview available put tex-math-preview.el somewhere
+;; To make M-x latex-math-preview available put latex-math-preview.el somewhere
 ;; in your load-path and the following in your .emacs
 ;;
-;;     (autoload 'tex-math-preview "tex-math-preview" nil t)
+;;     (autoload 'latex-math-preview "latex-math-preview" nil t)
 ;;
 ;; Bind it to a key if you like, eg. f8 in texinfo-mode,
 ;;
 ;;     (add-hook 'texinfo-mode-hook
 ;;                (lambda ()
-;;                  (define-key texinfo-mode-map [f8] 'tex-math-preview)))
+;;                  (define-key texinfo-mode-map [f8] 'latex-math-preview)))
 
 ;;; History:
 
@@ -72,54 +72,54 @@
 
 
 ;;;###autoload
-(defgroup tex-math-preview nil
+(defgroup latex-math-preview nil
   "Tex Math Preview."
- :prefix "tex-math-preview-"
+ :prefix "latex-math-preview-"
  :group 'applications
  :link  '(url-link
-          :tag "tex-math-preview home page"
-          "http://www.geocities.com/user42_kevin/tex-math-preview/index.html"))
+          :tag "latex-math-preview home page"
+          "http://www.geocities.com/user42_kevin/latex-math-preview/index.html"))
 
-(defcustom tex-math-preview-function
-  'tex-math-preview-adaptview
-  "Function for `tex-math-preview' to show a DVI file.
-The default `tex-math-preview-adaptview' chooses among the
+(defcustom latex-math-preview-function
+  'latex-math-preview-adaptview
+  "Function for `latex-math-preview' to show a DVI file.
+The default `latex-math-preview-adaptview' chooses among the
 methods, according to what Emacs and the system supports."
-  :type '(choice (tex-math-preview-adaptview
-                  tex-math-preview-dvi-view
-                  tex-math-preview-png-image)
+  :type '(choice (latex-math-preview-adaptview
+                  latex-math-preview-dvi-view
+                  latex-math-preview-png-image)
                  function)
-  :group 'tex-math-preview)
+  :group 'latex-math-preview)
 
-(defvar tex-math-preview-buffer-name
-  "*tex-math-preview*"
+(defvar latex-math-preview-buffer-name
+  "*latex-math-preview*"
   "Name of buffer which displays preview image.")
 
-(defvar tex-math-preview-latex-command
+(defvar latex-math-preview-latex-command
   "latex"
   "Path to latex.")
 
-(defvar tex-math-preview-command-dvipng
+(defvar latex-math-preview-command-dvipng
   "dvipng"
   "Path to dvipng.")
 
-(defvar tex-math-preview-temporary-file-prefix
+(defvar latex-math-preview-temporary-file-prefix
   "temp_latex_math"
   "The prefix name of some temporary files which is produced in making an image.")
 
-(defvar tex-math-preview-dvipng-option
+(defvar latex-math-preview-dvipng-option
   "-x 1728 -T tight"
   "Option for dvipng.")
 
-(defvar tex-math-preview-latex-template-header
+(defvar latex-math-preview-latex-template-header
   "\\documentclass{article}\n\\usepackage{amsmath, amsfonts, amsthm}\n\\pagestyle{empty}\n\\begin{document}\n"
   "Insert string to beggining of temporary latex file to make image.")
 
-(defvar tex-math-preview-latex-template-footer
+(defvar latex-math-preview-latex-template-footer
   "\\par\n\\end{document}\n"
   "Insert string to end of temporary latex file to make image.")
 
-(defvar tex-math-preview-match-expression
+(defvar latex-math-preview-match-expression
   '(
     ;; \[...\]
     (0 . "\\\\\\[\\(.\\|\n\\)*?\\\\]")
@@ -150,17 +150,17 @@ methods, according to what Emacs and the system supports."
     )
   "These eqpressions are used for matching to extract tex math expression.")
 
-(defvar tex-math-preview-map
+(defvar latex-math-preview-map
   (let ((map (copy-keymap view-mode-map)))
     (define-key map (kbd "q") 'delete-window)
     map)
-  "Keymap for tex-math-preview.")
+  "Keymap for latex-math-preview.")
 
 ;;-----------------------------------------------------------------------------
 
-(defun tex-math-preview-bounds-of-tex-math ()
+(defun latex-math-preview-bounds-of-latex-math ()
   "A `bounds-of-thing-at-point' function for a TeX maths expression.
-See `tex-math-preview' for what's matched.
+See `latex-math-preview' for what's matched.
 The return is a pair of buffer positions (START . END), or nil if
 no recognised expression at or surrounding point."
 
@@ -188,7 +188,7 @@ no recognised expression at or surrounding point."
       (when (looking-at "\\(\\$+\\(?:\\\\\\$\\|[^$]\\)+?\\$\\)")
         (setq beg (match-beginning 1) end (match-end 1))))
 
-    (dolist (elem tex-math-preview-match-expression)
+    (dolist (elem latex-math-preview-match-expression)
       (when (thing-at-point-looking-at (cdr elem))
         ;; if no other match, or this match is later, then override
         (if (or (not beg)
@@ -198,12 +198,12 @@ no recognised expression at or surrounding point."
     (and beg
          (cons beg end))))
           
-(put 'tex-math 'bounds-of-thing-at-point 'tex-math-preview-bounds-of-tex-math)
+(put 'latex-math 'bounds-of-thing-at-point 'latex-math-preview-bounds-of-latex-math)
 
 ;;;###autoload
-(defun tex-math-preview ()
+(defun latex-math-preview ()
   "Preview a TeX maths expression at (or surrounding) point.
-The `tex-math-preview-function' variable controls the viewing
+The `latex-math-preview-function' variable controls the viewing
 method.  The math expressions recognised are
 
     $...$ or $$...$$              TeX
@@ -218,7 +218,7 @@ DBTexMath is processed with plain TeX by default, or if it
 contains \\(...\\) or \\=\\[...\\] then with LaTeX.
 
 \"$\" is both the start and end for plain TeX, making it slightly
-ambiguous.  tex-math-preview assumes point is inside the
+ambiguous.  latex-math-preview assumes point is inside the
 expression, so when just after a \"$\" then that's the start, or
 when just before then that's the end.  If point is in between two
 \"$$\" then that's considered a start.
@@ -231,25 +231,25 @@ For more on the respective formats see
     URL `http://ricardo.ecn.wfu.edu/~cottrell/dbtexmath/'"
 
   (interactive)
-  (let ((str (thing-at-point 'tex-math)))
+  (let ((str (thing-at-point 'latex-math)))
     (or str
         (error "Not in a TeX math expression"))
-    (tex-math-preview-str str)))
+    (latex-math-preview-str str)))
 
-(defun tex-math-preview-str (str)
+(defun latex-math-preview-str (str)
   "Preview the given STR string as a TeX math expression.
 STR should not have $ or $$ delimiters."
 
-  (let* ((tex-math-dir (make-temp-file "tex-math-preview-" t))
-         (dot-tex      (concat tex-math-dir "/" tex-math-preview-temporary-file-prefix ".tex"))
-         (dot-dvi      (concat tex-math-dir "/" tex-math-preview-temporary-file-prefix ".dvi"))
-         (dot-log      (concat tex-math-dir "/" tex-math-preview-temporary-file-prefix ".log"))
-         (dot-aux      (concat tex-math-dir "/" tex-math-preview-temporary-file-prefix ".aux")))
+  (let* ((latex-math-dir (make-temp-file "latex-math-preview-" t))
+         (dot-tex      (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".tex"))
+         (dot-dvi      (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".dvi"))
+         (dot-log      (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".log"))
+         (dot-aux      (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".aux")))
 
     (with-temp-file dot-tex
-	(insert tex-math-preview-latex-template-header)
+	(insert latex-math-preview-latex-template-header)
         (insert str)
-	(insert tex-math-preview-latex-template-footer)
+	(insert latex-math-preview-latex-template-footer)
         )
 
     (unwind-protect
@@ -260,46 +260,46 @@ STR should not have $ or $$ delimiters."
         (let ((max-mini-window-height 1)  ;; force shell-command to buffer
               (windows (current-window-configuration)))
           (if (not (eq 0 (shell-command
-                          (concat tex-math-preview-latex-command " -output-directory " tex-math-dir
+                          (concat latex-math-preview-latex-command " -output-directory " latex-math-dir
                                   " " dot-tex " </dev/null"))))
               (error "TeX processing error")
 
             (set-window-configuration windows)
-            (funcall tex-math-preview-function dot-dvi)))
+            (funcall latex-math-preview-function dot-dvi)))
 
       ;; cleanup temp files
       (dolist (filename (list dot-tex dot-dvi dot-log dot-aux))
         (condition-case nil (delete-file filename) (error)))
-      (delete-directory tex-math-dir)
+      (delete-directory latex-math-dir)
       )))
 
 
 ;;-----------------------------------------------------------------------------
 ;; adaptive viewer selection
 
-(defun tex-math-preview-adaptview (filename)
+(defun latex-math-preview-adaptview (filename)
   "Display dvi FILENAME using either png image or `tex-dvi-view-command'.
-A PNG image in a buffer per `tex-math-preview-png-image' is used
+A PNG image in a buffer per `latex-math-preview-png-image' is used
 if possible, or if not then the `tex-mode' previewer given by
-`tex-dvi-view-command' (like `tex-math-preview-dvi-view' uses).
+`tex-dvi-view-command' (like `latex-math-preview-dvi-view' uses).
 
-This function is the default for `tex-math-preview-function',
-allowing `tex-math-preview' to adapt to the Emacs display
+This function is the default for `latex-math-preview-function',
+allowing `latex-math-preview' to adapt to the Emacs display
 capabilities and available viewer program(s)."
 
   (if (and (image-type-available-p 'png)
            (display-images-p)
-           (eq 0 (shell-command (concat tex-math-preview-command-dvipng " --version >/dev/null 2>&1") nil)))
-      (tex-math-preview-png-image filename)
-      (tex-math-preview-dvi-view filename)))
+           (eq 0 (shell-command (concat latex-math-preview-command-dvipng " --version >/dev/null 2>&1") nil)))
+      (latex-math-preview-png-image filename)
+      (latex-math-preview-dvi-view filename)))
 
 
 ;;-----------------------------------------------------------------------------
 ;; view by running tex-dvi-view-command
 
-(defun tex-math-preview-dvi-view (filename)
+(defun latex-math-preview-dvi-view (filename)
   "Display dvi FILENAME using `tex-dvi-view-command'.
-This can be used in `tex-math-preview-function'.
+This can be used in `latex-math-preview-function'.
 
 The default `tex-dvi-view-command' under X is xdvi and it works
 well.  On an SVGA console of a GNU/Linux system you can use
@@ -321,9 +321,9 @@ find a \"quiet\" mode or use a wrapper script to grep that out."
 ;;-----------------------------------------------------------------------------
 ;; view png in a buffer
 
-(defun tex-math-preview-png-image (filename)
+(defun latex-math-preview-png-image (filename)
   "Display dvi FILENAME as a png image in a buffer.
-This can be used in `tex-math-preview-function', but it requires:
+This can be used in `latex-math-preview-function', but it requires:
 
 * the \"dvipng\" program (http://sourceforge.net/projects/dvipng/)
 * a display which can show images (eg. X, not a tty)
@@ -333,27 +333,27 @@ This can be used in `tex-math-preview-function', but it requires:
            (display-images-p))
       (error "Cannot display PNG in this Emacs"))
 
-  (let ((image (tex-math-preview-dvi-to-image filename)))
+  (let ((image (latex-math-preview-dvi-to-image filename)))
     (if image
 	(progn
-          (switch-to-buffer-other-window tex-math-preview-buffer-name)
+          (switch-to-buffer-other-window latex-math-preview-buffer-name)
 	  (setq view-read-only nil)
           (erase-buffer)
           (insert "\n")
           (insert-image image " ")
           (goto-char (point-min))
 	  (setq view-read-only t)
-	  (use-local-map tex-math-preview-map)
+	  (use-local-map latex-math-preview-map)
 	  ))))
 
-(defun tex-math-preview-dvi-to-image (filename)
+(defun latex-math-preview-dvi-to-image (filename)
   "Render dvi FILENAME to an Emacs image and return that.
 The \"dvipng\" program is used for drawing.  If it fails a shell
 buffer is left showing the messages and the return is nil."
 
-  (let ((dot-png (concat tex-math-dir "/" tex-math-preview-temporary-file-prefix ".png")))
+  (let ((dot-png (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".png")))
     (when (eq 0 (shell-command
-		 (concat tex-math-preview-command-dvipng " " tex-math-preview-dvipng-option
+		 (concat latex-math-preview-command-dvipng " " latex-math-preview-dvipng-option
 			 " -o" dot-png " " filename)))
       (with-temp-buffer
         (set-buffer-multibyte nil)
@@ -362,6 +362,6 @@ buffer is left showing the messages and the return is nil."
         (prog1 `(image :type png :data ,(buffer-string))
           (delete-file dot-png))))))
 
-(provide 'tex-math-preview)
+(provide 'latex-math-preview)
 
-;;; tex-math-preview.el ends here
+;;; latex-math-preview.el ends here
