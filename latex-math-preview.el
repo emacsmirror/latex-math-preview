@@ -1,21 +1,19 @@
-;;; latex-math-preview.el --- preview TeX math expressions.
+;; latex-math-preview.el --- preview LaTeX mathematical expressions.
 
-;; Copyright 2006, 2007, 2008 Kevin Ryde
+;; latex-math-preview.el is derived from tex-math-preview.el.
+;; This emacs lisp is made by reducing some features of tex-math-preview.el
+;; and adjusting it to files of which format is only LaTeX.
+;; tex-math-preview.el is made by Kevin Ryde and 
+;; has some features which latex-math-preview does not have.
+;; Please see http://user42.tuxfamily.org/tex-math-preview/index.html
+;; for details of tex-math-preview.el.
 
-;; Author: Kevin Ryde <user42@zip.com.au>
-;; Version: 5
-;; Keywords: tex
-;; URL: http://www.geocities.com/user42_kevin/tex-math-preview/index.html
-;; EmacsWiki: TexMathPreview
-;; Compatibility: Emacs 21, Emacs 22
-;; Incompatibility: XEmacs 21
-
-;; tex-math-preview.el is free software; you can redistribute it and/or
+;; latex-math-preview.el is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as published
 ;; by the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
 ;;
-;; tex-math-preview.el is distributed in the hope that it will be useful,
+;; latex-math-preview.el is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
 ;; Public License for more details.
@@ -23,47 +21,62 @@
 ;; You can get a copy of the GNU General Public License online at
 ;; <http://www.gnu.org/licenses>.
 
-;;; Commentary:
+;; Commentary:
+;; M-x latex-math-preview previews mathematical expressions pointed
+;; by cursor in LaTeX files.
+;; The result of latex-math-preview is shown in new buffer as image.
 
-;; M-x latex-math-preview previews TeX math expressions.  Put point in a TeX,
-;; LaTeX, Texinfo, Wikipedia or DBTexMath math expression and M-x
-;; latex-math-preview shows either an image or TeX error messages.
+;; Requirements;
+;; Emacs 22 or 23.
+;; dvipng
+;; latex
+
+;; Install:
+;; Put latex-math-preview.el to your load-path and
+;; write the following code in ~/.emacs.el.
+;; 
+;;   (autoload 'latex-math-preview "latex-math-preview" nil t)
+;; 
+;; For YaTeX mode, add the follwing to ~/.emacs.el if desired.
 ;;
-;; `tex-mode' has its own far more substantial buffer and region previewing,
-;; but latex-math-preview is intentionally simpler and is geared towards
-;; unsophisticated TeX users.
+;;   (add-hook 'yatex-mode-hook
+;; 	      (YaTeX-define-key "p" 'latex-math-preview))
 
-;;; Emacsen:
-
-;; Designed for Emacs 21 and 22.
+;; Settings
+;; You can customize some variables.
+;; In particular, please set the value of the following variables if needed.
+;;  latex-math-preview-latex-command
+;;  latex-math-preview-command-dvipng
+;;  latex-math-preview-latex-template-header
+;;  latex-math-preview-latex-template-footer
+;; 
+;; latex-math-preview makes a temporary latex file and compiles it and 
+;; so gets a preview image.
+;; latex-math-preview-latex-command is the path to command
+;; 'latex', 'platex' or etc.
+;; latex-math-preview-command-dvipng is the path to command 'dvipng'.
+;; The construction of temporary latex file is the following.
+;; 
+;; (part of latex-math-preview-latex-template-header
+;;  the default value is the following)
+;; \documentclass{article}
+;; \usepackage{amsmath, amsfonts, amsthm}
+;; \pagestyle{empty}
+;; \begin{document}
 ;;
-;; Doesn't work in XEmacs due to some missing functions there and because
-;; `shell-command' doesn't return an exit status (could add the extra
-;; functions but redoing shell-command is too much like hard work).
-
-;;; Install:
-
-;; To make M-x latex-math-preview available put latex-math-preview.el somewhere
-;; in your load-path and the following in your .emacs
+;; (some mathematical expressions)
 ;;
-;;     (autoload 'latex-math-preview "latex-math-preview" nil t)
-;;
-;; Bind it to a key if you like, eg. f8 in texinfo-mode,
-;;
-;;     (add-hook 'texinfo-mode-hook
-;;                (lambda ()
-;;                  (define-key texinfo-mode-map [f8] 'latex-math-preview)))
+;; (part of latex-math-preview-latex-template-footer
+;;  the default value is the following)
+;; \par
+;; \end{document}
+;; 
+;; So, if you can use some latex packages in temporary latex files,
+;; you should set the customized value to
+;; latex-math-preview-latex-template-header.
 
-;;; History:
-
-;; Version 1 - the first version
-;; Version 2 - multi-line <math> reported by Uwe Brauer; better $...$ matching
-;; Version 3 - also images in a buffer using dvipng
-;; Version 4 - yet better $...$ handling, add some dbtexmath
-;; Version 5 - add latex \(...\) and \[...\]
-;; Version 5.01 - Cut margin of image and support some latex comand related to equation. 
-;;                (by T. Yamaguchi at 2009/05/01 10:26:31)
-;; Version 5.01 - Add tex-math-preview-map. (by T. Yamaguchi at 2009/05/02 07:24:12)
+;; History:
+;; 2009/07/22 version 0.0.1 release
 
 ;;; Code:
 
@@ -364,4 +377,4 @@ buffer is left showing the messages and the return is nil."
 
 (provide 'latex-math-preview)
 
-;;; latex-math-preview.el ends here
+;; latex-math-preview.el ends here
