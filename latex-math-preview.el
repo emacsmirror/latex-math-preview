@@ -47,14 +47,20 @@
 ;; In particular, please set the value of the following variables if needed.
 ;;  latex-math-preview-latex-command
 ;;  latex-math-preview-command-dvipng
+;;  latex-math-preview-command-dvi-view
 ;;  latex-math-preview-latex-template-header
 ;;  latex-math-preview-latex-template-footer
 ;; 
 ;; latex-math-preview makes a temporary latex file and compiles it and 
-;; so gets a preview image.
+;; then gets a preview image.
 ;; latex-math-preview-latex-command is the path to command
 ;; 'latex', 'platex' or etc.
 ;; latex-math-preview-command-dvipng is the path to command 'dvipng'.
+;; The example of setting values for unix or linux is the following.
+;;  (setq latex-math-preview-latex-command "/usr/bin/platex")
+;;  (setq latex-math-preview-command-dvipng "/usr/bin/dvipng")
+;;  (setq latex-math-preview-command-dvi-view "/usr/bin/xdvi")
+;;
 ;; The construction of temporary latex file is the following.
 ;; 
 ;; (part of latex-math-preview-latex-template-header
@@ -78,20 +84,16 @@
 ;; History:
 ;; 2009/07/22 version 0.0.1 release
 
-;;; Code:
+;; Code:
 
 (require 'thingatpt)
-(require 'tex-mode)   ;; for tex-dvi-view-command
-
 
 ;;;###autoload
 (defgroup latex-math-preview nil
-  "Tex Math Preview."
+  "LaTeX Math Preview."
  :prefix "latex-math-preview-"
  :group 'applications
- :link  '(url-link
-          :tag "latex-math-preview home page"
-          "http://www.geocities.com/user42_kevin/latex-math-preview/index.html"))
+ )
 
 (defcustom latex-math-preview-function
   'latex-math-preview-adaptview
@@ -109,12 +111,13 @@ methods, according to what Emacs and the system supports."
   "Name of buffer which displays preview image.")
 
 (defvar latex-math-preview-latex-command
-  "latex"
-  "Path to latex.")
+  "latex" "Path to latex.")
 
 (defvar latex-math-preview-command-dvipng
-  "dvipng"
-  "Path to dvipng.")
+  "dvipng" "Path to dvipng.")
+
+(defvar latex-math-preview-command-dvi-view
+  "xdvi" "Path to dvi viewer.")
 
 (defvar latex-math-preview-temporary-file-prefix
   "temp_latex_math"
@@ -172,8 +175,8 @@ methods, according to what Emacs and the system supports."
 ;;-----------------------------------------------------------------------------
 
 (defun latex-math-preview-bounds-of-latex-math ()
-  "A `bounds-of-thing-at-point' function for a TeX maths expression.
-See `latex-math-preview' for what's matched.
+  "A `bounds-of-thing-at-point' function for a LaTeX mathematical expression.
+See `latex-math-preview-match-expression' for what's matched.
 The return is a pair of buffer positions (START . END), or nil if
 no recognised expression at or surrounding point."
 
@@ -216,32 +219,9 @@ no recognised expression at or surrounding point."
 ;;;###autoload
 (defun latex-math-preview ()
   "Preview a TeX maths expression at (or surrounding) point.
-The `latex-math-preview-function' variable controls the viewing
-method.  The math expressions recognised are
-
-    $...$ or $$...$$              TeX
-    \\(...\\) or \\=\\[...\\]            LaTeX
-    \\begin{math}...\\end{math}     LaTeX
-    \\begin{displaymath}...        LaTeX
-    @math{...}                    Texinfo
-    <math>...</math>              Wikipedia
-    <alt role=\"tex\">...</alt>     DBTexMath
-
-DBTexMath is processed with plain TeX by default, or if it
-contains \\(...\\) or \\=\\[...\\] then with LaTeX.
-
-\"$\" is both the start and end for plain TeX, making it slightly
-ambiguous.  latex-math-preview assumes point is inside the
-expression, so when just after a \"$\" then that's the start, or
-when just before then that's the end.  If point is in between two
-\"$$\" then that's considered a start.
-
-For more on the respective formats see
-
-    URL `http://www.latex-project.org/'
-    Info node `(texinfo)math'
-    URL `http://meta.wikimedia.org/wiki/Help:Displaying_a_formula'
-    URL `http://ricardo.ecn.wfu.edu/~cottrell/dbtexmath/'"
+The `latex-math-preview-function' variable controls the viewing method. 
+The LaTeX notations which can be matched are $...$, $$...$$ or
+the notations which are stored in `latex-math-preview-match-expression'."
 
   (interactive)
   (let ((str (thing-at-point 'latex-math)))
@@ -291,10 +271,11 @@ STR should not have $ or $$ delimiters."
 ;; adaptive viewer selection
 
 (defun latex-math-preview-adaptview (filename)
-  "Display dvi FILENAME using either png image or `tex-dvi-view-command'.
+  "Display dvi FILENAME using either png image or
+`latex-math-preview-command-dvi-view'.
 A PNG image in a buffer per `latex-math-preview-png-image' is used
 if possible, or if not then the `tex-mode' previewer given by
-`tex-dvi-view-command' (like `latex-math-preview-dvi-view' uses).
+`latex-math-preview-command-dvi-view'.
 
 This function is the default for `latex-math-preview-function',
 allowing `latex-math-preview' to adapt to the Emacs display
@@ -311,25 +292,8 @@ capabilities and available viewer program(s)."
 ;; view by running tex-dvi-view-command
 
 (defun latex-math-preview-dvi-view (filename)
-  "Display dvi FILENAME using `tex-dvi-view-command'.
-This can be used in `latex-math-preview-function'.
-
-The default `tex-dvi-view-command' under X is xdvi and it works
-well.  On an SVGA console of a GNU/Linux system you can use
-dvisvga (from tmview), or perhaps try a combination of dvipng (or
-dvips+ghostscript) and a console image viewer like zgv.  Any
-program output is shown in a buffer, which is good for error
-messages but if it prints a startup banner etc you'll want to
-find a \"quiet\" mode or use a wrapper script to grep that out."
-
-  ;; eval/expand like `tex-view' and `tex-send-command' do
-  (let* ((template (eval tex-dvi-view-command))
-         (command  (replace-regexp-in-string "\\*" filename
-                                             template t t)))
-    (if (string-equal command template)
-        (setq command (concat command " " filename)))
-    (shell-command command)))
-
+  "Display dvi FILENAME using `latex-math-preview-command-dvi-view'."
+  (shell-command (concat latex-math-preview-command-dvi-view " " filename)))
 
 ;;-----------------------------------------------------------------------------
 ;; view png in a buffer
