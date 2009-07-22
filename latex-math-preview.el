@@ -1,6 +1,6 @@
 ;; latex-math-preview.el --- preview LaTeX mathematical expressions.
 
-;; latex-math-preview.el is derived from tex-math-preview.el.
+;; latex-math-preview.el is based on tex-math-preview.el.
 ;; This emacs lisp is made by reducing some features of tex-math-preview.el
 ;; and adjusting it to files of which format is only LaTeX.
 ;; tex-math-preview.el is made by Kevin Ryde and 
@@ -80,6 +80,9 @@
 ;; So, if you can use some latex packages in temporary latex files,
 ;; you should set the customized value to
 ;; latex-math-preview-latex-template-header.
+
+;; Usage:
+;; 
 
 ;; History:
 ;; 2009/07/22 version 0.0.1 release
@@ -166,9 +169,14 @@ methods, according to what Emacs and the system supports."
     )
   "These eqpressions are used for matching to extract tex math expression.")
 
+(defvar latex-math-preview-window-configuration nil
+  "Temporary variable in which window configuration is saved.")
+
 (defvar latex-math-preview-map
-  (let ((map (copy-keymap view-mode-map)))
-    (define-key map (kbd "q") 'delete-window)
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "q") 'latex-math-preview-exit-window)
+    (define-key map (kbd "j") 'scroll-up)
+    (define-key map (kbd "k") 'scroll-down)
     map)
   "Keymap for latex-math-preview.")
 
@@ -227,6 +235,7 @@ the notations which are stored in `latex-math-preview-match-expression'."
   (let ((str (thing-at-point 'latex-math)))
     (or str
         (error "Not in a TeX math expression"))
+    (setq latex-math-preview-window-configuration (current-window-configuration))
     (latex-math-preview-str str)))
 
 (defun latex-math-preview-str (str)
@@ -313,14 +322,19 @@ This can be used in `latex-math-preview-function', but it requires:
   (let ((image (latex-math-preview-dvi-to-image filename)))
     (if image
 	(progn
-          (switch-to-buffer-other-window latex-math-preview-buffer-name)
-	  (setq view-read-only nil)
-          (erase-buffer)
-          (insert "\n")
-          (insert-image image " ")
-          (goto-char (point-min))
-	  (setq view-read-only t)
-	  (use-local-map latex-math-preview-map)
+	  (with-current-buffer (get-buffer-create latex-math-preview-buffer-name)
+	    (setq buffer-read-only nil)
+	    (erase-buffer)
+	    (insert "\n")
+	    (insert-image image " ")
+	    (insert "\n")
+	    (goto-char (point-min))
+	    (buffer-disable-undo)
+	    (setq buffer-read-only t)
+	    (use-local-map latex-math-preview-map)
+	    (setq mode-name "LaTeXPreview")
+	    )
+	  (pop-to-buffer latex-math-preview-buffer-name)
 	  ))))
 
 (defun latex-math-preview-dvi-to-image (filename)
@@ -340,5 +354,14 @@ buffer is left showing the messages and the return is nil."
           (delete-file dot-png))))))
 
 (provide 'latex-math-preview)
+
+;;-----------------------------------------------------------------------------
+;; Manage window
+
+(defun latex-math-preview-exit-window ()
+  (interactive)
+  (set-window-configuration latex-math-preview-window-configuration)
+  )
+
 
 ;; latex-math-preview.el ends here
