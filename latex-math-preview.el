@@ -3,12 +3,12 @@
 ;; Author: Takayuki YAMAGUCHI <d@ytak.info>
 ;; Keywords: LaTeX TeX
 ;; Version: 0.1.0
-;; Created: Thu Jul 23 13:15:24 2009
+;; Created: Sat Jul 25 13:49:28 2009
 
 ;; latex-math-preview.el is a modified version which is based on
 ;; tex-math-preview.el and has been created at July 2009.
 ;; This emacs lisp is made by reducing some features of tex-math-preview.el
-;; and adjusting it to files of which format is only LaTeX.
+;; and adjusting it to LaTeX files.
 ;; tex-math-preview.el is made by Kevin Ryde and 
 ;; has some features which latex-math-preview does not have.
 ;; Please see http://user42.tuxfamily.org/tex-math-preview/index.html
@@ -29,19 +29,19 @@
 ;; You should have received a copy of the GNU General Public License along with
 ;; this program. If not, see <http://www.gnu.org/licenses/>.
 
-;; Commentary:
+;;; Commentary:
 ;; M-x latex-math-preview previews mathematical expressions pointed
 ;; by cursor in LaTeX files.
-;; The result of latex-math-preview is shown in new buffer as image.
+;; The result of latex-math-preview is shown in new buffer as image
 ;; or as dvi file by dvi viewer.
 
 ;; Requirements;
-;; Emacs 22 or 23.
+;; Emacs (version 22 or 23) on Linux or Meadow3 on Windows.
 ;; dvipng
-;; latex
-;; dvi viewer (for example, xdvi)
+;; latex or platex
+;; dvi viewer (for example, xdvi) if needed
 
-;; Install:
+;;; Install:
 ;; Put latex-math-preview.el to your load-path and
 ;; write the following code in ~/.emacs.el.
 ;; 
@@ -52,10 +52,13 @@
 ;;   (add-hook 'yatex-mode-hook
 ;;            '(lambda ()
 ;; 	      (YaTeX-define-key "p" 'latex-math-preview)))
+;;
+;; This setting almost binds latex-math-preview to "C-c p".
 
-;; Settings
+;;; Settings:
 ;; You can customize some variables.
-;; In particular, please set the value of the following variables if needed.
+;; In particular, please set the value of the following variables
+;; according to your system if needed.
 ;;  latex-math-preview-latex-command
 ;;  latex-math-preview-command-dvipng
 ;;  latex-math-preview-command-dvi-view
@@ -63,7 +66,7 @@
 ;;  latex-math-preview-latex-template-footer
 ;; 
 ;; latex-math-preview makes a temporary latex file and compiles it and 
-;; then gets a preview image.
+;; then gets a preview image by dvipng.
 ;; latex-math-preview-latex-command is the path to command
 ;; 'latex', 'platex' or etc.
 ;; latex-math-preview-command-dvipng is the path to command 'dvipng'.
@@ -91,19 +94,42 @@
 ;; So, if you can use some latex packages in temporary latex files,
 ;; you should set the customized value to
 ;; latex-math-preview-latex-template-header.
+;; latex-math-preview compiles a file like the above and
+;; the produced dvi file is converted to png by dvipng.
+;; Then this png file is shown in the buffer.
 
-;; Usage:
+;;; Usage:
 ;; If you type "M-x tex-math-preview" when cursor points to 
 ;; a mathematical expression, new buffer including an image
-;; is created when you configure to use png file.
+;; is created when you have configuration to use png file.
 ;; In this buffer, you check the result of LaTeX mathematical
 ;; expression and type 'q' to exit the window.
+;; 
+;; The default setting supports the following LaTeX mathematical
+;; expressions.
+;;  $ ... $
+;;  $$ ... $$
+;;  \[ ... \]
+;;  \begin{math} ... \end{math}
+;;  \begin{displaymath} ... \end{displaymath}
+;;  \begin{equation} ... \end{equation}
+;;  \begin{gather} ... \end{gather}
+;;  \begin{align} ... \end{align}
+;;  \begin{alignat} ... \end{alignat}
+
+;;; Keymap:
+;; In preview window, the following binded key is applicable.
+;;  q: exit preview buffer
+;;  Q: delete preview buffer
+;;  j: scroll up
+;;  k: scroll down
 
 ;; ChangeLog:
-;; 2009/07/22 yamaguchi
-;;     version 0.1.0 release
+;; 2009/07/25 yamaguchi
+;;     version 0.1.0 release.
+;;     support Meadow3.
 
-;; Code:
+;;; Code:
 
 (require 'thingatpt)
 
