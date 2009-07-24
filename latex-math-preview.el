@@ -143,7 +143,7 @@ methods, according to what Emacs and the system supports."
   "The prefix name of some temporary files which is produced in making an image.")
 
 (defvar latex-math-preview-dvipng-option
-  "-x 1728 -T tight"
+  '("-x" "1728" "-T" "tight")
   "Option for dvipng.")
 
 (defvar latex-math-preview-latex-template-header
@@ -180,17 +180,19 @@ methods, according to what Emacs and the system supports."
     ;; \begin{alignat}...\end{alignat}
     (0 . "\\\\begin{alignat\\(\\|\\*\\)}\\(\\(.\\|\n\\)*?\\)\\\\end{alignat\\(\\|\\*\\)}")
 
-    ;; \begin{multiline}...\end{multiline}
-    (0 . "\\\\begin{multiline\\(\\|\\*\\)}\\(\\(.\\|\n\\)*?\\)\\\\end{multiline\\(\\|\\*\\)}")
     )
   "These eqpressions are used for matching to extract tex math expression.")
 
 (defvar latex-math-preview-window-configuration nil
   "Temporary variable in which window configuration is saved.")
 
+(defvar latex-math-preview-not-delete-tmpfile nil
+  "Not delete temporary files and directory if this value is true. Mainly for debugging.")
+
 (defvar latex-math-preview-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "q") 'latex-math-preview-exit-window)
+    (define-key map (kbd "Q") 'latex-math-preview-delete-buffer)
     (define-key map (kbd "j") 'scroll-up)
     (define-key map (kbd "k") 'scroll-down)
     map)
@@ -271,24 +273,17 @@ STR should not have $ or $$ delimiters."
         )
 
     (unwind-protect
-        ;; don't show all the tex ramblings in the minibuffer, leave it to
-        ;; the shell buffer, and show that only if there's an error (ie. put
-        ;; back window config if no error)
-        ;;
-        (let ((max-mini-window-height 1)  ;; force shell-command to buffer
-              (windows (current-window-configuration)))
-          (if (not (eq 0 (shell-command
-                          (concat latex-math-preview-latex-command " -output-directory " latex-math-dir
-                                  " " dot-tex " </dev/null"))))
-              (error "TeX processing error")
+	(if (not (eq 0 (call-process latex-math-preview-latex-command nil nil nil
+				     (concat "-output-directory=" latex-math-dir) dot-tex)))
+	    (error "TeX processing error")
+	  (funcall latex-math-preview-function dot-dvi))
 
-            (set-window-configuration windows)
-            (funcall latex-math-preview-function dot-dvi)))
-
-      ;; cleanup temp files
-      (dolist (filename (list dot-tex dot-dvi dot-log dot-aux))
-        (condition-case nil (delete-file filename) (error)))
-      (delete-directory latex-math-dir)
+      (if (not latex-math-preview-not-delete-tmpfile)
+	  ;; cleanup temp files
+	  (progn
+	    (dolist (filename (list dot-tex dot-dvi dot-log dot-aux))
+	      (condition-case nil (delete-file filename) (error)))
+	    (delete-directory latex-math-dir)))
       )))
 
 
@@ -308,17 +303,17 @@ capabilities and available viewer program(s)."
 
   (if (and (image-type-available-p 'png)
            (display-images-p)
-           (eq 0 (shell-command (concat latex-math-preview-command-dvipng " --version >/dev/null 2>&1") nil)))
+           (eq 0 (call-process shell-file-name nil nil nil "-c" latex-math-preview-command-dvipng "--version")))
       (latex-math-preview-png-image filename)
       (latex-math-preview-dvi-view filename)))
-
 
 ;;-----------------------------------------------------------------------------
 ;; view by running tex-dvi-view-command
 
 (defun latex-math-preview-dvi-view (filename)
   "Display dvi FILENAME using `latex-math-preview-command-dvi-view'."
-  (shell-command (concat latex-math-preview-command-dvi-view " " filename)))
+  (message filename)
+  (call-process latex-math-preview-command-dvi-view nil nil nil filename))
 
 ;;-----------------------------------------------------------------------------
 ;; view png in a buffer
@@ -359,15 +354,17 @@ The \"dvipng\" program is used for drawing.  If it fails a shell
 buffer is left showing the messages and the return is nil."
 
   (let ((dot-png (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".png")))
-    (when (eq 0 (shell-command
-		 (concat latex-math-preview-command-dvipng " " latex-math-preview-dvipng-option
-			 " -o" dot-png " " filename)))
+    (when (eq 0 (eval `(call-process latex-math-preview-command-dvipng nil nil nil "-o" dot-png
+				     ,@latex-math-preview-dvipng-option filename)))
+      
       (with-temp-buffer
         (set-buffer-multibyte nil)
         (insert-file-contents-literally dot-png)
         ;; use :data for the image so we can delete the file
         (prog1 `(image :type png :data ,(buffer-string))
-          (delete-file dot-png))))))
+	  (if (not latex-math-preview-not-delete-tmpfile)
+	      (delete-file dot-png)
+	    ))))))
 
 ;;-----------------------------------------------------------------------------
 ;; Manage window
@@ -376,6 +373,12 @@ buffer is left showing the messages and the return is nil."
   "Exit preview window."
   (interactive)
   (set-window-configuration latex-math-preview-window-configuration))
+
+(defun latex-math-preview-delete-buffer ()
+  "Delete buffer of preview"
+  (interactive)
+  (set-window-configuration latex-math-preview-window-configuration)
+  (kill-buffer latex-math-preview-buffer-name))
 
 (provide 'latex-math-preview)
 
