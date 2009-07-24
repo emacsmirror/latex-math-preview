@@ -1,6 +1,12 @@
-;; latex-math-preview.el --- preview LaTeX mathematical expressions.
+;;; latex-math-preview.el --- preview LaTeX mathematical expressions.
 
-;; latex-math-preview.el is based on tex-math-preview.el.
+;; Author: Takayuki YAMAGUCHI <d@ytak.info>
+;; Keywords: LaTeX TeX
+;; Version: 0.1.0
+;; Created: Thu Jul 23 13:15:24 2009
+
+;; latex-math-preview.el is a modified version which is based on
+;; tex-math-preview.el and has been created at July 2009.
 ;; This emacs lisp is made by reducing some features of tex-math-preview.el
 ;; and adjusting it to files of which format is only LaTeX.
 ;; tex-math-preview.el is made by Kevin Ryde and 
@@ -8,28 +14,32 @@
 ;; Please see http://user42.tuxfamily.org/tex-math-preview/index.html
 ;; for details of tex-math-preview.el.
 
-;; latex-math-preview.el is free software; you can redistribute it and/or
-;; modify it under the terms of the GNU General Public License as published
-;; by the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
+;; Copyright 2006, 2007, 2008, 2009 Kevin Ryde
+;; Copyright 2009 Takayuki YAMAGUCHI
 ;;
-;; latex-math-preview.el is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
-;; Public License for more details.
+;; This program is free software; you can redistribute it and/or modify it under
+;; the terms of the GNU General Public License as published by the Free Software
+;; Foundation; either version 3 of the License, or (at your option) any later 
+;; version. 
 ;;
-;; You can get a copy of the GNU General Public License online at
-;; <http://www.gnu.org/licenses>.
+;; This program is distributed in the hope that it will be useful, but WITHOUT 
+;; ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+;; FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
+;; 
+;; You should have received a copy of the GNU General Public License along with
+;; this program. If not, see <http://www.gnu.org/licenses/>.
 
 ;; Commentary:
 ;; M-x latex-math-preview previews mathematical expressions pointed
 ;; by cursor in LaTeX files.
 ;; The result of latex-math-preview is shown in new buffer as image.
+;; or as dvi file by dvi viewer.
 
 ;; Requirements;
 ;; Emacs 22 or 23.
 ;; dvipng
 ;; latex
+;; dvi viewer (for example, xdvi)
 
 ;; Install:
 ;; Put latex-math-preview.el to your load-path and
@@ -40,7 +50,8 @@
 ;; For YaTeX mode, add the follwing to ~/.emacs.el if desired.
 ;;
 ;;   (add-hook 'yatex-mode-hook
-;; 	      (YaTeX-define-key "p" 'latex-math-preview))
+;;            '(lambda ()
+;; 	      (YaTeX-define-key "p" 'latex-math-preview)))
 
 ;; Settings
 ;; You can customize some variables.
@@ -82,10 +93,15 @@
 ;; latex-math-preview-latex-template-header.
 
 ;; Usage:
-;; 
+;; If you type "M-x tex-math-preview" when cursor points to 
+;; a mathematical expression, new buffer including an image
+;; is created when you configure to use png file.
+;; In this buffer, you check the result of LaTeX mathematical
+;; expression and type 'q' to exit the window.
 
-;; History:
-;; 2009/07/22 version 0.0.1 release
+;; ChangeLog:
+;; 2009/07/22 yamaguchi
+;;     version 0.1.0 release
 
 ;; Code:
 
@@ -353,15 +369,14 @@ buffer is left showing the messages and the return is nil."
         (prog1 `(image :type png :data ,(buffer-string))
           (delete-file dot-png))))))
 
-(provide 'latex-math-preview)
-
 ;;-----------------------------------------------------------------------------
 ;; Manage window
 
 (defun latex-math-preview-exit-window ()
+  "Exit preview window."
   (interactive)
-  (set-window-configuration latex-math-preview-window-configuration)
-  )
+  (set-window-configuration latex-math-preview-window-configuration))
 
+(provide 'latex-math-preview)
 
-;; latex-math-preview.el ends here
+;;; latex-math-preview.el ends here
