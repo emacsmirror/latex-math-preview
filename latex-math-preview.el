@@ -299,32 +299,39 @@ the notations which are stored in `latex-math-preview-match-expression'."
     (setq latex-math-preview-window-configuration (current-window-configuration))
     (latex-math-preview-str str)))
 
+(defun latex-math-preview-make-dvi-file (tmpdir math-exp)
+  "Make temporary tex file including MATH-EXP in TMPDIR and compile it."
+  (let ((dot-tex      (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".tex"))
+	(dot-dvi      (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".dvi")))
+    (with-temp-file dot-tex
+      (insert latex-math-preview-latex-template-header)
+      (insert math-exp)
+      (insert latex-math-preview-latex-template-footer))
+    (if (not (eq 0 (call-process latex-math-preview-latex-command nil nil nil
+				 (concat "-output-directory=" latex-math-dir) dot-tex)))
+	(error "TeX processing error")
+      dot-dvi)
+    ))
+
+(defun latex-math-preview-clear-tmp-directory (dir)
+  "Delete temporary directory and files contained in it."
+  (mapcar (lambda (file)
+	    (let ((path (concat dir "/" file)))
+	      (if (file-regular-p path)
+		  (condition-case nil (delete-file path) (error)))))
+	  (directory-files dir))
+  (delete-directory latex-math-dir))
+
 (defun latex-math-preview-str (str)
   "Preview the given STR string as a TeX math expression.
 STR should not have $ or $$ delimiters."
 
-  (let* ((latex-math-dir (make-temp-file "latex-math-preview-" t))
-         (dot-tex      (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".tex"))
-         (dot-dvi      (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".dvi"))
-         (dot-log      (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".log"))
-         (dot-aux      (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".aux")))
-
-    (with-temp-file dot-tex
-	(insert latex-math-preview-latex-template-header)
-        (insert str)
-	(insert latex-math-preview-latex-template-footer)
-        )
-
-    (unwind-protect
-	(if (not (eq 0 (call-process latex-math-preview-latex-command nil nil nil
-				     (concat "-output-directory=" latex-math-dir) dot-tex)))
-	    (error "TeX processing error")
-	  (funcall latex-math-preview-function dot-dvi))
-
-      (if (not latex-math-preview-not-delete-tmpfile)
-	  ;; cleanup temp files
-	  (latex-math-preview-clear-tmp-directory latex-math-dir)
-	))))
+  (let ((latex-math-dir (make-temp-file "latex-math-preview-" t)))
+    (funcall latex-math-preview-function (latex-math-preview-make-dvi-file latex-math-dir str))
+    (if (not latex-math-preview-not-delete-tmpfile)
+	;; cleanup temp files
+	(latex-math-preview-clear-tmp-directory latex-math-dir)
+      )))
 
 ;;-----------------------------------------------------------------------------
 ;; adaptive viewer selection
@@ -357,8 +364,8 @@ capabilities and available viewer program(s)."
 ;;-----------------------------------------------------------------------------
 ;; view png in a buffer
 
-(defun latex-math-preview-png-image (filename)
-  "Display dvi FILENAME as a png image in a buffer.
+(defun latex-math-preview-png-image (dvifile)
+  "Display dvi DVIFILE as a png image in a buffer.
 This can be used in `latex-math-preview-function', but it requires:
 
 * the \"dvipng\" program (http://sourceforge.net/projects/dvipng/)
@@ -369,14 +376,14 @@ This can be used in `latex-math-preview-function', but it requires:
            (display-images-p))
       (error "Cannot display PNG in this Emacs"))
 
-  (let ((image (latex-math-preview-dvi-to-image filename)))
+  (let ((image (latex-math-preview-dvi-to-png dvifile)))
     (if image
 	(progn
 	  (with-current-buffer (get-buffer-create latex-math-preview-buffer-name)
 	    (setq buffer-read-only nil)
 	    (erase-buffer)
-	    (insert "\n")
-	    (insert-image image " ")
+	    (insert-image-file image)
+	    (end-of-line)
 	    (insert "\n")
 	    (goto-char (point-min))
 	    (buffer-disable-undo)
@@ -399,32 +406,18 @@ This can be used in `latex-math-preview-function', but it requires:
 		   (color-values (or latex-math-preview-image-foreground-color (face-foreground 'default))) " ")))
     ))
 
-(defun latex-math-preview-clear-tmp-directory (dir)
-  "Delete temporary directory and files contained in it."
-  (mapcar (lambda (file)
-	    (let ((path (concat dir "/" file)))
-	      (if (file-regular-p path)
-		  (condition-case nil (delete-file path) (error)))))
-	  (directory-files dir))
-  (delete-directory latex-math-dir))
-
-(defun latex-math-preview-dvi-to-image (filename)
+(defun latex-math-preview-dvi-to-png (filename &optional output)
   "Render dvi FILENAME to an Emacs image and return that.
 The \"dvipng\" program is used for drawing.  If it fails a shell
 buffer is left showing the messages and the return is nil."
 
   (if (not latex-math-preview-dvipng-color-option)
       (setq latex-math-preview-dvipng-color-option (latex-math-preview-get-dvipng-color-option)))
-  (let ((dot-png (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".png")))
-    (when (eq 0 (eval `(call-process latex-math-preview-command-dvipng nil nil nil "-o" dot-png
-				     ,@latex-math-preview-dvipng-option ,@latex-math-preview-dvipng-color-option filename)))
-      
-      (with-temp-buffer
-        (set-buffer-multibyte nil)
-        (insert-file-contents-literally dot-png)
-        ;; use :data for the image so we can delete the file
-        (prog1 `(image :type png :data ,(buffer-string))
-	  )))))
+  (let ((dot-png (or output (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".png"))))
+    (if (eq 0 (eval `(call-process latex-math-preview-command-dvipng nil nil nil "-o" dot-png
+				   ,@latex-math-preview-dvipng-option ,@latex-math-preview-dvipng-color-option filename)))
+	dot-png
+      nil)))
 
 ;;-----------------------------------------------------------------------------
 ;; Manage window
