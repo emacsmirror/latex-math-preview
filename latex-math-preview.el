@@ -172,6 +172,15 @@ methods, according to what Emacs and the system supports."
   '("-x" "1728" "-T" "tight")
   "Option for dvipng.")
 
+(defvar latex-math-preview-image-foreground-color nil
+  "Foreground color of image created by dvipng.")
+
+(defvar latex-math-preview-image-background-color nil
+  "Background color of image created by dvipng.")
+
+(defvar latex-math-preview-dvipng-color-option nil
+  "Temporary variable. You must not set this variable.")
+
 (defvar latex-math-preview-latex-template-header
   "\\documentclass{article}\n\\usepackage{amsmath, amsfonts, amsthm}\n\\pagestyle{empty}\n\\begin{document}\n"
   "Insert string to beggining of temporary latex file to make image.")
@@ -374,14 +383,32 @@ This can be used in `latex-math-preview-function', but it requires:
 	  (pop-to-buffer latex-math-preview-buffer-name)
 	  ))))
 
+(defun latex-math-preview-get-dvipng-color-option()
+  (let ((max (car (color-values "#ffffff"))))
+    (list (concat "-bg rgb "
+		  (mapconcat
+		   (lambda (col) (number-to-string (/ (float col) max)))
+		   (color-values (or latex-math-preview-image-background-color (face-background 'default))) " "))
+	  (concat "-fg rgb "
+		  (mapconcat
+		   (lambda (col) (number-to-string (/ (float col) max)))
+		   (color-values (or latex-math-preview-image-foreground-color (face-foreground 'default))) " ")))
+    ))
+
+(defun latex-math-preview-clear-dvipng-color-option()
+  (interactive)
+  (setq latex-math-preview-dvipng-color-option nil))
+
 (defun latex-math-preview-dvi-to-image (filename)
   "Render dvi FILENAME to an Emacs image and return that.
 The \"dvipng\" program is used for drawing.  If it fails a shell
 buffer is left showing the messages and the return is nil."
 
+  (if (not latex-math-preview-dvipng-color-option)
+      (setq latex-math-preview-dvipng-color-option (latex-math-preview-get-dvipng-color-option)))
   (let ((dot-png (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".png")))
     (when (eq 0 (eval `(call-process latex-math-preview-command-dvipng nil nil nil "-o" dot-png
-				     ,@latex-math-preview-dvipng-option filename)))
+				     ,@latex-math-preview-dvipng-option ,@latex-math-preview-dvipng-color-option filename)))
       
       (with-temp-buffer
         (set-buffer-multibyte nil)
