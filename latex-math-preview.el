@@ -323,12 +323,8 @@ STR should not have $ or $$ delimiters."
 
       (if (not latex-math-preview-not-delete-tmpfile)
 	  ;; cleanup temp files
-	  (progn
-	    (dolist (filename (list dot-tex dot-dvi dot-log dot-aux))
-	      (condition-case nil (delete-file filename) (error)))
-	    (delete-directory latex-math-dir)))
-      )))
-
+	  (latex-math-preview-clear-tmp-directory latex-math-dir)
+	))))
 
 ;;-----------------------------------------------------------------------------
 ;; adaptive viewer selection
@@ -403,6 +399,15 @@ This can be used in `latex-math-preview-function', but it requires:
 		   (color-values (or latex-math-preview-image-foreground-color (face-foreground 'default))) " ")))
     ))
 
+(defun latex-math-preview-clear-tmp-directory (dir)
+  "Delete temporary directory and files contained in it."
+  (mapcar (lambda (file)
+	    (let ((path (concat dir "/" file)))
+	      (if (file-regular-p path)
+		  (condition-case nil (delete-file path) (error)))))
+	  (directory-files dir))
+  (delete-directory latex-math-dir))
+
 (defun latex-math-preview-dvi-to-image (filename)
   "Render dvi FILENAME to an Emacs image and return that.
 The \"dvipng\" program is used for drawing.  If it fails a shell
@@ -419,9 +424,7 @@ buffer is left showing the messages and the return is nil."
         (insert-file-contents-literally dot-png)
         ;; use :data for the image so we can delete the file
         (prog1 `(image :type png :data ,(buffer-string))
-	  (if (not latex-math-preview-not-delete-tmpfile)
-	      (delete-file dot-png)
-	    ))))))
+	  )))))
 
 ;;-----------------------------------------------------------------------------
 ;; Manage window
