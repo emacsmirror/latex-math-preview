@@ -2,8 +2,8 @@
 
 ;; Author: Takayuki YAMAGUCHI <d@ytak.info>
 ;; Keywords: LaTeX TeX
-;; Version: 0.1.0
-;; Created: Sat Jul 25 13:49:28 2009
+;; Version: 0.1.1
+;; Created: Fri Jul 31 16:29:50 2009
 
 ;; latex-math-preview.el is a modified version which is based on
 ;; tex-math-preview.el and has been created at July 2009.
@@ -97,6 +97,13 @@
 ;; latex-math-preview compiles a file like the above and
 ;; the produced dvi file is converted to png by dvipng.
 ;; Then this png file is shown in the buffer.
+;; 
+;; If you want to set the options for dvipng, you may set some variables.
+;; latex-math-preview-dvipng-option is used as options of dvipng.
+;; latex-math-preview-image-foreground-color and
+;; latex-math-preview-image-background-color define the foreground and
+;; background colors of png images respectively.
+;; If these variables are nil, these colors are the same as it of default face.
 
 ;;; Usage:
 ;; If you type "M-x tex-math-preview" when cursor points to 
@@ -125,8 +132,9 @@
 ;;  k: scroll down
 
 ;; ChangeLog:
-;; 2009/07/25 yamaguchi
-;;     version 0.1.0 release.
+;; 2009/07/31 version 0.1.1 yamaguchi
+;;     adjust background and foreground colors of png to default face.
+;; 2009/07/25 version 0.1.0 yamaguchi
 ;;     support Meadow3.
 
 ;;; Code:
@@ -395,10 +403,6 @@ This can be used in `latex-math-preview-function', but it requires:
 		   (color-values (or latex-math-preview-image-foreground-color (face-foreground 'default))) " ")))
     ))
 
-(defun latex-math-preview-clear-dvipng-color-option()
-  (interactive)
-  (setq latex-math-preview-dvipng-color-option nil))
-
 (defun latex-math-preview-dvi-to-image (filename)
   "Render dvi FILENAME to an Emacs image and return that.
 The \"dvipng\" program is used for drawing.  If it fails a shell
@@ -432,6 +436,9 @@ buffer is left showing the messages and the return is nil."
   (interactive)
   (set-window-configuration latex-math-preview-window-configuration)
   (kill-buffer latex-math-preview-buffer-name))
+
+; Clear dvipng option for coloring.
+(setq latex-math-preview-dvipng-color-option nil)
 
 (provide 'latex-math-preview)
 
