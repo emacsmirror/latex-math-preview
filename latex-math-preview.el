@@ -139,6 +139,7 @@
 
 ;;; Code:
 
+(require 'cl)
 (require 'thingatpt)
 
 ;;;###autoload
@@ -163,6 +164,10 @@ methods, according to what Emacs and the system supports."
   "*latex-math-preview*"
   "Name of buffer which displays preview image.")
 
+(defvar latex-math-preview-candidates-buffer-name
+  "*latex-math-preview-candidates*"
+  "Name of buffer which displays candidates of LaTeX symbols.")
+
 (defvar latex-math-preview-latex-command
   "latex" "Path to latex.")
 
@@ -175,6 +180,10 @@ methods, according to what Emacs and the system supports."
 (defvar latex-math-preview-temporary-file-prefix
   "temp_latex_math"
   "The prefix name of some temporary files which is produced in making an image.")
+
+(defvar latex-math-preview-cache-directory
+  (concat (getenv "HOME") "/.emacs.d/latex-math-preview-cache")
+  "Cache directory.")
 
 (defvar latex-math-preview-dvipng-option
   '("-x" "1728" "-T" "tight")
@@ -226,8 +235,78 @@ methods, according to what Emacs and the system supports."
     )
   "These eqpressions are used for matching to extract tex math expression.")
 
+(defvar latex-math-preview-insertion-candidates
+  '(
+    ("delimiters" .
+     ("\\lfloor" "\\rfloor" "\\lceil" "\\rceil" "\\langle" "\\rangle"
+      "\\backslash" "\\|" "\\uparrow" "\\Uparrow" "\\downarrow" "\\Downarrow"
+      "\\updownarrow" "\\Updownarrow"))
+    ("greek-letters" .
+     ("\\alpha" "\\beta" "\\gamma" "\\delta" "\\epsilon" "\\zeta" "\\eta"
+      "\\theta" "\\iota" "\\kappa" "\\lambda" "\\mu" "\\nu" "\\xi" "\\pi"
+      "\\rho" "\\sigma" "\\tau" "\\upsilon" "\\phi" "\\chi" "\\psi" "\\omega"
+      "\\varepsilon" "\\vartheta" "\\varpi" "\\varrho" "\\varsigma" "\\varphi"
+      "\\Gamma" "\\Delta" "\\Theta" "\\Lambda" "\\Xi" "\\Pi" "\\Sigma"
+      "\\Upsilon" "\\Phi" "\\Psi" "\\Omega"))
+    ("binary-operators" .
+     ("\\pm" "\\mp" "\\times" "\\div"  "\\ast" "\\star" "\\circ" "\\bullet"
+      "\\cdot" "\\cap" "\\cap" "\\uplus" "\\sqcap" "\\sqcup" "\\vee" "\\wedge"
+      "\\setminus" "\\wr" "\\diamond" "\\bigtriangleup" "\\bigtriangledown"
+      "\\triangleleft" "\\triangleright" "\\oplus" "\\ominus" "\\otimes"
+      "\\oslash" "\\odot" "\\bigcirc" "\\dagger" "\\ddagger" "\\amalg"))
+    ("relational-operators" .
+     ("\\le" "\\prec" "\\preceq" "\\ll" "\\subset" "\\subseteq" "\\vdash"
+      "\\in" "\\notin" "\\ge" "\\succ" "\\succeq" "\\gg" "\\supset" "\\supseteq"
+      "\\sqsupseteq" "\\dashv" "\\ni"
+      ;; omit "\\leq" and "geq" because this is the same as "\\le" and "\\ge", respectively.
+      "\\equiv" "\\sim" "\\simeq" "\\asymp" "\\approx" "\\cong" "\\neq"
+      "\\doteq" "\\propto" "\\models" "\\perp" "\\mid" "\\parallel" "\\bowtie"
+      "\\smile" "\\frown"))
+    ("arrows" .
+     ("\\leftarrow" "\\gets" "\\Leftarrow" "\\rightarrow" "\\to" "\\Rightarrow"
+      "\\leftrightarrow" "\\Leftrightarrow" "\\mapsto" "\\hookleftarrow"
+      "\\leftharpoonup" "\\leftharpoondown" "\\longleftarrow" "\\Longleftarrow"
+      "\\longleftrightarrow" "\\Longleftrightarrow" "\\longmapsto"
+      "\\hookrightarrow" "\\rightharpoonup" "\\rightharpoondown"
+      "\\iff" "\\nearrow" "\\searrow" "\\swarrow" "\\nwarrow"
+      "\\rightleftharpoons"))
+    ("miscellaneous" .
+     ("\\aleph" "\\hbar" "\\imath" "\\jmath" "\\ell" "\\wp" "\\Re" "\\Im"
+      "\\partial" "\\infty" "\\prime" "\\emptyset" "\\nabla" "\\surd"
+      "\\top" "\\bot" "\\angle" "\\triangle" "\\forall" "\\exists"
+      "\\neg" "\\flat" "\\natural" "\\sharp" "\\clubsuit" "\\diamondsuit"
+      "\\heartsuit" "\\spadesuit"))
+    ("functions" .
+     ("\\arccos" "\\arcsin" "\\arctan" "\\arg" "\\cos" "\\cosh" "\\cot" "\\coth"
+      "\\csc" "\\deg" "\\det" "\\dim" "\\exp" "\\gcd" "\\hom" "\\inf" "\\ker"
+      "\\lg" "\\lim" "\\liminf" "\\limsup" "\\ln" "\\log" "\\max" "\\min"
+      "\\Pr" "\\sec" "\\sin" "\\sinh" "\\sup" "\\tan" "\\tanh"
+      "\\bmod" "\\pmod"))
+    ("accessories" .
+     (("\\hat{" "a" "}") ("\\check{" "a" "}") ("\\breve{" "a" "}")
+      ("\\acute{" "a" "}") ("\\grave{" "a" "}") ("\\tilde{" "a" "}")
+      ("\\bar{" "a" "}") ("\\vec{" "a" "}") ("\\dot{" "a" "}") ("\\ddot{" "a" "}")
+      ("\\overline{" "x+y" "}") "\\underline{x+y}" ("\\widehat{" "xyz" "}")
+      ("\\widetilde{" "xyz" "}") ("\\overbrace{" "x+y" "}")
+      ("\\underbrace{" "x+y" "}") ("\\overrightarrow{" "\\mathrm{OA}" "}")
+      ("\\overleftarrow{" "\\mathrm{OA}" "}")))
+    ("typefaces" .
+     (("\\mathbf{" "x" "}") ("\\mathit{" "diff" "}") ("\\mathrm{" "H" "}") ("\\mathcal{" "H" "}")
+      ("\\mathsf{" "H" "}") ("\\mathtt{" "H" "}")))
+    
+    ;; ("others" .
+    ;;  ("\\vartriangleleft" "\\vartriangleright" "\\trianglelefteq" "\\trianglerighteq"
+    ;;   "\\sqsubset" "\\sqsupset" "\\Join" "\\rightsquigarrow" "\\square"
+    ;;   "\\lozenge" "\\mho"))
+    )
+  "List of candidates for LaTeX symbol insertion.")
+
 (defvar latex-math-preview-window-configuration nil
   "Temporary variable in which window configuration is saved.")
+
+(defvar latex-math-preview-candidates-defined-as-list nil
+  "Temporary variable.")
+(setq latex-math-preview-candidates-defined-as-list nil)
 
 (defvar latex-math-preview-not-delete-tmpfile nil
   "Not delete temporary files and directory if this value is true. Mainly for debugging.")
@@ -238,8 +317,23 @@ methods, according to what Emacs and the system supports."
     (define-key map (kbd "Q") 'latex-math-preview-delete-buffer)
     (define-key map (kbd "j") 'scroll-up)
     (define-key map (kbd "k") 'scroll-down)
+    (define-key map (kbd "n") 'scroll-up)
+    (define-key map (kbd "p") 'scroll-down)
     map)
   "Keymap for latex-math-preview.")
+
+(defvar latex-math-preview-insertion-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "q") 'latex-math-preview-exit-window)
+    (define-key map (kbd "Q") 'latex-math-preview-delete-buffer)
+    (define-key map (kbd "j") 'scroll-up)
+    (define-key map (kbd "k") 'scroll-down)
+    (define-key map (kbd "n") 'next-line)
+    (define-key map (kbd "p") 'previous-line)
+    (define-key map (kbd "\C-m") 'latex-math-preview-insert-candidate)
+    (define-key map (kbd "<return>") 'latex-math-preview-insert-candidate)
+    map)
+  "Keymap for insertion mode of latex-math-preview.")
 
 ;;-----------------------------------------------------------------------------
 
@@ -301,8 +395,8 @@ the notations which are stored in `latex-math-preview-match-expression'."
 
 (defun latex-math-preview-make-dvi-file (tmpdir math-exp)
   "Make temporary tex file including MATH-EXP in TMPDIR and compile it."
-  (let ((dot-tex      (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".tex"))
-	(dot-dvi      (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".dvi")))
+  (let ((dot-tex (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".tex"))
+	(dot-dvi (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".dvi")))
     (with-temp-file dot-tex
       (insert latex-math-preview-latex-template-header)
       (insert math-exp)
@@ -315,12 +409,21 @@ the notations which are stored in `latex-math-preview-match-expression'."
 
 (defun latex-math-preview-clear-tmp-directory (dir)
   "Delete temporary directory and files contained in it."
-  (mapcar (lambda (file)
+  (if (file-directory-p dir)
+      (progn
+	(let ((directories))
+	  (dolist (file (directory-files dir))
 	    (let ((path (concat dir "/" file)))
-	      (if (file-regular-p path)
-		  (condition-case nil (delete-file path) (error)))))
-	  (directory-files dir))
-  (delete-directory latex-math-dir))
+	      (cond ((and (file-directory-p path) (not (string-match "^\\.+$" file)))
+		     (add-to-list 'directories file))
+		    ((file-regular-p path)
+		     (condition-case nil (delete-file path)
+		       (error (message "Can not delete '%s'" path)))))))
+	  (dolist (del-dir directories)
+	    (message del-dir)
+	    (latex-math-preview-clear-tmp-directory (concat dir "/" del-dir))))
+	(condition-case nil (delete-directory dir)
+	  (error (message "Can not delete '%s'" dir))))))
 
 (defun latex-math-preview-str (str)
   "Preview the given STR string as a TeX math expression.
@@ -382,6 +485,7 @@ This can be used in `latex-math-preview-function', but it requires:
 	  (with-current-buffer (get-buffer-create latex-math-preview-buffer-name)
 	    (setq buffer-read-only nil)
 	    (erase-buffer)
+	    (insert " ")
 	    (insert-image-file image)
 	    (end-of-line)
 	    (insert "\n")
@@ -430,11 +534,115 @@ buffer is left showing the messages and the return is nil."
 (defun latex-math-preview-delete-buffer ()
   "Delete buffer of preview"
   (interactive)
-  (set-window-configuration latex-math-preview-window-configuration)
-  (kill-buffer latex-math-preview-buffer-name))
+  (kill-buffer (buffer-name))
+  (set-window-configuration latex-math-preview-window-configuration))
 
 ; Clear dvipng option for coloring.
 (setq latex-math-preview-dvipng-color-option nil)
+
+;;-----------------------------------------------------------------------------
+;; Insert Mathematical expression 
+
+(defun latex-math-preview-clear-cache (&optional dirname)
+  (interactive)
+  (if dirname
+      (if (assoc dirname latex-math-preview-insertion-candidates)
+	  ((latex-math-preview-clear-tmp-directory
+	    (concat latex-math-preview-cache-directory "/" dirname))))
+    (latex-math-preview-clear-tmp-directory latex-math-preview-cache-directory)))
+
+(defun latex-math-preview-make-cache-images (dirname)
+  (let ((latex-syms (cdr (assoc dirname latex-math-preview-insertion-candidates)))
+	(dirpath (concat latex-math-preview-cache-directory "/" dirname))
+	(num 0))
+    (if (file-directory-p dirpath)
+	(message "'%s' exists. Cache may be used." dirpath)
+      (progn
+	(make-directory dirpath t)
+	(message "Creating images. Please wait for a while.")
+	(dolist (sym latex-syms)
+	  (if (listp sym)
+	      (latex-math-preview-make-insertion-image (eval `(concat ,@sym)) dirname num)
+	    (latex-math-preview-make-insertion-image sym dirname num))
+	  (setq num (+ num 1)))
+	))))
+
+(defun latex-math-preview-make-insertion-image (math-symbol dirname num)
+  (let ((latex-math-dir (make-temp-file "latex-math-preview-" t))
+	(path (concat latex-math-preview-cache-directory "/" dirname "/"
+		      (format "%05d" num) "_"
+		      (downcase (replace-regexp-in-string "\\(\\\\\\)\\|\\({\\)\\|\\(}\\)"
+							  "_" math-symbol)) ".png")))
+    (latex-math-preview-dvi-to-png
+     (latex-math-preview-make-dvi-file latex-math-dir (concat "$" math-symbol "$")) path)
+    (latex-math-preview-clear-tmp-directory latex-math-dir)
+    path))
+
+(defun latex-math-preview-insertion-candidate-buffer (dirname)
+  (or (and (image-type-available-p 'png)
+           (display-images-p))
+      (error "Cannot display PNG in this Emacs"))
+
+  (latex-math-preview-make-cache-images dirname)
+  (setq latex-math-preview-window-configuration (current-window-configuration))
+  (with-current-buffer (get-buffer-create latex-math-preview-candidates-buffer-name)
+    (setq truncate-lines t)
+    (setq tab-width 8)
+    (setq line-spacing 8)
+    (setq buffer-read-only nil)
+    (erase-buffer)
+    (let* ((latex-symbols (cdr (assoc dirname latex-math-preview-insertion-candidates)))
+	  (dirpath (concat latex-math-preview-cache-directory "/" dirname))
+	  (max-tab (/ (window-width) tab-width))
+	  (num max-tab))
+      (dolist (pngfile (sort (delete-if (lambda (file) (not (string-match "^[0-9]+_" file)))
+				    (directory-files dirpath)) 'string<))
+	(insert-image (create-image (concat latex-math-preview-cache-directory "/" dirname "/" pngfile)
+				    'png nil :ascent 'center))
+	(end-of-line)
+	(let ((sym (car latex-symbols)) (str))
+	  (if (listp sym)
+	      (progn
+		(setq str (eval `(concat ,@sym)))
+		  (add-to-list 'latex-math-preview-candidates-defined-as-list `(,str ,sym)))
+	    (setq str sym))
+	  (insert "\t" (format "%-30s" str)))
+	(setq latex-symbols (cdr latex-symbols))
+	(setq num (- num 2))
+	(if (< num 2)
+	    (progn
+	      (insert "\n")
+	      (setq num max-tab))
+	  (insert "\t"))))
+    (goto-char (point-min))
+    (buffer-disable-undo)
+    (setq buffer-read-only t)
+    (use-local-map latex-math-preview-insertion-map)
+    (setq mode-name "LaTeXPreview"))
+  (pop-to-buffer latex-math-preview-candidates-buffer-name))
+
+(defun latex-math-preview-insert-candidate ()
+  (interactive)
+  (let ((str) (sym))
+    (save-excursion
+      (skip-chars-backward "^\n\r ")
+      (if (re-search-forward "\t\\([^\t]*\\)\t\\|$" nil t)
+	  (setq str (buffer-substring (match-beginning 1) (match-end 1)))))
+    (message str)
+    (setq sym (assoc str latex-math-preview-candidates-defined-as-list))
+    (latex-math-preview-exit-window)
+    (if sym
+	(progn
+	  (insert (car (car (cdr sym))))
+	  (save-excursion
+	    (insert (car (cdr (cdr (car (cdr sym))))))))
+      (insert str))))
+
+(defun latex-math-preview-insertion (&optional dirname)
+  (interactive)
+  (if (not dirname)
+      (setq dirname (completing-read "type: " latex-math-preview-insertion-candidates nil t)))
+  (latex-math-preview-insertion-candidate-buffer dirname))
 
 (provide 'latex-math-preview)
 
