@@ -2,8 +2,8 @@
 
 ;; Author: Takayuki YAMAGUCHI <d@ytak.info>
 ;; Keywords: LaTeX TeX
-;; Version: 0.1.1
-;; Created: Fri Jul 31 16:29:50 2009
+;; Version: 0.2.0
+;; Created: Sun Aug  2 10:07:04 2009
 
 ;; latex-math-preview.el is a modified version which is based on
 ;; tex-math-preview.el and has been created at July 2009.
@@ -30,10 +30,13 @@
 ;; this program. If not, see <http://www.gnu.org/licenses/>.
 
 ;;; Commentary:
-;; M-x latex-math-preview previews mathematical expressions pointed
+;; M-x latex-math-preview-expression previews mathematical expressions pointed
 ;; by cursor in LaTeX files.
-;; The result of latex-math-preview is shown in new buffer as image
+;; The result of latex-math-preview-expression is shown in new buffer as image
 ;; or as dvi file by dvi viewer.
+;; 
+;; M-x latex-math-preview-insert-sign displays list of mathematical symbols.
+;; You can insert a LaTeX command from it.
 
 ;; Requirements;
 ;; Emacs (version 22 or 23) on Linux or Meadow3 on Windows.
@@ -45,15 +48,16 @@
 ;; Put latex-math-preview.el to your load-path and
 ;; write the following code in ~/.emacs.el.
 ;; 
-;;   (autoload 'latex-math-preview "latex-math-preview" nil t)
+;;   (autoload 'latex-math-preview-expression "latex-math-preview" nil t)
+;;   (autoload 'latex-math-preview-insert-sign "latex-math-preview" nil t)
 ;; 
 ;; For YaTeX mode, add the follwing to ~/.emacs.el if desired.
 ;;
 ;;   (add-hook 'yatex-mode-hook
 ;;            '(lambda ()
-;; 	      (YaTeX-define-key "p" 'latex-math-preview)))
+;; 	      (YaTeX-define-key "p" 'latex-math-preview-expression)))
 ;;
-;; This setting almost binds latex-math-preview to "C-c p".
+;; This setting almost binds latex-math-preview-expression to "C-c p".
 
 ;;; Settings:
 ;; You can customize some variables.
@@ -65,7 +69,7 @@
 ;;  latex-math-preview-latex-template-header
 ;;  latex-math-preview-latex-template-footer
 ;; 
-;; latex-math-preview makes a temporary latex file and compiles it and 
+;; latex-math-preview-expression makes a temporary latex file and compiles it and 
 ;; then gets a preview image by dvipng.
 ;; latex-math-preview-latex-command is the path to command
 ;; 'latex', 'platex' or etc.
@@ -94,7 +98,7 @@
 ;; So, if you can use some latex packages in temporary latex files,
 ;; you should set the customized value to
 ;; latex-math-preview-latex-template-header.
-;; latex-math-preview compiles a file like the above and
+;; latex-math-preview-expression compiles a file like the above and
 ;; the produced dvi file is converted to png by dvipng.
 ;; Then this png file is shown in the buffer.
 ;; 
@@ -132,6 +136,10 @@
 ;;  k: scroll down
 
 ;; ChangeLog:
+;; 2009/08/02 version 0.2.0 yamaguchi
+;;     New command latex-math-preview-insert-sign.
+;;     Change name of function `latex-math-preview' to `latex-math-preview-expression'.
+;;     bug fixes.
 ;; 2009/07/31 version 0.1.1 yamaguchi
 ;;     adjust background and foreground colors of png to default face.
 ;; 2009/07/25 version 0.1.0 yamaguchi
@@ -151,7 +159,7 @@
 
 (defcustom latex-math-preview-function
   'latex-math-preview-adaptview
-  "Function for `latex-math-preview' to show a DVI file.
+  "Function for `latex-math-preview-expression' to show a DVI file.
 The default `latex-math-preview-adaptview' chooses among the
 methods, according to what Emacs and the system supports."
   :type '(choice (latex-math-preview-adaptview
@@ -160,13 +168,13 @@ methods, according to what Emacs and the system supports."
                  function)
   :group 'latex-math-preview)
 
-(defvar latex-math-preview-buffer-name
+(defvar latex-math-preview-expression-buffer-name
   "*latex-math-preview*"
   "Name of buffer which displays preview image.")
 
-(defvar latex-math-preview-candidates-buffer-name
+(defvar latex-math-preview-insert-sign-buffer-name
   "*latex-math-preview-candidates*"
-  "Name of buffer which displays candidates of LaTeX symbols.")
+  "Name of buffer which displays candidates of LaTeX mathematical symbols.")
 
 (defvar latex-math-preview-latex-command
   "latex" "Path to latex.")
@@ -181,7 +189,7 @@ methods, according to what Emacs and the system supports."
   "temp_latex_math"
   "The prefix name of some temporary files which is produced in making an image.")
 
-(defvar latex-math-preview-cache-directory
+(defvar latex-math-preview-cache-directory-for-insertion
   (concat (getenv "HOME") "/.emacs.d/latex-math-preview-cache")
   "Cache directory.")
 
@@ -235,7 +243,7 @@ methods, according to what Emacs and the system supports."
     )
   "These eqpressions are used for matching to extract tex math expression.")
 
-(defvar latex-math-preview-insertion-candidates
+(defvar latex-math-preview-candidates-for-insertion
   '(
     ("delimiters" .
      ("\\lfloor" "\\rfloor" "\\lceil" "\\rceil" "\\langle" "\\rangle"
@@ -250,7 +258,7 @@ methods, according to what Emacs and the system supports."
       "\\Upsilon" "\\Phi" "\\Psi" "\\Omega"))
     ("binary-operators" .
      ("\\pm" "\\mp" "\\times" "\\div"  "\\ast" "\\star" "\\circ" "\\bullet"
-      "\\cdot" "\\cap" "\\cap" "\\uplus" "\\sqcap" "\\sqcup" "\\vee" "\\wedge"
+      "\\cdot" "\\cap" "\\cup" "\\uplus" "\\sqcap" "\\sqcup" "\\vee" "\\wedge"
       "\\setminus" "\\wr" "\\diamond" "\\bigtriangleup" "\\bigtriangledown"
       "\\triangleleft" "\\triangleright" "\\oplus" "\\ominus" "\\otimes"
       "\\oslash" "\\odot" "\\bigcirc" "\\dagger" "\\ddagger" "\\amalg"))
@@ -299,7 +307,7 @@ methods, according to what Emacs and the system supports."
     ;;   "\\sqsubset" "\\sqsupset" "\\Join" "\\rightsquigarrow" "\\square"
     ;;   "\\lozenge" "\\mho"))
     )
-  "List of candidates for LaTeX symbol insertion.")
+  "List of candidates for insertion of LaTeX mathematical symbol.")
 
 (defvar latex-math-preview-window-configuration nil
   "Temporary variable in which window configuration is saved.")
@@ -308,46 +316,53 @@ methods, according to what Emacs and the system supports."
   "Temporary variable.")
 (setq latex-math-preview-candidates-defined-as-list nil)
 
-(defvar latex-math-preview-selection-face 'highlight
+(defface latex-math-preview-candidate-for-insertion-face
+  '((t (:foreground "dark orange")))
+  "Face for notations of LaTeX mathematical symbol.")
+  
+(defvar latex-math-preview-selection-face-for-insertion 'highlight
   "Face for currently selected item.")
 
-(defvar latex-math-preview-selection-overlay nil
+(defvar latex-math-preview-selection-overlay-for-insertion nil
   "Overlay for highlighting currently selected item.")
 
 (defvar latex-math-preview-not-delete-tmpfile nil
   "Not delete temporary files and directory if this value is true. Mainly for debugging.")
 
-(defvar latex-math-preview-map
+(defvar latex-math-preview-dvipng-log-buffer nil
+  "Buffer name for output by dvipng. Mainly for debugging.")
+
+(defvar latex-math-preview-expression-map
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "q") 'latex-math-preview-exit-window)
+    (define-key map (kbd "q") 'latex-math-preview-quit-window)
     (define-key map (kbd "Q") 'latex-math-preview-delete-buffer)
     (define-key map (kbd "j") 'scroll-up)
     (define-key map (kbd "k") 'scroll-down)
     (define-key map (kbd "n") 'scroll-up)
     (define-key map (kbd "p") 'scroll-down)
     map)
-  "Keymap for latex-math-preview.")
+  "Keymap for latex-math-preview-expression.")
 
-(defvar latex-math-preview-insertion-map
+(defvar latex-math-preview-insert-sign-map
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "q") 'latex-math-preview-exit-window)
+    (define-key map (kbd "q") 'latex-math-preview-quit-window)
     (define-key map (kbd "Q") 'latex-math-preview-delete-buffer)
-    (define-key map (kbd "j") 'latex-math-preview-insertion-select-down)
-    (define-key map (kbd "k") 'latex-math-preview-insertion-select-up)
-    (define-key map (kbd "l") 'latex-math-preview-insertion-select-right)
-    (define-key map (kbd "h") 'latex-math-preview-insertion-select-left)
-    (define-key map (kbd "n") 'latex-math-preview-insertion-select-down)
-    (define-key map (kbd "p") 'latex-math-preview-insertion-select-up)
-    (define-key map (kbd "<down>") 'latex-math-preview-insertion-select-down)
-    (define-key map (kbd "<up>") 'latex-math-preview-insertion-select-up)
-    (define-key map (kbd "<right>") 'latex-math-preview-insertion-select-right)
-    (define-key map (kbd "<left>") 'latex-math-preview-insertion-select-left)
-    (define-key map (kbd "f") 'latex-math-preview-insertion-select-right)
-    (define-key map (kbd "b") 'latex-math-preview-insertion-select-left)
-    (define-key map (kbd "\C-m") 'latex-math-preview-insert-candidate)
-    (define-key map (kbd "<return>") 'latex-math-preview-insert-candidate)
+    (define-key map (kbd "j") 'latex-math-preview-move-to-downward-item)
+    (define-key map (kbd "k") 'latex-math-preview-move-to-upward-item)
+    (define-key map (kbd "l") 'latex-math-preview-move-to-right-item)
+    (define-key map (kbd "h") 'latex-math-preview-move-to-left-item)
+    (define-key map (kbd "n") 'latex-math-preview-move-to-downward-item)
+    (define-key map (kbd "p") 'latex-math-preview-move-to-upward-item)
+    (define-key map (kbd "<down>") 'latex-math-preview-move-to-downward-item)
+    (define-key map (kbd "<up>") 'latex-math-preview-move-to-upward-item)
+    (define-key map (kbd "<right>") 'latex-math-preview-move-to-right-item)
+    (define-key map (kbd "<left>") 'latex-math-preview-move-to-left-item)
+    (define-key map (kbd "f") 'latex-math-preview-move-to-right-item)
+    (define-key map (kbd "b") 'latex-math-preview-move-to-left-item)
+    (define-key map (kbd "\C-m") 'latex-math-preview-put-selected-candidate)
+    (define-key map (kbd "<return>") 'latex-math-preview-put-selected-candidate)
     map)
-  "Keymap for insertion mode of latex-math-preview.")
+  "Keymap for insertion mode of latex-math-preview-insert-sign.")
 
 ;;-----------------------------------------------------------------------------
 
@@ -394,7 +409,7 @@ no recognised expression at or surrounding point."
 (put 'latex-math 'bounds-of-thing-at-point 'latex-math-preview-bounds-of-latex-math)
 
 ;;;###autoload
-(defun latex-math-preview ()
+(defun latex-math-preview-expression ()
   "Preview a TeX maths expression at (or surrounding) point.
 The `latex-math-preview-function' variable controls the viewing method. 
 The LaTeX notations which can be matched are $...$, $$...$$ or
@@ -461,7 +476,7 @@ if possible, or if not then the `tex-mode' previewer given by
 `latex-math-preview-command-dvi-view'.
 
 This function is the default for `latex-math-preview-function',
-allowing `latex-math-preview' to adapt to the Emacs display
+allowing `latex-math-preview-expression' to adapt to the Emacs display
 capabilities and available viewer program(s)."
 
   (if (and (image-type-available-p 'png)
@@ -496,7 +511,7 @@ This can be used in `latex-math-preview-function', but it requires:
   (let ((image (latex-math-preview-dvi-to-png dvifile)))
     (if image
 	(progn
-	  (with-current-buffer (get-buffer-create latex-math-preview-buffer-name)
+	  (with-current-buffer (get-buffer-create latex-math-preview-expression-buffer-name)
 	    (setq buffer-read-only nil)
 	    (erase-buffer)
 	    (insert " ")
@@ -506,23 +521,35 @@ This can be used in `latex-math-preview-function', but it requires:
 	    (goto-char (point-min))
 	    (buffer-disable-undo)
 	    (setq buffer-read-only t)
-	    (use-local-map latex-math-preview-map)
+	    (use-local-map latex-math-preview-expression-map)
 	    (setq mode-name "LaTeXPreview")
 	    )
-	  (pop-to-buffer latex-math-preview-buffer-name)
+	  (pop-to-buffer latex-math-preview-expression-buffer-name)
 	  ))))
 
-(defun latex-math-preview-get-dvipng-color-option()
+(defun latex-math-preview-get-dvipng-color-option ()
+  "Get string for dvipng options '-bg' and '-fg'."
   (let ((max (car (color-values "#ffffff"))))
-    (list (concat "-bg rgb "
+    (list "-bg"
+	  (concat "rgb "
 		  (mapconcat
-		   (lambda (col) (number-to-string (/ (float col) max)))
-		   (color-values (or latex-math-preview-image-background-color (face-background 'default))) " "))
-	  (concat "-fg rgb "
+		   (lambda (col)
+		     (let ((val (/ (float col) max)))
+		       (cond ((> val 1.0) (setq val 1.0))
+			     ((< val 0.0) (setq val 0.0)))
+		       (format "%.02f" val)))
+		   (color-values (or latex-math-preview-image-background-color
+				     (face-background 'default))) " "))
+	  "-fg"
+	  (concat "rgb "
 		  (mapconcat
-		   (lambda (col) (number-to-string (/ (float col) max)))
-		   (color-values (or latex-math-preview-image-foreground-color (face-foreground 'default))) " ")))
-    ))
+		   (lambda (col)
+		     (let ((val (/ (float col) max)))
+		       (cond ((> val 1.0) (setq val 1.0))
+			     ((< val 0.0) (setq val 0.0)))
+		       (format "%.02f" val)))
+		   (color-values (or latex-math-preview-image-foreground-color
+				     (face-foreground 'default))) " ")))))
 
 (defun latex-math-preview-dvi-to-png (filename &optional output)
   "Render dvi FILENAME to an Emacs image and return that.
@@ -531,22 +558,25 @@ buffer is left showing the messages and the return is nil."
 
   (if (not latex-math-preview-dvipng-color-option)
       (setq latex-math-preview-dvipng-color-option (latex-math-preview-get-dvipng-color-option)))
-  (let ((dot-png (or output (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".png"))))
-    (if (eq 0 (eval `(call-process latex-math-preview-command-dvipng nil nil nil "-o" dot-png
-				   ,@latex-math-preview-dvipng-option ,@latex-math-preview-dvipng-color-option filename)))
+  (let ((dot-png (or output (concat latex-math-dir "/"
+				    latex-math-preview-temporary-file-prefix ".png"))))
+    (if (eq 0 (eval `(call-process latex-math-preview-command-dvipng nil
+				   latex-math-preview-dvipng-log-buffer nil "-o" dot-png
+				   ,@latex-math-preview-dvipng-option
+				   ,@latex-math-preview-dvipng-color-option filename)))
 	dot-png
       nil)))
 
 ;;-----------------------------------------------------------------------------
 ;; Manage window
 
-(defun latex-math-preview-exit-window ()
-  "Exit preview window."
+(defun latex-math-preview-quit-window ()
+  "Quit preview window."
   (interactive)
   (set-window-configuration latex-math-preview-window-configuration))
 
 (defun latex-math-preview-delete-buffer ()
-  "Delete buffer of preview"
+  "Delete buffer which is created for preview."
   (interactive)
   (kill-buffer (buffer-name))
   (set-window-configuration latex-math-preview-window-configuration))
@@ -557,33 +587,21 @@ buffer is left showing the messages and the return is nil."
 ;;-----------------------------------------------------------------------------
 ;; Insert Mathematical expression 
 
-(defun latex-math-preview-clear-cache (&optional dirname)
+(defun latex-math-preview-clear-cache-for-insertion (&optional dirname)
+  "Delete cache images in DIRNAME.
+If DIRNAME is nil then all directories saving caches is deleted."
   (interactive)
   (if dirname
-      (if (assoc dirname latex-math-preview-insertion-candidates)
+      (if (assoc dirname latex-math-preview-candidates-for-insertion)
 	  ((latex-math-preview-clear-tmp-directory
-	    (concat latex-math-preview-cache-directory "/" dirname))))
-    (latex-math-preview-clear-tmp-directory latex-math-preview-cache-directory)))
+	    (concat latex-math-preview-cache-directory-for-insertion "/" dirname))))
+    (latex-math-preview-clear-tmp-directory latex-math-preview-cache-directory-for-insertion)))
 
-(defun latex-math-preview-make-cache-images (dirname)
-  (let ((latex-syms (cdr (assoc dirname latex-math-preview-insertion-candidates)))
-	(dirpath (concat latex-math-preview-cache-directory "/" dirname))
-	(num 0))
-    (if (file-directory-p dirpath)
-	(message "'%s' exists. Cache may be used." dirpath)
-      (progn
-	(make-directory dirpath t)
-	(message "Creating images. Please wait for a while.")
-	(dolist (sym latex-syms)
-	  (if (listp sym)
-	      (latex-math-preview-make-insertion-image (eval `(concat ,@sym)) dirname num)
-	    (latex-math-preview-make-insertion-image sym dirname num))
-	  (setq num (+ num 1)))
-	))))
-
-(defun latex-math-preview-make-insertion-image (math-symbol dirname num)
+(defun latex-math-preview-make-candidate-image (math-symbol dirname num)
+  "Create a cache image from latex file for including MATH-SYMBOL.
+Image is saved in DIRNAME. NUM is used for distingushing other images."
   (let ((latex-math-dir (make-temp-file "latex-math-preview-" t))
-	(path (concat latex-math-preview-cache-directory "/" dirname "/"
+	(path (concat latex-math-preview-cache-directory-for-insertion "/" dirname "/"
 		      (format "%05d" num) "_"
 		      (downcase (replace-regexp-in-string "\\(\\\\\\)\\|\\({\\)\\|\\(}\\)"
 							  "_" math-symbol)) ".png")))
@@ -592,9 +610,26 @@ buffer is left showing the messages and the return is nil."
     (latex-math-preview-clear-tmp-directory latex-math-dir)
     path))
 
-(defun latex-math-preview-strings-and-images-sizes (images latex-syms)
-  (setq latex-math-preview-candidates-defined-as-list nil)
+(defun latex-math-preview-make-cache-for-insertion (dirname)
+  "Create cache images in DIRNAME."
+  (let ((latex-syms (cdr (assoc dirname latex-math-preview-candidates-for-insertion)))
+	(dirpath (concat latex-math-preview-cache-directory-for-insertion "/" dirname))
+	(num 0))
+    (if (file-directory-p dirpath)
+	(message "'%s' exists. Cache may be used." dirpath)
+      (progn
+	(make-directory dirpath t)
+	(message "Creating images. Please wait for a while.")
+	(dolist (sym latex-syms)
+	  (if (listp sym)
+	      (latex-math-preview-make-candidate-image (eval `(concat ,@sym)) dirname num)
+	    (latex-math-preview-make-candidate-image sym dirname num))
+	  (setq num (+ num 1)))))))
 
+(defun latex-math-preview-strings-and-images-sizes (images latex-syms)
+  "Look over cache images.
+Return maximum size of images and maximum length of strings and images"
+  (setq latex-math-preview-candidates-defined-as-list nil)
   (let ((max-img-size 0)
 	(max-str-length 0)
 	(img-list nil)
@@ -616,37 +651,44 @@ buffer is left showing the messages and the return is nil."
 	(setq syms (cdr syms))))
     `(,max-img-size ,max-str-length ,(nreverse img-list))))
 
-(defun latex-math-preview-insertion-candidate-buffer (dirname)
+(defun latex-math-preview-create-buffer-for-insertion (dirname)
+  "Create buffer displaying cache images in DIRNAME."
   (or (and (image-type-available-p 'png)
            (display-images-p))
       (error "Cannot display PNG in this Emacs"))
 
-  (latex-math-preview-make-cache-images dirname)
+  (latex-math-preview-make-cache-for-insertion dirname)
   (setq latex-math-preview-window-configuration (current-window-configuration))
-  (with-current-buffer (get-buffer-create latex-math-preview-candidates-buffer-name)
+  (with-current-buffer (get-buffer-create latex-math-preview-insert-sign-buffer-name)
+    (setq cursor-type nil)
     (setq truncate-lines t)
     (setq line-spacing 8)
     (setq buffer-read-only nil)
     (erase-buffer)
 
-    (let* ((latex-symbols (cdr (assoc dirname latex-math-preview-insertion-candidates)))
-	   (dirpath (concat latex-math-preview-cache-directory "/" dirname))
+    (let* ((latex-symbols (cdr (assoc dirname latex-math-preview-candidates-for-insertion)))
+	   (dirpath (concat latex-math-preview-cache-directory-for-insertion "/" dirname))
 	   (data (latex-math-preview-strings-and-images-sizes
-		  (mapcar (lambda (path) (concat latex-math-preview-cache-directory "/" dirname "/" path))
+		  (mapcar (lambda (path) (concat latex-math-preview-cache-directory-for-insertion
+						 "/" dirname "/" path))
 			   (sort (delete-if (lambda (file) (not (string-match "^[0-9]+_" file)))
 					    (directory-files dirpath)) 'string<)) latex-symbols))
 	   (new-tab-width (+ 4 (ceiling (/ (float (car data)) (float (frame-char-width))))))
 	   (str-size (* new-tab-width (ceiling (/ (float (car (cdr data))) (float new-tab-width)))))
 	   (str-format (format "%%-%ds" str-size))
-	   (row (floor (/ (frame-width) (+ str-size (* (ceiling (/ (float (car data)) (float (* (frame-char-width) new-tab-width))))
-						       new-tab-width)))))
+	   (row (floor (/ (frame-width)
+			  (+ str-size (* (ceiling (/ (float (car data))
+						     (float (* (frame-char-width) new-tab-width))))
+					 new-tab-width)))))
 	   (num row))
 
       (setq tab-width new-tab-width)
       (dolist (imgdata (car (cdr (cdr data))))
 	  (insert-image (car (cdr imgdata)))
 	  (insert "\t")
-      	  (insert (format str-format (car imgdata)))
+	  (let ((start-pt (point)))
+	    (insert (format str-format (car imgdata)))
+	    (add-text-properties start-pt (point) '(face latex-math-preview-candidate-for-insertion-face)))
       	  (setq num (- num 1))
       	  (if (<= num 0)
       	      (progn
@@ -654,14 +696,22 @@ buffer is left showing the messages and the return is nil."
       		(insert "\n")))))
 
     (goto-char (point-min))
-    (latex-math-preview-insertion-select-right)
+    (latex-math-preview-move-to-right-item)
     (buffer-disable-undo)
     (setq buffer-read-only t)
-    (use-local-map latex-math-preview-insertion-map)
+    (use-local-map latex-math-preview-insert-sign-map)
     (setq mode-name "LaTeXPreview"))
-  (pop-to-buffer latex-math-preview-candidates-buffer-name))
+  (pop-to-buffer latex-math-preview-insert-sign-buffer-name))
 
-(defun latex-math-preview-insert-candidate ()
+(defun latex-math-preview-insert-sign (&optional dirname)
+  "Insert LaTeX mathematical symbols with displaying."
+  (interactive)
+  (if (not dirname)
+      (setq dirname (completing-read "type: " latex-math-preview-candidates-for-insertion nil t)))
+  (latex-math-preview-create-buffer-for-insertion dirname))
+
+(defun latex-math-preview-put-selected-candidate ()
+  "Insert selected LaTeX mathematical symboled to original buffer."
   (interactive)
   (let ((str) (sym))
     (save-excursion
@@ -670,7 +720,7 @@ buffer is left showing the messages and the return is nil."
 	  (setq str (buffer-substring (match-beginning 1) (match-end 1)))))
     (message str)
     (setq sym (assoc str latex-math-preview-candidates-defined-as-list))
-    (latex-math-preview-exit-window)
+    (latex-math-preview-quit-window)
     (if sym
 	(progn
 	  (insert (car (car (cdr sym))))
@@ -678,53 +728,55 @@ buffer is left showing the messages and the return is nil."
 	    (insert (car (cdr (cdr (car (cdr sym))))))))
       (insert str))))
 
-(defun latex-math-preview-insertion (&optional dirname)
-  (interactive)
-  (if (not dirname)
-      (setq dirname (completing-read "type: " latex-math-preview-insertion-candidates nil t)))
-  (latex-math-preview-insertion-candidate-buffer dirname))
+;;-----------------------------------------------------------------------------
+;; Move to other item
 
-(defun latex-math-preview-insertion-set-overlay ()
+(defun latex-math-preview-set-overlay-for-selected-item ()
+  "Set overlay and highlight."
   (save-excursion
     (let ((start-ol))
       (skip-chars-backward "^\t ")
       (setq start-ol (point))
       (skip-chars-forward "^\t ")
-      (if latex-math-preview-selection-overlay
-	  (move-overlay latex-math-preview-selection-overlay start-ol (point))
+      (if latex-math-preview-selection-overlay-for-insertion
+	  (move-overlay latex-math-preview-selection-overlay-for-insertion start-ol (point))
 	(progn
-	  (setq latex-math-preview-selection-overlay (make-overlay start-ol (point)))
-	  (overlay-put latex-math-preview-selection-overlay 'face latex-math-preview-selection-face))))))
+	  (setq latex-math-preview-selection-overlay-for-insertion (make-overlay start-ol (point)))
+	  (overlay-put latex-math-preview-selection-overlay-for-insertion 'face latex-math-preview-selection-face-for-insertion))))))
 
-(defun latex-math-preview-insertion-select-right ()
+(defun latex-math-preview-move-to-right-item ()
+  "Move to right item."
   (interactive)
   (re-search-forward "\t\\([^\t ]*\\) " nil t)
   (goto-char (match-beginning 1))
-  (latex-math-preview-insertion-set-overlay))
+  (latex-math-preview-set-overlay-for-selected-item))
 
-(defun latex-math-preview-insertion-select-left ()
+(defun latex-math-preview-move-to-left-item ()
+  "Move to left item."
   (interactive)
   (re-search-backward "\t\\([^\t ]*\\) " nil t)
   (goto-char (match-beginning 1))
-  (latex-math-preview-insertion-set-overlay))
+  (latex-math-preview-set-overlay-for-selected-item))
 
-(defun latex-math-preview-insertion-select-up ()
+(defun latex-math-preview-move-to-upward-item ()
+  "Move to upward item."
   (interactive)
   (let ((col (current-column)))
     (forward-line -1)
     (move-to-column col))
   (skip-chars-backward "^\t ")
   (backward-char)
-  (latex-math-preview-insertion-select-right))
+  (latex-math-preview-move-to-right-item))
 
-(defun latex-math-preview-insertion-select-down ()
+(defun latex-math-preview-move-to-downward-item ()
+  "Move to downward item."
   (interactive)
   (let ((col (current-column)))
     (forward-line 1)
     (move-to-column col))
   (skip-chars-backward "^\t ")
   (backward-char)
-  (latex-math-preview-insertion-select-right))
+  (latex-math-preview-move-to-right-item))
 
 (provide 'latex-math-preview)
 
