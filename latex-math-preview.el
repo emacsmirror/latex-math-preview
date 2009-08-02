@@ -2,8 +2,8 @@
 
 ;; Author: Takayuki YAMAGUCHI <d@ytak.info>
 ;; Keywords: LaTeX TeX
-;; Version: 0.2.1
-;; Created: Sun Aug  2 12:21:55 2009
+;; Version: 0.2.2
+;; Created: Mon Aug  3 00:02:43 2009
 
 ;; latex-math-preview.el is a modified version which is based on
 ;; tex-math-preview.el and has been created at July 2009.
@@ -35,8 +35,8 @@
 ;; The result of latex-math-preview-expression is shown in new buffer as image
 ;; or as dvi file by dvi viewer.
 ;; 
-;; M-x latex-math-preview-insert-sign displays list of mathematical symbols.
-;; You can insert a LaTeX command from it.
+;; M-x latex-math-preview-insert-symbol displays list of mathematical symbols.
+;; You can insert a LaTeX mathematical symbol from it.
 
 ;; Requirements;
 ;; Emacs (version 22 or 23) on Linux or Meadow3 on Windows.
@@ -49,15 +49,17 @@
 ;; write the following code in ~/.emacs.el.
 ;; 
 ;;   (autoload 'latex-math-preview-expression "latex-math-preview" nil t)
-;;   (autoload 'latex-math-preview-insert-sign "latex-math-preview" nil t)
+;;   (autoload 'latex-math-preview-insert-symbol "latex-math-preview" nil t)
 ;; 
 ;; For YaTeX mode, add the follwing to ~/.emacs.el if desired.
 ;;
 ;;   (add-hook 'yatex-mode-hook
 ;;            '(lambda ()
-;; 	      (YaTeX-define-key "p" 'latex-math-preview-expression)))
+;; 	      (YaTeX-define-key "p" 'latex-math-preview-expression)
+;; 	      (YaTeX-define-key "j" 'latex-math-preview-insert-symbol)))
 ;;
-;; This setting almost binds latex-math-preview-expression to "C-c p".
+;; This setting almost binds latex-math-preview-expression to "C-c p"
+;; and latex-math-preview-insert-symbol to "C-c j".
 
 ;;; Settings:
 ;; You can customize some variables.
@@ -84,7 +86,7 @@
 ;; (part of latex-math-preview-latex-template-header
 ;;  the default value is the following)
 ;; \documentclass{article}
-;; \usepackage{amsmath, amsfonts, amsthm}
+;; \usepackage{amsmath, amssymb, amsthm}
 ;; \pagestyle{empty}
 ;; \begin{document}
 ;;
@@ -136,6 +138,10 @@
 ;;  k: scroll down
 
 ;; ChangeLog:
+;; 2009/08/03 version 0.2.2 yamaguchi
+;;     Change name of function `latex-math-preview-insert-sign' to `latex-math-preview-insert-symbol'.
+;;     Add some groups of symbol candidates.
+;;     Some bug fixes.
 ;; 2009/08/02 version 0.2.1 yamaguchi
 ;;     New command latex-math-preview-next-candidates-for-insertion.
 ;;     Some adjustments.
@@ -175,7 +181,7 @@ methods, according to what Emacs and the system supports."
   "*latex-math-preview*"
   "Name of buffer which displays preview image.")
 
-(defvar latex-math-preview-insert-sign-buffer-name
+(defvar latex-math-preview-insert-symbol-buffer-name
   "*latex-math-preview-candidates*"
   "Name of buffer which displays candidates of LaTeX mathematical symbols.")
 
@@ -210,7 +216,7 @@ methods, according to what Emacs and the system supports."
   "Temporary variable. You must not set this variable.")
 
 (defvar latex-math-preview-latex-template-header
-  "\\documentclass{article}\n\\usepackage{amsmath, amsfonts, amsthm}\n\\pagestyle{empty}\n\\begin{document}\n"
+  "\\documentclass{article}\n\\usepackage{amsmath, amssymb, amsthm}\n\\pagestyle{empty}\n\\begin{document}\n"
   "Insert string to beggining of temporary latex file to make image.")
 
 (defvar latex-math-preview-latex-template-footer
@@ -249,7 +255,9 @@ methods, according to what Emacs and the system supports."
 (defvar latex-math-preview-candidates-for-insertion
   '(
     ("delimiters" .
-     ("\\lfloor" "\\rfloor" "\\lceil" "\\rceil" "\\langle" "\\rangle"
+     (("(" "x" ")") ("[" "x" "]") ("\\{" "x" "\\}")
+      ("\\lfloor " "x" " \\rfloor") ("\\lceil " "x" " \\rceil")
+      ("\\langle " "x" " \\rangle")
       "\\backslash" "\\|" "\\uparrow" "\\Uparrow" "\\downarrow" "\\Downarrow"
       "\\updownarrow" "\\Updownarrow"))
     ("greek-letters" .
@@ -272,9 +280,11 @@ methods, according to what Emacs and the system supports."
       ;; omit "\\leq" and "geq" because this is the same as "\\le" and "\\ge", respectively.
       "\\equiv" "\\sim" "\\simeq" "\\asymp" "\\approx" "\\cong" "\\neq"
       "\\doteq" "\\propto" "\\models" "\\perp" "\\mid" "\\parallel" "\\bowtie"
-      "\\smile" "\\frown"))
+      "\\smile" "\\frown"
+      "\\not\\equiv"))
     ("arrows" .
-     ("\\leftarrow" "\\gets" "\\Leftarrow" "\\rightarrow" "\\to" "\\Rightarrow"
+     ("\\gets" "\\Leftarrow" "\\to" "\\Rightarrow"
+      ;; omit "\\leftarrow" and "\\rightarrow"
       "\\leftrightarrow" "\\Leftrightarrow" "\\mapsto" "\\hookleftarrow"
       "\\leftharpoonup" "\\leftharpoondown" "\\longleftarrow" "\\Longleftarrow"
       "\\longleftrightarrow" "\\Longleftrightarrow" "\\longmapsto"
@@ -300,15 +310,74 @@ methods, according to what Emacs and the system supports."
       ("\\overline{" "xy" "}") "\\underline{xy}" ("\\widehat{" "xy" "}")
       ("\\widetilde{" "xy" "}") ("\\overbrace{" "xy" "}")
       ("\\underbrace{" "xy" "}") ("\\overrightarrow{" "\\mathrm{OA}" "}")
-      ("\\overleftarrow{" "\\mathrm{OA}" "}")))
+      ("\\overleftarrow{" "\\mathrm{OA}" "}") ("\\stackrel{" "f" "}{\\to}")
+      "\\stackrel{\\mathrm{def}}{=}"))
     ("typefaces" .
-     (("\\mathbf{" "x" "}") ("\\mathit{" "diff" "}") ("\\mathrm{" "H" "}") ("\\mathcal{" "H" "}")
-      ("\\mathsf{" "H" "}") ("\\mathtt{" "H" "}")))
-    
-    ;; ("others" .
-    ;;  ("\\vartriangleleft" "\\vartriangleright" "\\trianglelefteq" "\\trianglerighteq"
-    ;;   "\\sqsubset" "\\sqsupset" "\\Join" "\\rightsquigarrow" "\\square"
-    ;;   "\\lozenge" "\\mho"))
+     (("\\mathrm{" "abcdeABCDE" "}") ("\\mathbf{" "abcdeABCDE" "}")
+      ("\\mathit{" "abcdeABCDE" "}") ("\\mathcal{" "abcdeABCDE" "}")
+      ("\\mathsf{" "abcdeABCDE" "}") ("\\mathtt{" "abcdeABCDE" "}")))
+    ("AMSFonts-binary-operators" .
+     ("\\boxdot" "\\boxplus" "\\centerdot" "\\boxminus" "\\veebar" "\\barwedge"
+      "\\doublebarwedge" "\\Cup" "\\Cap" "\\curlywedge" "\\curlyvee"
+      "\\leftthreetimes" "\\rightthreetimes" "\\dotplus" "\\intercal"
+      "\\circledcirc" "\\circledast" "\\circleddash" "\\divideontimes" "\\lessdot"
+      "\\gtrdot" "\\ltimes" "\\rtimes" "\\smallsetminus"))
+    ("AMSFonts-relational-operators1" .
+     ("\\circlearrowright" "\\circlearrowleft" "\\rightleftharpoons"
+      "\\leftrightharpoons" "\\Vdash" "\\Vvdash" "\\vDash" "\\twoheadrightarrow"
+      "\\twoheadleftarrow" "\\leftleftarrows" "\\rightrightarrows" "\\upuparrows"
+      "\\downdownarrows" "\\upharpoonright" "\\downharpoonright" "\\upharpoonleft"
+      "\\downharpoonleft" "\\rightarrowtail" "\\leftarrowtail" "\\rightleftarrows"
+      "\\Lsh" "\\Rsh" "\\rightsquigarrow" "\\leftrightsquigarrow" "\\looparrowleft"
+      "\\looparrowright" "\\circeq" "\\succsim" "\\gtrsim" "\\gtrapprox"
+      "\\multimap" "\\therefore" "\\because" "\\doteqdot" "\\triangleq" "\\precsim" 
+      "\\lesssim" "\\lessapprox" "\\eqslantless" "\\eqslantgtr" "\\curlyeqprec"
+      "\\curlyeqsucc"))
+    ("AMSFonts-relational-operators2" .
+     ("\\preccurlyeq" "\\leqq" "\\leqslant" "\\lessgtr" "\\risingdotseq"
+      "\\fallingdotseq" "\\succcurlyeq" "\\geqq" "\\geqslant" "\\gtrless"
+      "\\sqsubset" "\\sqsupset" "\\vartriangleright" "\\vartriangleleft"
+      "\\trianglerighteq" "\\trianglelefteq" "\\between" "\\blacktriangleright"
+      "\\blacktriangleleft" "\\vartriangle" "\\eqcirc" "\\lesseqgtr" "\\gtreqless"
+      "\\lesseqqgtr" "\\gtreqqless" "\\Rrightarrow" "\\Lleftarrow" "\\varpropto"
+      "\\smallsmile" "\\smallfrown" "\\Subset" "\\Supset" "\\subseteqq"
+      "\\supseteqq" "\\bumpeq" "\\Bumpeq" "\\lll" "\\ggg" "\\pitchfork"
+      "\\backsim" "\\backsimeq"))
+    ("AMSFonts-relational-operators3" .
+     ("\\lvertneqq" "\\gvertneqq" "\\nleq" "\\ngeq" "\\nless" "\\ngtr" "\\nprec"
+      "\\nsucc" "\\lneqq" "\\gneqq" "\\nleqslant" "\\ngeqslant" "\\lneq" "\\gneq"
+      "\\npreceq" "\\nsucceq" "\\precnsim" "\\succnsim" "\\lnsim" "\\gnsim"
+      "\\nleqq" "\\ngeqq" "\\precneqq" "\\succneqq" "\\precnapprox" "\\succnapprox"
+      "\\lnapprox" "\\gnapprox" "\\nsim" "\\ncong" "\\varsubsetneq" "\\varsupsetneq"
+      "\\nsubseteqq" "\\nsupseteqq" "\\subsetneqq" "\\supsetneqq" "\\varsubsetneqq"
+      "\\varsupsetneqq" "\\subsetneq" "\\supsetneq" "\\nsubseteq" "\\nsupseteq"
+      "\\nparallel" "\\nmid" "\\nshortmid" "\\nshortparallel" "\\nvdash"
+      "\\nVdash" "\\nvDash" "\\nVDash" "\\ntrianglerighteq" "\\ntrianglelefteq"
+      "\\ntriangleleft" "\\ntriangleright" "\\nleftarrow" "\\nLeftarrow"
+      "\\nRightarrow" "\\nLeftrightarrow" "\\nleftrightarrow" "\\eqsim"
+      "\\shortmid" "\\shortparallel" "\\thicksim" "\\thickapprox" "\\approxeq"
+      "\\succapprox" "\\precapprox" "\\curvearrowleft" "\\curvearrowright"
+      "\\backepsilon"))
+    ("AMSFonts-other-symbols" .
+     ("\\square" "\\blacksquare" "\\lozenge" "\\blacklozenge" "\\backprime"
+      "\\bigstar" "\\blacktriangledown" "\\blacktriangle" "\\triangledown"
+      "\\angle" "\\measuredangle" "\\sphericalangle" "\\circledS" "\\complement"
+      "\\diagup" "\\diagdown" "\\varnothing" "\\nexists" "\\Finv" "\\Game"
+      "\\mho" "\\eth" "\\beth" "\\gimel" "\\daleth" "\\digamma"
+      "\\varkappa" "\\Bbbk" "\\hslash" "\\hbar"))
+    ("AMSFonts-italic-greeks" .
+     ("\\varGamma" "\\varDelta" "\\varTheta" "\\varLambda" "\\varXi" "\\varPi"
+      "\\varSigma" "\\varUpsilon" "\\varPhi" "\\varPsi" "\\varOmega"))
+    ("AMSFonts-others" .
+     (("\\mathfrak{" "ABCDE" "}") ("\\mathbb{" "ABCDE" "}")
+      ("\\overleftrightarrow{" "A" "}") ("\\underleftrightarrow{" "A" "}")
+      ("\\xrightarrow{" "\\text{text}" "}") ("\\xrightarrow[" "abc" "]{}")
+      ("\\xleftarrow{" "\\text{text}" "}") ("\\xleftarrow[" "abc" "]{}")
+      ("\\Hat{" "A" "}") ("\\Dot{" "A" "}") ("\\Check{" "A" "}")
+      ("\\Ddot{" "A" "}") ("\\Tilde{" "A" "}") ("\\Breve{" "A" "}")
+      ("\\Acute{" "A" "}") ("\\Bar{" "A" "}") ("\\Vec{" "A" "}")
+      ("\\dddot{" "x" "}") ("\\ddddot{" "x" "}")
+      "\\int" "\\iiint" "\\iiiint" "\\idotsint"))
     )
   "List of candidates for insertion of LaTeX mathematical symbol.")
 
@@ -319,18 +388,25 @@ methods, according to what Emacs and the system supports."
   "Temporary variable.")
 (setq latex-math-preview-candidates-defined-as-list nil)
 
-(defvar latex-math-preview-default-dirname
-  (car (nth 0 latex-math-preview-candidates-for-insertion))
-  "Default DIRNAME.")
+(defvar latex-math-preview-restore-symbol-group t
+  "Restore last symbol group at next insertion.")
 
-(defvar latex-math-preview-current-dirname nil
-  "DIRNAME of present buffer displaying mathematical symbols.")
+(defvar latex-math-preview-initial-group
+  (car (nth 0 latex-math-preview-candidates-for-insertion))
+  "Group which is displayed initially.")
+
+(defvar latex-math-preview-current-group nil
+  "Group of present buffer displaying mathematical symbols.")
 
 (defvar latex-math-preview-number-start-candidates 0
   "Line number starting display of candidates.")
 
 (defface latex-math-preview-candidate-for-insertion-face
   '((t (:foreground "dark orange")))
+  "Face for notations of LaTeX mathematical symbol.")
+
+(defface latex-math-preview-key-for-insertion-face
+  '((t (:foreground "dodger blue")))
   "Face for notations of LaTeX mathematical symbol.")
   
 (defvar latex-math-preview-selection-face-for-insertion 'highlight
@@ -356,10 +432,11 @@ methods, according to what Emacs and the system supports."
     map)
   "Keymap for latex-math-preview-expression.")
 
-(defvar latex-math-preview-insert-sign-map
+(defvar latex-math-preview-insert-symbol-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "q") 'latex-math-preview-quit-window)
     (define-key map (kbd "Q") 'latex-math-preview-delete-buffer)
+    (define-key map (kbd "c") 'latex-math-preview-symbols-of-other-group)
     (define-key map (kbd "j") 'latex-math-preview-move-to-downward-item)
     (define-key map (kbd "k") 'latex-math-preview-move-to-upward-item)
     (define-key map (kbd "l") 'latex-math-preview-move-to-right-item)
@@ -379,7 +456,7 @@ methods, according to what Emacs and the system supports."
     (define-key map (kbd "\C-m") 'latex-math-preview-put-selected-candidate)
     (define-key map (kbd "<return>") 'latex-math-preview-put-selected-candidate)
     map)
-  "Keymap for insertion mode of latex-math-preview-insert-sign.")
+  "Keymap for insertion mode of latex-math-preview-insert-symbol.")
 
 ;;-----------------------------------------------------------------------------
 
@@ -610,8 +687,8 @@ If DIRNAME is nil then all directories saving caches is deleted."
   (interactive)
   (if dirname
       (if (assoc dirname latex-math-preview-candidates-for-insertion)
-	  ((latex-math-preview-clear-tmp-directory
-	    (concat latex-math-preview-cache-directory-for-insertion "/" dirname))))
+	  (latex-math-preview-clear-tmp-directory
+	   (concat latex-math-preview-cache-directory-for-insertion "/" dirname)))
     (latex-math-preview-clear-tmp-directory latex-math-preview-cache-directory-for-insertion)))
 
 (defun latex-math-preview-make-candidate-image (math-symbol dirname num)
@@ -674,21 +751,39 @@ Return maximum size of images and maximum length of strings and images"
            (display-images-p))
       (error "Cannot display PNG in this Emacs"))
 
-  (setq latex-math-preview-current-dirname dirname)
+  (setq latex-math-preview-current-group dirname)
   (latex-math-preview-make-cache-for-insertion dirname)
   (setq latex-math-preview-window-configuration (current-window-configuration))
-  (with-current-buffer (get-buffer-create latex-math-preview-insert-sign-buffer-name)
+  (with-current-buffer (get-buffer-create latex-math-preview-insert-symbol-buffer-name)
     (setq cursor-type nil)
     (setq truncate-lines t)
     (setq line-spacing 8)
     (setq buffer-read-only nil)
     (erase-buffer)
 
-    (insert "key: [RET] insert   [j] down   [k] up   [h] left   [l] left")
+    (insert "key:")
+    (add-text-properties (point-min) (point) '(face bold))
+    (insert " [RET] insert   [j] down   [k] up   [h] left   [l] right")
     (insert "\n")
-    (insert "     [.] next page   [,] previous page   [q] quit")
+    (insert "     [.] next page   [,] previous page   [c] change group   [q] quit")
     (insert "\n")
-    (insert (make-string (frame-width) ?-))
+    
+    (save-excursion
+      (goto-char (point-min))
+      (while (re-search-forward "\\[" nil t)
+	(backward-char)
+	(let ((start-pt (point)))
+	  (if (re-search-forward "\\]" nil t)
+	      (add-text-properties start-pt (point)
+				   '(face latex-math-preview-key-for-insertion-face))))))
+
+    (let ((num-dash (- (/ (- (frame-width) (length dirname)) 2) 3))
+	  (start-pt))
+      (insert (make-string num-dash ?-))
+      (setq start-pt (point))
+      (insert " * " dirname " * ")
+      (add-text-properties start-pt (point) '(face bold))
+      (insert (make-string num-dash ?-)))
     (insert "\n")
     (setq latex-math-preview-number-start-candidates 4)
 
@@ -700,7 +795,7 @@ Return maximum size of images and maximum length of strings and images"
 			   (sort (delete-if (lambda (file) (not (string-match "^[0-9]+_" file)))
 					    (directory-files dirpath)) 'string<)) latex-symbols))
 	   (new-tab-width (+ 4 (ceiling (/ (float (car data)) (float (frame-char-width))))))
-	   (str-size (* new-tab-width (ceiling (/ (float (car (cdr data))) (float new-tab-width)))))
+	   (str-size (* new-tab-width (ceiling (/ (float (+ 6 (car (cdr data)))) (float new-tab-width)))))
 	   (str-format (format "%%-%ds" str-size))
 	   (row (floor (/ (frame-width)
 			  (+ str-size (* (ceiling (/ (float (car data))
@@ -725,17 +820,24 @@ Return maximum size of images and maximum length of strings and images"
     (latex-math-preview-move-to-right-item)
     (buffer-disable-undo)
     (setq buffer-read-only t)
-    (use-local-map latex-math-preview-insert-sign-map)
+    (use-local-map latex-math-preview-insert-symbol-map)
     (setq mode-name "LaTeXPreview"))
-  (pop-to-buffer latex-math-preview-insert-sign-buffer-name))
+  (pop-to-buffer latex-math-preview-insert-symbol-buffer-name))
 
-(defun latex-math-preview-insert-sign (&optional num)
+(defun latex-math-preview-insert-symbol (&optional num)
   "Insert LaTeX mathematical symbols with displaying."
   (interactive "p")
   (if (= num 1)
-      (latex-math-preview-create-buffer-for-insertion latex-math-preview-default-dirname)
-    (let ((dirname (completing-read "type: " latex-math-preview-candidates-for-insertion nil t)))
+      (latex-math-preview-create-buffer-for-insertion
+       (or latex-math-preview-current-group latex-math-preview-initial-group))
+    (let ((dirname (completing-read "group: " latex-math-preview-candidates-for-insertion nil t)))
       (latex-math-preview-create-buffer-for-insertion dirname))))
+
+(defun latex-math-preview-symbols-of-other-group ()
+  "Change other page."
+  (interactive)
+  (latex-math-preview-quit-window)
+  (latex-math-preview-insert-symbol -1))
 
 (defun latex-math-preview-get-page-number (dirname)
   "Get number of page for DIRNAME."
@@ -752,7 +854,7 @@ Return maximum size of images and maximum length of strings and images"
 (defun latex-math-preview-next-candidates-for-insertion (num)
   "Next page of candidates buffer for insertion."
   (interactive "p")
-  (let ((page (latex-math-preview-get-page-number latex-math-preview-current-dirname))
+  (let ((page (latex-math-preview-get-page-number latex-math-preview-current-group))
 	(len (length latex-math-preview-candidates-for-insertion)))
     (while (< num 0) (setq num (+ num len)))
     (if page
@@ -769,13 +871,10 @@ Return maximum size of images and maximum length of strings and images"
 (defun latex-math-preview-put-selected-candidate ()
   "Insert selected LaTeX mathematical symboled to original buffer."
   (interactive)
-  (let ((str) (sym))
-    (save-excursion
-      (skip-chars-backward "^\n\r ")
-      (if (re-search-forward "\t\\([^\t ]*\\) " nil t)
-	  (setq str (buffer-substring (match-beginning 1) (match-end 1)))))
-    (message str)
-    (setq sym (assoc str latex-math-preview-candidates-defined-as-list))
+  (let* ((str (buffer-substring
+	       (overlay-start latex-math-preview-selection-overlay-for-insertion)
+	       (overlay-end latex-math-preview-selection-overlay-for-insertion)))
+	(sym (assoc str latex-math-preview-candidates-defined-as-list)))
     (latex-math-preview-quit-window)
     (if sym
 	(progn
@@ -791,9 +890,10 @@ Return maximum size of images and maximum length of strings and images"
   "Set overlay and highlight."
   (save-excursion
     (let ((start-ol))
-      (skip-chars-backward "^\t ")
+      (skip-chars-backward "^\t")
       (setq start-ol (point))
-      (skip-chars-forward "^\t ")
+      (re-search-forward "  " nil t)
+      (skip-chars-backward " ")
       (if latex-math-preview-selection-overlay-for-insertion
 	  (move-overlay latex-math-preview-selection-overlay-for-insertion start-ol (point))
 	(progn
@@ -803,14 +903,14 @@ Return maximum size of images and maximum length of strings and images"
 (defun latex-math-preview-move-to-right-item ()
   "Move to right item."
   (interactive)
-  (re-search-forward "\t\\([^\t ]*\\) " nil t)
+  (re-search-forward "\t\\([^\t]+\\)  " nil t)
   (goto-char (match-beginning 1))
   (latex-math-preview-set-overlay-for-selected-item))
 
 (defun latex-math-preview-move-to-left-item ()
   "Move to left item."
   (interactive)
-  (re-search-backward "\t\\([^\t ]*\\) " nil t)
+  (re-search-backward "\t\\([^\t]+\\)  " nil t)
   (goto-char (match-beginning 1))
   (latex-math-preview-set-overlay-for-selected-item))
 
