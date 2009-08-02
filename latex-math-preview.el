@@ -2,8 +2,8 @@
 
 ;; Author: Takayuki YAMAGUCHI <d@ytak.info>
 ;; Keywords: LaTeX TeX
-;; Version: 0.2.0
-;; Created: Sun Aug  2 10:07:04 2009
+;; Version: 0.2.1
+;; Created: Sun Aug  2 12:21:55 2009
 
 ;; latex-math-preview.el is a modified version which is based on
 ;; tex-math-preview.el and has been created at July 2009.
@@ -136,6 +136,9 @@
 ;;  k: scroll down
 
 ;; ChangeLog:
+;; 2009/08/02 version 0.2.1 yamaguchi
+;;     New command latex-math-preview-next-candidates-for-insertion.
+;;     Some adjustments.
 ;; 2009/08/02 version 0.2.0 yamaguchi
 ;;     New command latex-math-preview-insert-sign.
 ;;     Change name of function `latex-math-preview' to `latex-math-preview-expression'.
@@ -316,6 +319,16 @@ methods, according to what Emacs and the system supports."
   "Temporary variable.")
 (setq latex-math-preview-candidates-defined-as-list nil)
 
+(defvar latex-math-preview-default-dirname
+  (car (nth 0 latex-math-preview-candidates-for-insertion))
+  "Default DIRNAME.")
+
+(defvar latex-math-preview-current-dirname nil
+  "DIRNAME of present buffer displaying mathematical symbols.")
+
+(defvar latex-math-preview-number-start-candidates 0
+  "Line number starting display of candidates.")
+
 (defface latex-math-preview-candidate-for-insertion-face
   '((t (:foreground "dark orange")))
   "Face for notations of LaTeX mathematical symbol.")
@@ -353,12 +366,16 @@ methods, according to what Emacs and the system supports."
     (define-key map (kbd "h") 'latex-math-preview-move-to-left-item)
     (define-key map (kbd "n") 'latex-math-preview-move-to-downward-item)
     (define-key map (kbd "p") 'latex-math-preview-move-to-upward-item)
+    (define-key map (kbd "f") 'latex-math-preview-move-to-right-item)
+    (define-key map (kbd "b") 'latex-math-preview-move-to-left-item)
     (define-key map (kbd "<down>") 'latex-math-preview-move-to-downward-item)
     (define-key map (kbd "<up>") 'latex-math-preview-move-to-upward-item)
     (define-key map (kbd "<right>") 'latex-math-preview-move-to-right-item)
     (define-key map (kbd "<left>") 'latex-math-preview-move-to-left-item)
-    (define-key map (kbd "f") 'latex-math-preview-move-to-right-item)
-    (define-key map (kbd "b") 'latex-math-preview-move-to-left-item)
+    (define-key map (kbd ".") 'latex-math-preview-next-candidates-for-insertion)
+    (define-key map (kbd ",") 'latex-math-preview-previous-candidates-for-insertion)
+    (define-key map (kbd "\C-n") 'latex-math-preview-next-candidates-for-insertion)
+    (define-key map (kbd "\C-p") 'latex-math-preview-previous-candidates-for-insertion)
     (define-key map (kbd "\C-m") 'latex-math-preview-put-selected-candidate)
     (define-key map (kbd "<return>") 'latex-math-preview-put-selected-candidate)
     map)
@@ -657,6 +674,7 @@ Return maximum size of images and maximum length of strings and images"
            (display-images-p))
       (error "Cannot display PNG in this Emacs"))
 
+  (setq latex-math-preview-current-dirname dirname)
   (latex-math-preview-make-cache-for-insertion dirname)
   (setq latex-math-preview-window-configuration (current-window-configuration))
   (with-current-buffer (get-buffer-create latex-math-preview-insert-sign-buffer-name)
@@ -665,6 +683,14 @@ Return maximum size of images and maximum length of strings and images"
     (setq line-spacing 8)
     (setq buffer-read-only nil)
     (erase-buffer)
+
+    (insert "key: [RET] insert   [j] down   [k] up   [h] left   [l] left")
+    (insert "\n")
+    (insert "     [.] next page   [,] previous page   [q] quit")
+    (insert "\n")
+    (insert (make-string (frame-width) ?-))
+    (insert "\n")
+    (setq latex-math-preview-number-start-candidates 4)
 
     (let* ((latex-symbols (cdr (assoc dirname latex-math-preview-candidates-for-insertion)))
 	   (dirpath (concat latex-math-preview-cache-directory-for-insertion "/" dirname))
@@ -695,7 +721,7 @@ Return maximum size of images and maximum length of strings and images"
       		(setq num row)
       		(insert "\n")))))
 
-    (goto-char (point-min))
+    (goto-line latex-math-preview-number-start-candidates)
     (latex-math-preview-move-to-right-item)
     (buffer-disable-undo)
     (setq buffer-read-only t)
@@ -703,12 +729,42 @@ Return maximum size of images and maximum length of strings and images"
     (setq mode-name "LaTeXPreview"))
   (pop-to-buffer latex-math-preview-insert-sign-buffer-name))
 
-(defun latex-math-preview-insert-sign (&optional dirname)
+(defun latex-math-preview-insert-sign (&optional num)
   "Insert LaTeX mathematical symbols with displaying."
-  (interactive)
-  (if (not dirname)
-      (setq dirname (completing-read "type: " latex-math-preview-candidates-for-insertion nil t)))
-  (latex-math-preview-create-buffer-for-insertion dirname))
+  (interactive "p")
+  (if (= num 1)
+      (latex-math-preview-create-buffer-for-insertion latex-math-preview-default-dirname)
+    (let ((dirname (completing-read "type: " latex-math-preview-candidates-for-insertion nil t)))
+      (latex-math-preview-create-buffer-for-insertion dirname))))
+
+(defun latex-math-preview-get-page-number (dirname)
+  "Get number of page for DIRNAME."
+  (let ((num 0) (cont t)
+	(max-num (length latex-math-preview-candidates-for-insertion)))
+    (while (and cont (< num max-num))
+      (if (string= dirname (car (nth num latex-math-preview-candidates-for-insertion)))
+	  (setq cont nil))
+      (setq num (1+ num)))
+    (if (not cont)
+	(- num 1)
+      nil)))
+
+(defun latex-math-preview-next-candidates-for-insertion (num)
+  "Next page of candidates buffer for insertion."
+  (interactive "p")
+  (let ((page (latex-math-preview-get-page-number latex-math-preview-current-dirname))
+	(len (length latex-math-preview-candidates-for-insertion)))
+    (while (< num 0) (setq num (+ num len)))
+    (if page
+	(let ((dirname (car (nth (% (+ page num) len)
+				 latex-math-preview-candidates-for-insertion))))
+	  (latex-math-preview-quit-window)
+	  (latex-math-preview-create-buffer-for-insertion dirname)))))
+
+(defun latex-math-preview-previous-candidates-for-insertion (num)
+  "Previous page of candidates buffer for insertion."
+  (interactive "p")
+  (latex-math-preview-next-candidates-for-insertion (- 0 num)))
 
 (defun latex-math-preview-put-selected-candidate ()
   "Insert selected LaTeX mathematical symboled to original buffer."
@@ -761,12 +817,14 @@ Return maximum size of images and maximum length of strings and images"
 (defun latex-math-preview-move-to-upward-item ()
   "Move to upward item."
   (interactive)
-  (let ((col (current-column)))
-    (forward-line -1)
-    (move-to-column col))
-  (skip-chars-backward "^\t ")
-  (backward-char)
-  (latex-math-preview-move-to-right-item))
+  (if (< latex-math-preview-number-start-candidates (line-number-at-pos))
+      (progn
+	(let ((col (current-column)))
+	  (forward-line -1)
+	  (move-to-column col))
+	(skip-chars-backward "^\t ")
+	(backward-char)
+	(latex-math-preview-move-to-right-item))))
 
 (defun latex-math-preview-move-to-downward-item ()
   "Move to downward item."
