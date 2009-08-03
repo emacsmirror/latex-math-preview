@@ -223,6 +223,51 @@ methods, according to what Emacs and the system supports."
   "\\par\n\\end{document}\n"
   "Insert string to end of temporary latex file to make image.")
 
+(defvar latex-math-preview-window-configuration nil
+  "Temporary variable in which window configuration is saved.")
+
+(defvar latex-math-preview-candidates-defined-as-list nil
+  "Temporary variable.")
+(setq latex-math-preview-candidates-defined-as-list nil)
+
+(defvar latex-math-preview-restore-symbol-group t
+  "Restore last symbol group at next insertion
+ if this `latex-math-preview-restore-symbol-group' is non-nil.")
+
+(defvar latex-math-preview-initial-group
+  (car (nth 0 latex-math-preview-candidates-for-insertion))
+  "Group which is displayed initially.")
+
+(defvar latex-math-preview-current-group nil
+  "Group of present buffer displaying mathematical symbols.")
+
+(defvar latex-math-preview-number-start-candidates 0
+  "Temporary variable which is line number starting display of candidates.")
+
+(defface latex-math-preview-candidate-for-insertion-face
+  '((t (:foreground "dark orange")))
+  "Face for notations of LaTeX mathematical symbol.")
+
+(defface latex-math-preview-key-for-insertion-face
+  '((t (:foreground "dodger blue")))
+  "Face for notations of LaTeX mathematical symbol.")
+  
+(defvar latex-math-preview-selection-face-for-insertion 'highlight
+  "Face for currently selected item.")
+
+(defvar latex-math-preview-selection-overlay-for-insertion nil
+  "Overlay for highlighting currently selected item.")
+
+(defvar latex-math-preview-not-delete-tmpfile nil
+  "Not delete temporary files and directory if this value is true. Mainly for debugging.")
+
+(defvar latex-math-preview-dvipng-log-buffer nil
+  "Buffer name for output by dvipng. Mainly for debugging.")
+
+(defvar latex-math-preview-in-math-mode-p-func 'latex-math-preview-in-math-mode-p
+  "Symbol of function is used for determining whether cursor is in mathematical expression.
+If you use YaTeX mode then the recommended value of this variable is YaTeX-in-math-mode-p.")
+
 (defvar latex-math-preview-match-expression
   '(
     ;; \[...\]
@@ -381,50 +426,11 @@ methods, according to what Emacs and the system supports."
     )
   "List of candidates for insertion of LaTeX mathematical symbol.")
 
-(defvar latex-math-preview-window-configuration nil
-  "Temporary variable in which window configuration is saved.")
-
-(defvar latex-math-preview-candidates-defined-as-list nil
-  "Temporary variable.")
-(setq latex-math-preview-candidates-defined-as-list nil)
-
-(defvar latex-math-preview-restore-symbol-group t
-  "Restore last symbol group at next insertion.")
-
-(defvar latex-math-preview-initial-group
-  (car (nth 0 latex-math-preview-candidates-for-insertion))
-  "Group which is displayed initially.")
-
-(defvar latex-math-preview-current-group nil
-  "Group of present buffer displaying mathematical symbols.")
-
-(defvar latex-math-preview-number-start-candidates 0
-  "Line number starting display of candidates.")
-
-(defface latex-math-preview-candidate-for-insertion-face
-  '((t (:foreground "dark orange")))
-  "Face for notations of LaTeX mathematical symbol.")
-
-(defface latex-math-preview-key-for-insertion-face
-  '((t (:foreground "dodger blue")))
-  "Face for notations of LaTeX mathematical symbol.")
-  
-(defvar latex-math-preview-selection-face-for-insertion 'highlight
-  "Face for currently selected item.")
-
-(defvar latex-math-preview-selection-overlay-for-insertion nil
-  "Overlay for highlighting currently selected item.")
-
-(defvar latex-math-preview-not-delete-tmpfile nil
-  "Not delete temporary files and directory if this value is true. Mainly for debugging.")
-
-(defvar latex-math-preview-dvipng-log-buffer nil
-  "Buffer name for output by dvipng. Mainly for debugging.")
-
 (defvar latex-math-preview-expression-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "q") 'latex-math-preview-quit-window)
     (define-key map (kbd "Q") 'latex-math-preview-delete-buffer)
+    (define-key map (kbd "\C-g") 'latex-math-preview-quit-window)
     (define-key map (kbd "j") 'scroll-up)
     (define-key map (kbd "k") 'scroll-down)
     (define-key map (kbd "n") 'scroll-up)
@@ -436,6 +442,8 @@ methods, according to what Emacs and the system supports."
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "q") 'latex-math-preview-quit-window)
     (define-key map (kbd "Q") 'latex-math-preview-delete-buffer)
+    (define-key map (kbd "\C-g") 'latex-math-preview-quit-window)
+    (define-key map (kbd "o") 'delete-other-windows)
     (define-key map (kbd "c") 'latex-math-preview-symbols-of-other-group)
     (define-key map (kbd "j") 'latex-math-preview-move-to-downward-item)
     (define-key map (kbd "k") 'latex-math-preview-move-to-upward-item)
@@ -501,6 +509,12 @@ no recognised expression at or surrounding point."
          (cons beg end))))
           
 (put 'latex-math 'bounds-of-thing-at-point 'latex-math-preview-bounds-of-latex-math)
+
+(defun latex-math-preview-in-math-mode-p ()
+  "Return non-nil if current position is in mathematical expression.
+This function may make mistake when there is sequence of '$'.
+If you use YaTeX, then you should use YaTeX-in-math-mode-p alternatively."
+  (thing-at-point 'latex-math))
 
 ;;;###autoload
 (defun latex-math-preview-expression ()
@@ -606,6 +620,7 @@ This can be used in `latex-math-preview-function', but it requires:
     (if image
 	(progn
 	  (with-current-buffer (get-buffer-create latex-math-preview-expression-buffer-name)
+	    (setq cursor-type nil)
 	    (setq buffer-read-only nil)
 	    (erase-buffer)
 	    (insert " ")
