@@ -3,7 +3,7 @@
 ;; Author: Takayuki YAMAGUCHI <d@ytak.info>
 ;; Keywords: LaTeX TeX
 ;; Version: 0.2.2
-;; Created: Mon Aug  3 00:02:43 2009
+;; Created: Tue Aug  4 08:46:49 2009
 
 ;; latex-math-preview.el is a modified version which is based on
 ;; tex-math-preview.el and has been created at July 2009.
@@ -139,6 +139,8 @@
 ;;  k: scroll down
 
 ;; ChangeLog:
+;; 2009/08/04 version 0.2.3 yamaguchi
+;;     New function `latex-math-preview-toggle-window-maximization'.
 ;;     New function `latex-math-preview-last-symbol-again'.
 ;; 2009/08/03 version 0.2.2 yamaguchi
 ;;     Change name of function `latex-math-preview-insert-sign' to `latex-math-preview-insert-symbol'.
@@ -398,6 +400,9 @@ methods, according to what Emacs and the system supports."
     )
   "List of candidates for insertion of LaTeX mathematical symbol.")
 
+(defvar latex-math-preview-always-maximize-window nil
+  "Always maximize preview window for `latex-math-preview-insert-symbol' if non-nil.")
+
 (defvar latex-math-preview-restore-symbol-group t
   "Restore last symbol group at next insertion
  if this `latex-math-preview-restore-symbol-group' is non-nil.")
@@ -456,7 +461,7 @@ If you use YaTeX mode then the recommended value of this variable is YaTeX-in-ma
     (define-key map (kbd "q") 'latex-math-preview-quit-window)
     (define-key map (kbd "Q") 'latex-math-preview-delete-buffer)
     (define-key map (kbd "\C-g") 'latex-math-preview-quit-window)
-    (define-key map (kbd "o") 'delete-other-windows)
+    (define-key map (kbd "o") 'latex-math-preview-toggle-window-maximization)
     (define-key map (kbd "c") 'latex-math-preview-symbols-of-other-group)
     (define-key map (kbd "j") 'latex-math-preview-move-to-downward-item)
     (define-key map (kbd "k") 'latex-math-preview-move-to-upward-item)
@@ -797,10 +802,15 @@ Return maximum size of images and maximum length of strings and images"
 
     (insert "key:")
     (add-text-properties (point-min) (point) '(face bold))
-    (insert " [RET] insert   [j] down   [k] up   [h] left   [l] right")
+    (let ((max (frame-width)))
+      (dolist (text '("[RET] insert" "[j] down" "[k] up" "[h] left" "[l] right"
+		      "[.] next page" "[,] previous page" "[o] change window size"
+		      "[c] change group" "[q] quit"))
+	(if (> (+ (current-column) (length text)) max)
+	    (insert "\n    "))
+	(insert "   " text)))
     (insert "\n")
-    (insert "     [.] next page   [,] previous page   [c] change group   [q] quit")
-    (insert "\n")
+    (setq latex-math-preview-number-start-candidates (line-number-at-pos))
     
     (save-excursion
       (goto-char (point-min))
@@ -819,7 +829,6 @@ Return maximum size of images and maximum length of strings and images"
       (add-text-properties start-pt (point) '(face bold))
       (insert (make-string num-dash ?-)))
     (insert "\n")
-    (setq latex-math-preview-number-start-candidates 4)
 
     (let* ((latex-symbols (cdr (assoc dirname latex-math-preview-candidates-for-insertion)))
 	   (dirpath (concat latex-math-preview-cache-directory-for-insertion "/" dirname))
@@ -858,7 +867,9 @@ Return maximum size of images and maximum length of strings and images"
     (setq buffer-read-only t)
     (use-local-map latex-math-preview-insert-symbol-map)
     (setq mode-name "LaTeXPreview"))
-  (pop-to-buffer latex-math-preview-insert-symbol-buffer-name))
+  (pop-to-buffer latex-math-preview-insert-symbol-buffer-name)
+  (if latex-math-preview-always-maximize-window
+      (delete-other-windows)))
 
 (defun latex-math-preview-insert-symbol (&optional num)
   "Insert LaTeX mathematical symbols with displaying."
@@ -903,6 +914,13 @@ Return maximum size of images and maximum length of strings and images"
   "Previous page of candidates buffer for insertion."
   (interactive "p")
   (latex-math-preview-next-candidates-for-insertion (- 0 num)))
+
+(defun latex-math-preview-toggle-window-maximization ()
+  "Toggle maximization of window displaying candidates of mathematical symbols."
+  (interactive)
+  (setq latex-math-preview-always-maximize-window (not latex-math-preview-always-maximize-window))
+  (latex-math-preview-quit-window)
+  (latex-math-preview-create-buffer-for-insertion latex-math-preview-current-group))
 
 (defun latex-math-preview-symbol-insertion (str)
   "Execute insertion from STR."
