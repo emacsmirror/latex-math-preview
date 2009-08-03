@@ -56,7 +56,8 @@
 ;;   (add-hook 'yatex-mode-hook
 ;;            '(lambda ()
 ;; 	      (YaTeX-define-key "p" 'latex-math-preview-expression)
-;; 	      (YaTeX-define-key "j" 'latex-math-preview-insert-symbol)))
+;; 	      (YaTeX-define-key "j" 'latex-math-preview-insert-symbol)
+;;            (YaTeX-define-key "\C-j" 'latex-math-preview-last-symbol-again)))
 ;;
 ;; This setting almost binds latex-math-preview-expression to "C-c p"
 ;; and latex-math-preview-insert-symbol to "C-c j".
@@ -138,6 +139,7 @@
 ;;  k: scroll down
 
 ;; ChangeLog:
+;;     New function `latex-math-preview-last-symbol-again'.
 ;; 2009/08/03 version 0.2.2 yamaguchi
 ;;     Change name of function `latex-math-preview-insert-sign' to `latex-math-preview-insert-symbol'.
 ;;     Add some groups of symbol candidates.
@@ -228,45 +230,6 @@ methods, according to what Emacs and the system supports."
 
 (defvar latex-math-preview-candidates-defined-as-list nil
   "Temporary variable.")
-(setq latex-math-preview-candidates-defined-as-list nil)
-
-(defvar latex-math-preview-restore-symbol-group t
-  "Restore last symbol group at next insertion
- if this `latex-math-preview-restore-symbol-group' is non-nil.")
-
-(defvar latex-math-preview-initial-group
-  (car (nth 0 latex-math-preview-candidates-for-insertion))
-  "Group which is displayed initially.")
-
-(defvar latex-math-preview-current-group nil
-  "Group of present buffer displaying mathematical symbols.")
-
-(defvar latex-math-preview-number-start-candidates 0
-  "Temporary variable which is line number starting display of candidates.")
-
-(defface latex-math-preview-candidate-for-insertion-face
-  '((t (:foreground "dark orange")))
-  "Face for notations of LaTeX mathematical symbol.")
-
-(defface latex-math-preview-key-for-insertion-face
-  '((t (:foreground "dodger blue")))
-  "Face for notations of LaTeX mathematical symbol.")
-  
-(defvar latex-math-preview-selection-face-for-insertion 'highlight
-  "Face for currently selected item.")
-
-(defvar latex-math-preview-selection-overlay-for-insertion nil
-  "Overlay for highlighting currently selected item.")
-
-(defvar latex-math-preview-not-delete-tmpfile nil
-  "Not delete temporary files and directory if this value is true. Mainly for debugging.")
-
-(defvar latex-math-preview-dvipng-log-buffer nil
-  "Buffer name for output by dvipng. Mainly for debugging.")
-
-(defvar latex-math-preview-in-math-mode-p-func 'latex-math-preview-in-math-mode-p
-  "Symbol of function is used for determining whether cursor is in mathematical expression.
-If you use YaTeX mode then the recommended value of this variable is YaTeX-in-math-mode-p.")
 
 (defvar latex-math-preview-match-expression
   '(
@@ -336,19 +299,23 @@ If you use YaTeX mode then the recommended value of this variable is YaTeX-in-ma
       "\\hookrightarrow" "\\rightharpoonup" "\\rightharpoondown"
       "\\iff" "\\nearrow" "\\searrow" "\\swarrow" "\\nwarrow"
       "\\rightleftharpoons"))
-    ("miscellaneous" .
+    ("miscellaneous-symbols" .
      ("\\aleph" "\\hbar" "\\imath" "\\jmath" "\\ell" "\\wp" "\\Re" "\\Im"
       "\\partial" "\\infty" "\\prime" "\\emptyset" "\\nabla" "\\surd"
       "\\top" "\\bot" "\\angle" "\\triangle" "\\forall" "\\exists"
       "\\neg" "\\flat" "\\natural" "\\sharp" "\\clubsuit" "\\diamondsuit"
       "\\heartsuit" "\\spadesuit"))
+    ("big-symbols" .
+     ("\\sum" "\\prod" "\\coprod" "\\int" "\\oint" "\\bigcap" "\\bigcup"
+      "\\bigsqcup" "\\bigvee" "\\bigwedge" "\\bigodot" "\\bigotimes"
+      "\\bigoplus" "\\biguplus"))
     ("functions" .
      ("\\arccos" "\\arcsin" "\\arctan" "\\arg" "\\cos" "\\cosh" "\\cot" "\\coth"
       "\\csc" "\\deg" "\\det" "\\dim" "\\exp" "\\gcd" "\\hom" "\\inf" "\\ker"
       "\\lg" "\\lim" "\\liminf" "\\limsup" "\\ln" "\\log" "\\max" "\\min"
       "\\Pr" "\\sec" "\\sin" "\\sinh" "\\sup" "\\tan" "\\tanh"
       "\\bmod" "\\pmod"))
-    ("accessories" .
+    ("attachments-and-others" .
      (("\\hat{" "a" "}") ("\\check{" "a" "}") ("\\breve{" "a" "}")
       ("\\acute{" "a" "}") ("\\grave{" "a" "}") ("\\tilde{" "a" "}")
       ("\\bar{" "a" "}") ("\\vec{" "a" "}") ("\\dot{" "a" "}") ("\\ddot{" "a" "}")
@@ -356,10 +323,12 @@ If you use YaTeX mode then the recommended value of this variable is YaTeX-in-ma
       ("\\widetilde{" "xy" "}") ("\\overbrace{" "xy" "}")
       ("\\underbrace{" "xy" "}") ("\\overrightarrow{" "\\mathrm{OA}" "}")
       ("\\overleftarrow{" "\\mathrm{OA}" "}") ("\\stackrel{" "f" "}{\\to}")
-      "\\stackrel{\\mathrm{def}}{=}"))
+      "\\stackrel{\\mathrm{def}}{=}"
+      ("\\frac{" "x" "}{y}") ("" "x" "^{n}") "\\sum_{i=0}^{\\infty}"
+      ("\\sqrt{" "x" "}") ("\\sqrt[" "3" "]{x}")))
     ("typefaces" .
      (("\\mathrm{" "abcdeABCDE" "}") ("\\mathbf{" "abcdeABCDE" "}")
-      ("\\mathit{" "abcdeABCDE" "}") ("\\mathcal{" "abcdeABCDE" "}")
+      ("\\mathit{" "abcdeABCDE" "}") ("\\mathcal{" "ABCDE" "}")
       ("\\mathsf{" "abcdeABCDE" "}") ("\\mathtt{" "abcdeABCDE" "}")))
     ("AMSFonts-binary-operators" .
      ("\\boxdot" "\\boxplus" "\\centerdot" "\\boxminus" "\\veebar" "\\barwedge"
@@ -415,6 +384,7 @@ If you use YaTeX mode then the recommended value of this variable is YaTeX-in-ma
       "\\varSigma" "\\varUpsilon" "\\varPhi" "\\varPsi" "\\varOmega"))
     ("AMSFonts-others" .
      (("\\mathfrak{" "ABCDE" "}") ("\\mathbb{" "ABCDE" "}")
+      "\\dots" "\\dotsc" "\\dotsb" "\\dotsm" "\\dotsi"
       ("\\overleftrightarrow{" "A" "}") ("\\underleftrightarrow{" "A" "}")
       ("\\xrightarrow{" "\\text{text}" "}") ("\\xrightarrow[" "abc" "]{}")
       ("\\xleftarrow{" "\\text{text}" "}") ("\\xleftarrow[" "abc" "]{}")
@@ -422,9 +392,52 @@ If you use YaTeX mode then the recommended value of this variable is YaTeX-in-ma
       ("\\Ddot{" "A" "}") ("\\Tilde{" "A" "}") ("\\Breve{" "A" "}")
       ("\\Acute{" "A" "}") ("\\Bar{" "A" "}") ("\\Vec{" "A" "}")
       ("\\dddot{" "x" "}") ("\\ddddot{" "x" "}")
-      "\\int" "\\iiint" "\\iiiint" "\\idotsint"))
+      "\\int" "\\iint" "\\iiint" "\\iiiint" "\\idotsint"
+      ("\\tfrac{" "a" "}{b}") ("\\dfrac{" "a" "}{b}") ("\\cfrac{" "a" "}{b}")
+      ("\\binom{" "a" "}{b}")))
     )
   "List of candidates for insertion of LaTeX mathematical symbol.")
+
+(defvar latex-math-preview-restore-symbol-group t
+  "Restore last symbol group at next insertion
+ if this `latex-math-preview-restore-symbol-group' is non-nil.")
+
+(defvar latex-math-preview-inserted-last-symbol nil
+  "Inserted last symbol.")
+
+(defvar latex-math-preview-initial-group
+  (car (nth 0 latex-math-preview-candidates-for-insertion))
+  "Group which is displayed initially.")
+
+(defvar latex-math-preview-current-group nil
+  "Group of present buffer displaying mathematical symbols.")
+
+(defvar latex-math-preview-number-start-candidates 0
+  "Temporary variable which is line number starting display of candidates.")
+
+(defface latex-math-preview-candidate-for-insertion-face
+  '((t (:foreground "dark orange")))
+  "Face for notations of LaTeX mathematical symbol.")
+
+(defface latex-math-preview-key-for-insertion-face
+  '((t (:foreground "dodger blue")))
+  "Face for notations of LaTeX mathematical symbol.")
+  
+(defvar latex-math-preview-selection-face-for-insertion 'highlight
+  "Face for currently selected item.")
+
+(defvar latex-math-preview-selection-overlay-for-insertion nil
+  "Overlay for highlighting currently selected item.")
+
+(defvar latex-math-preview-not-delete-tmpfile nil
+  "Not delete temporary files and directory if this value is true. Mainly for debugging.")
+
+(defvar latex-math-preview-dvipng-log-buffer nil
+  "Buffer name for output by dvipng. Mainly for debugging.")
+
+(defvar latex-math-preview-in-math-mode-p-func 'latex-math-preview-in-math-mode-p
+  "Symbol of function is used for determining whether cursor is in mathematical expression.
+If you use YaTeX mode then the recommended value of this variable is YaTeX-in-math-mode-p.")
 
 (defvar latex-math-preview-expression-map
   (let ((map (make-sparse-keymap)))
@@ -735,6 +748,12 @@ Image is saved in DIRNAME. NUM is used for distingushing other images."
 	    (latex-math-preview-make-candidate-image sym dirname num))
 	  (setq num (+ num 1)))))))
 
+(defun latex-math-preview-make-all-cache-images ()
+  "Create all cache images."
+  (interactive)
+  (dolist (data latex-math-preview-candidates-for-insertion)
+    (latex-math-preview-make-cache-for-insertion (car data))))
+
 (defun latex-math-preview-strings-and-images-sizes (images latex-syms)
   "Look over cache images.
 Return maximum size of images and maximum length of strings and images"
@@ -811,6 +830,8 @@ Return maximum size of images and maximum length of strings and images"
 					    (directory-files dirpath)) 'string<)) latex-symbols))
 	   (new-tab-width (+ 4 (ceiling (/ (float (car data)) (float (frame-char-width))))))
 	   (str-size (* new-tab-width (ceiling (/ (float (+ 6 (car (cdr data)))) (float new-tab-width)))))
+	   ;; You must not remove (+ 6 ...).
+	   ;; Implementation of latex-math-preview-set-overlay-for-selected-item needs redundant space.
 	   (str-format (format "%%-%ds" str-size))
 	   (row (floor (/ (frame-width)
 			  (+ str-size (* (ceiling (/ (float (car data))
@@ -883,20 +904,31 @@ Return maximum size of images and maximum length of strings and images"
   (interactive "p")
   (latex-math-preview-next-candidates-for-insertion (- 0 num)))
 
-(defun latex-math-preview-put-selected-candidate ()
-  "Insert selected LaTeX mathematical symboled to original buffer."
-  (interactive)
-  (let* ((str (buffer-substring
-	       (overlay-start latex-math-preview-selection-overlay-for-insertion)
-	       (overlay-end latex-math-preview-selection-overlay-for-insertion)))
-	(sym (assoc str latex-math-preview-candidates-defined-as-list)))
-    (latex-math-preview-quit-window)
+(defun latex-math-preview-symbol-insertion (str)
+  "Execute insertion from STR."
+  (let ((sym (assoc str latex-math-preview-candidates-defined-as-list)))
     (if sym
 	(progn
 	  (insert (car (car (cdr sym))))
 	  (save-excursion
 	    (insert (car (cdr (cdr (car (cdr sym))))))))
       (insert str))))
+
+(defun latex-math-preview-put-selected-candidate ()
+  "Insert selected LaTeX mathematical symboled to original buffer."
+  (interactive)
+  (let* ((str (buffer-substring
+	       (overlay-start latex-math-preview-selection-overlay-for-insertion)
+	       (overlay-end latex-math-preview-selection-overlay-for-insertion))))
+    (latex-math-preview-quit-window)
+    (latex-math-preview-symbol-insertion str)
+    (setq latex-math-preview-inserted-last-symbol str)))
+
+(defun latex-math-preview-last-symbol-again ()
+  "Insert last symbol which is inserted by `latex-math-preview-insert-symbol'"
+  (interactive)
+  (if latex-math-preview-inserted-last-symbol
+      (latex-math-preview-symbol-insertion latex-math-preview-inserted-last-symbol)))
 
 ;;-----------------------------------------------------------------------------
 ;; Move to other item
