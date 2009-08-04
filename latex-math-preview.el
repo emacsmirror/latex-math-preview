@@ -265,27 +265,26 @@ methods, according to what Emacs and the system supports."
   "These eqpressions are used for matching to extract tex math expression.")
 
 (defvar latex-math-preview-candidates-for-insertion
-  '(
-    ("delimiters" .
+  '(("delimiters" ()
      (("(" "x" ")") ("[" "x" "]") ("\\{" "x" "\\}")
       ("\\lfloor " "x" " \\rfloor") ("\\lceil " "x" " \\rceil")
       ("\\langle " "x" " \\rangle")
       "\\backslash" "\\|" "\\uparrow" "\\Uparrow" "\\downarrow" "\\Downarrow"
       "\\updownarrow" "\\Updownarrow"))
-    ("greek-letters" .
+    ("greek-letters" ()
      ("\\alpha" "\\beta" "\\gamma" "\\delta" "\\epsilon" "\\zeta" "\\eta"
       "\\theta" "\\iota" "\\kappa" "\\lambda" "\\mu" "\\nu" "\\xi" "\\pi"
       "\\rho" "\\sigma" "\\tau" "\\upsilon" "\\phi" "\\chi" "\\psi" "\\omega"
       "\\varepsilon" "\\vartheta" "\\varpi" "\\varrho" "\\varsigma" "\\varphi"
       "\\Gamma" "\\Delta" "\\Theta" "\\Lambda" "\\Xi" "\\Pi" "\\Sigma"
       "\\Upsilon" "\\Phi" "\\Psi" "\\Omega"))
-    ("binary-operators" .
+    ("binary-operators1" ()
      ("\\pm" "\\mp" "\\times" "\\div"  "\\ast" "\\star" "\\circ" "\\bullet"
       "\\cdot" "\\cap" "\\cup" "\\uplus" "\\sqcap" "\\sqcup" "\\vee" "\\wedge"
       "\\setminus" "\\wr" "\\diamond" "\\bigtriangleup" "\\bigtriangledown"
       "\\triangleleft" "\\triangleright" "\\oplus" "\\ominus" "\\otimes"
       "\\oslash" "\\odot" "\\bigcirc" "\\dagger" "\\ddagger" "\\amalg"))
-    ("relational-operators" .
+    ("relational-operators1" ()
      ("\\le" "\\prec" "\\preceq" "\\ll" "\\subset" "\\subseteq" "\\vdash"
       "\\in" "\\notin" "\\ge" "\\succ" "\\succeq" "\\gg" "\\supset" "\\supseteq"
       "\\sqsupseteq" "\\dashv" "\\ni"
@@ -294,7 +293,7 @@ methods, according to what Emacs and the system supports."
       "\\doteq" "\\propto" "\\models" "\\perp" "\\mid" "\\parallel" "\\bowtie"
       "\\smile" "\\frown"
       "\\not\\equiv"))
-    ("arrows" .
+    ("arrows" ()
      ("\\gets" "\\Leftarrow" "\\to" "\\Rightarrow"
       ;; omit "\\leftarrow" and "\\rightarrow"
       "\\leftrightarrow" "\\Leftrightarrow" "\\mapsto" "\\hookleftarrow"
@@ -303,23 +302,23 @@ methods, according to what Emacs and the system supports."
       "\\hookrightarrow" "\\rightharpoonup" "\\rightharpoondown"
       "\\iff" "\\nearrow" "\\searrow" "\\swarrow" "\\nwarrow"
       "\\rightleftharpoons"))
-    ("miscellaneous-symbols" .
+    ("miscellaneous-symbols1" ()
      ("\\aleph" "\\hbar" "\\imath" "\\jmath" "\\ell" "\\wp" "\\Re" "\\Im"
       "\\partial" "\\infty" "\\prime" "\\emptyset" "\\nabla" "\\surd"
       "\\top" "\\bot" "\\angle" "\\triangle" "\\forall" "\\exists"
       "\\neg" "\\flat" "\\natural" "\\sharp" "\\clubsuit" "\\diamondsuit"
       "\\heartsuit" "\\spadesuit"))
-    ("big-symbols" .
+    ("big-symbols" ()
      ("\\sum" "\\prod" "\\coprod" "\\int" "\\oint" "\\bigcap" "\\bigcup"
       "\\bigsqcup" "\\bigvee" "\\bigwedge" "\\bigodot" "\\bigotimes"
       "\\bigoplus" "\\biguplus"))
-    ("functions" .
+    ("functions" ()
      ("\\arccos" "\\arcsin" "\\arctan" "\\arg" "\\cos" "\\cosh" "\\cot" "\\coth"
       "\\csc" "\\deg" "\\det" "\\dim" "\\exp" "\\gcd" "\\hom" "\\inf" "\\ker"
       "\\lg" "\\lim" "\\liminf" "\\limsup" "\\ln" "\\log" "\\max" "\\min"
       "\\Pr" "\\sec" "\\sin" "\\sinh" "\\sup" "\\tan" "\\tanh"
       "\\bmod" "\\pmod"))
-    ("attachments-and-others" .
+    ("attachments-and-others" ()
      (("\\hat{" "a" "}") ("\\check{" "a" "}") ("\\breve{" "a" "}")
       ("\\acute{" "a" "}") ("\\grave{" "a" "}") ("\\tilde{" "a" "}")
       ("\\bar{" "a" "}") ("\\vec{" "a" "}") ("\\dot{" "a" "}") ("\\ddot{" "a" "}")
@@ -330,17 +329,17 @@ methods, according to what Emacs and the system supports."
       "\\stackrel{\\mathrm{def}}{=}"
       ("\\frac{" "x" "}{y}") ("" "x" "^{n}") "\\sum_{i=0}^{\\infty}"
       ("\\sqrt{" "x" "}") ("\\sqrt[" "3" "]{x}")))
-    ("typefaces" .
+    ("typefaces" ()
      (("\\mathrm{" "abcdeABCDE" "}") ("\\mathbf{" "abcdeABCDE" "}")
       ("\\mathit{" "abcdeABCDE" "}") ("\\mathcal{" "ABCDE" "}")
       ("\\mathsf{" "abcdeABCDE" "}") ("\\mathtt{" "abcdeABCDE" "}")))
-    ("AMSFonts-binary-operators" .
+    ("binary-operators2" ("amssymb")
      ("\\boxdot" "\\boxplus" "\\centerdot" "\\boxminus" "\\veebar" "\\barwedge"
       "\\doublebarwedge" "\\Cup" "\\Cap" "\\curlywedge" "\\curlyvee"
       "\\leftthreetimes" "\\rightthreetimes" "\\dotplus" "\\intercal"
       "\\circledcirc" "\\circledast" "\\circleddash" "\\divideontimes" "\\lessdot"
       "\\gtrdot" "\\ltimes" "\\rtimes" "\\smallsetminus"))
-    ("AMSFonts-relational-operators1" .
+    ("relational-operators2" ("amssymb")
      ("\\circlearrowright" "\\circlearrowleft" "\\rightleftharpoons"
       "\\leftrightharpoons" "\\Vdash" "\\Vvdash" "\\vDash" "\\twoheadrightarrow"
       "\\twoheadleftarrow" "\\leftleftarrows" "\\rightrightarrows" "\\upuparrows"
@@ -351,7 +350,7 @@ methods, according to what Emacs and the system supports."
       "\\multimap" "\\therefore" "\\because" "\\doteqdot" "\\triangleq" "\\precsim" 
       "\\lesssim" "\\lessapprox" "\\eqslantless" "\\eqslantgtr" "\\curlyeqprec"
       "\\curlyeqsucc"))
-    ("AMSFonts-relational-operators2" .
+    ("relational-operators3" ("amssymb")
      ("\\preccurlyeq" "\\leqq" "\\leqslant" "\\lessgtr" "\\risingdotseq"
       "\\fallingdotseq" "\\succcurlyeq" "\\geqq" "\\geqslant" "\\gtrless"
       "\\sqsubset" "\\sqsupset" "\\vartriangleright" "\\vartriangleleft"
@@ -361,7 +360,7 @@ methods, according to what Emacs and the system supports."
       "\\smallsmile" "\\smallfrown" "\\Subset" "\\Supset" "\\subseteqq"
       "\\supseteqq" "\\bumpeq" "\\Bumpeq" "\\lll" "\\ggg" "\\pitchfork"
       "\\backsim" "\\backsimeq"))
-    ("AMSFonts-relational-operators3" .
+    ("relational-operators4" ("amssymb")
      ("\\lvertneqq" "\\gvertneqq" "\\nleq" "\\ngeq" "\\nless" "\\ngtr" "\\nprec"
       "\\nsucc" "\\lneqq" "\\gneqq" "\\nleqslant" "\\ngeqslant" "\\lneq" "\\gneq"
       "\\npreceq" "\\nsucceq" "\\precnsim" "\\succnsim" "\\lnsim" "\\gnsim"
@@ -376,17 +375,17 @@ methods, according to what Emacs and the system supports."
       "\\shortmid" "\\shortparallel" "\\thicksim" "\\thickapprox" "\\approxeq"
       "\\succapprox" "\\precapprox" "\\curvearrowleft" "\\curvearrowright"
       "\\backepsilon"))
-    ("AMSFonts-other-symbols" .
+    ("miscellaneous-symbols2" ("amssymb")
      ("\\square" "\\blacksquare" "\\lozenge" "\\blacklozenge" "\\backprime"
       "\\bigstar" "\\blacktriangledown" "\\blacktriangle" "\\triangledown"
       "\\angle" "\\measuredangle" "\\sphericalangle" "\\circledS" "\\complement"
       "\\diagup" "\\diagdown" "\\varnothing" "\\nexists" "\\Finv" "\\Game"
       "\\mho" "\\eth" "\\beth" "\\gimel" "\\daleth" "\\digamma"
       "\\varkappa" "\\Bbbk" "\\hslash" "\\hbar"))
-    ("AMSFonts-italic-greeks" .
+    ("italic-greeks" ("amsmath")
      ("\\varGamma" "\\varDelta" "\\varTheta" "\\varLambda" "\\varXi" "\\varPi"
       "\\varSigma" "\\varUpsilon" "\\varPhi" "\\varPsi" "\\varOmega"))
-    ("AMSFonts-others" .
+    ("AMSFonts-others" ("amsmath" "amssymb")
      (("\\mathfrak{" "ABCDE" "}") ("\\mathbb{" "ABCDE" "}")
       "\\dots" "\\dotsc" "\\dotsb" "\\dotsm" "\\dotsi"
       ("\\overleftrightarrow{" "A" "}") ("\\underleftrightarrow{" "A" "}")
@@ -741,26 +740,34 @@ Image is saved in DIRNAME. NUM is used for distingushing other images."
 	(path (concat latex-math-preview-cache-directory-for-insertion "/" dirname "/"
 		      (format "%05d" num) "_"
 		      (downcase (replace-regexp-in-string "\\(\\\\\\)\\|\\({\\)\\|\\(}\\)"
-							  "_" math-symbol)) ".png")))
-    (latex-math-preview-dvi-to-png
-     (latex-math-preview-make-dvi-file latex-math-dir (concat "$" math-symbol "$")) path)
+							  "_" math-symbol)) ".png"))
+	(packages (nth 1 (assoc dirname latex-math-preview-candidates-for-insertion)))
+	(dot-dvi))
+    (let* ((usepackage (if packages (concat "\\usepackage{"
+					    (mapconcat 'identity packages ", ") "}\n") ""))
+	   (latex-math-preview-latex-template-header
+	    (concat "\\documentclass{article}\n" usepackage "\\pagestyle{empty}\n\\begin{document}\n")))
+      (setq dot-dvi (latex-math-preview-make-dvi-file latex-math-dir (concat "$" math-symbol "$"))))
+    (latex-math-preview-dvi-to-png dot-dvi path)
     (latex-math-preview-clear-tmp-directory latex-math-dir)
     path))
 
 (defun latex-math-preview-make-cache-for-insertion (dirname)
   "Create cache images in DIRNAME."
-  (let ((latex-syms (cdr (assoc dirname latex-math-preview-candidates-for-insertion)))
-	(dirpath (concat latex-math-preview-cache-directory-for-insertion "/" dirname))
-	(num 0))
+  (let* ((latex-syms (nth 2 (assoc dirname latex-math-preview-candidates-for-insertion)))
+	 (dirpath (concat latex-math-preview-cache-directory-for-insertion "/" dirname))
+	 (num 0))
     (if (file-directory-p dirpath)
 	(message "'%s' exists. Cache may be used." dirpath)
       (progn
 	(make-directory dirpath t)
 	(message "Creating images. Please wait for a while.")
-	(dolist (sym latex-syms)
-	  (if (listp sym)
-	      (latex-math-preview-make-candidate-image (eval `(concat ,@sym)) dirname num)
-	    (latex-math-preview-make-candidate-image sym dirname num))
+	(dolist (sym-src latex-syms)
+	  (let ((math-exp))
+	    (if (listp sym-src)
+		(setq math-exp (eval `(concat ,@sym-src)))
+	      (setq math-exp sym-src))
+	    (latex-math-preview-make-candidate-image math-exp dirname num))
 	  (setq num (+ num 1)))))))
 
 (defun latex-math-preview-make-all-cache-images ()
@@ -834,18 +841,27 @@ Return maximum size of images and maximum length of strings and images"
 	      (add-text-properties start-pt (point)
 				   '(face latex-math-preview-key-for-insertion-face))))))
 
-    (let ((num-dash (- (/ (- (window-width) (length dirname)) 2) 3))
-	  (start-pt))
-      (insert (make-string num-dash ?-))
-      (setq start-pt (point))
-      (insert " * " dirname " * ")
+    (let* ((group (concat (make-string 5 ?-) " * " dirname " * "))
+	   (package (nth 1 (assoc dirname latex-math-preview-candidates-for-insertion)))
+	   (package-str)
+	   (num-dash (- (window-width) (length group)))
+	   (start-pt (point)))
+      (insert group)
       (add-text-properties start-pt (point) '(face bold))
+      (setq start-pt (point))
+      (if package
+      	  (progn
+      	    (setq package-str (concat "usepackage: " (mapconcat 'identity package ", ") " "))
+	    (insert package-str)
+      	    (setq num-dash (- num-dash (length package-str)))
+	    (add-text-properties start-pt (point)
+				 '(face latex-math-preview-key-for-insertion-face))))
       (insert (make-string num-dash ?-)))
     (insert "\n")
 
     (setq latex-math-preview-number-start-candidates (line-number-at-pos))
 
-    (let* ((latex-symbols (cdr (assoc dirname latex-math-preview-candidates-for-insertion)))
+    (let* ((latex-symbols (nth 2 (assoc dirname latex-math-preview-candidates-for-insertion)))
 	   (dirpath (concat latex-math-preview-cache-directory-for-insertion "/" dirname))
 	   (data (latex-math-preview-strings-and-images-sizes
 		  (mapcar (lambda (path) (concat latex-math-preview-cache-directory-for-insertion
