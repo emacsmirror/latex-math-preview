@@ -42,7 +42,6 @@
 ;; Emacs (version 22 or 23) on Linux or Meadow3 on Windows.
 ;; dvipng
 ;; latex or platex
-;; dvi viewer (for example, xdvi) if needed
 
 ;;; Install:
 ;; Put latex-math-preview.el to your load-path and
@@ -171,17 +170,6 @@
  :prefix "latex-math-preview-"
  :group 'applications
  )
-
-(defcustom latex-math-preview-function
-  'latex-math-preview-adaptview
-  "Function for `latex-math-preview-expression' to show a DVI file.
-The default `latex-math-preview-adaptview' chooses among the
-methods, according to what Emacs and the system supports."
-  :type '(choice (latex-math-preview-adaptview
-                  latex-math-preview-dvi-view
-                  latex-math-preview-png-image)
-                 function)
-  :group 'latex-math-preview)
 
 (defvar latex-math-preview-expression-buffer-name
   "*latex-math-preview*"
@@ -571,8 +559,7 @@ the notations which are stored in `latex-math-preview-match-expression'."
     (if (not (eq 0 (call-process latex-math-preview-latex-command nil nil nil
 				 (concat "-output-directory=" latex-math-dir) dot-tex)))
 	(error "TeX processing error")
-      dot-dvi)
-    ))
+      dot-dvi)))
 
 (defun latex-math-preview-clear-tmp-directory (dir)
   "Delete temporary directory and files contained in it."
@@ -597,39 +584,11 @@ the notations which are stored in `latex-math-preview-match-expression'."
 STR should not have $ or $$ delimiters."
 
   (let ((latex-math-dir (make-temp-file "latex-math-preview-" t)))
-    (funcall latex-math-preview-function (latex-math-preview-make-dvi-file latex-math-dir str))
+    (latex-math-preview-png-image (latex-math-preview-make-dvi-file latex-math-dir str))
     (if (not latex-math-preview-not-delete-tmpfile)
 	;; cleanup temp files
 	(latex-math-preview-clear-tmp-directory latex-math-dir)
       )))
-
-;;-----------------------------------------------------------------------------
-;; adaptive viewer selection
-
-(defun latex-math-preview-adaptview (filename)
-  "Display dvi FILENAME using either png image or
-`latex-math-preview-command-dvi-view'.
-A PNG image in a buffer per `latex-math-preview-png-image' is used
-if possible, or if not then the `tex-mode' previewer given by
-`latex-math-preview-command-dvi-view'.
-
-This function is the default for `latex-math-preview-function',
-allowing `latex-math-preview-expression' to adapt to the Emacs display
-capabilities and available viewer program(s)."
-
-  (if (and (image-type-available-p 'png)
-           (display-images-p)
-           (eq 0 (call-process shell-file-name nil nil nil "-c" latex-math-preview-command-dvipng "--version")))
-      (latex-math-preview-png-image filename)
-      (latex-math-preview-dvi-view filename)))
-
-;;-----------------------------------------------------------------------------
-;; view by running tex-dvi-view-command
-
-(defun latex-math-preview-dvi-view (filename)
-  "Display dvi FILENAME using `latex-math-preview-command-dvi-view'."
-  (message filename)
-  (call-process latex-math-preview-command-dvi-view nil nil nil filename))
 
 ;;-----------------------------------------------------------------------------
 ;; view png in a buffer
