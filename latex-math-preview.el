@@ -406,7 +406,7 @@
 (defvar latex-math-preview-current-group nil
   "Group of present buffer displaying mathematical symbols.")
 
-(defvar latex-math-preview-number-start-candidates 0
+(defvar latex-math-preview-line-number-start-candidates 0
   "Temporary variable which is line number starting display of candidates.")
 
 (defface latex-math-preview-candidate-for-insertion-face
@@ -545,14 +545,14 @@ the notations which are stored in `latex-math-preview-match-expression'."
     (setq latex-math-preview-window-configuration (current-window-configuration))
     (latex-math-preview-str str)))
 
-(defun latex-math-preview-make-dvi-file (tmpdir math-exp)
+(defun latex-math-preview-make-dvi-file (tmpdir math-exp &optional usepackages)
   "Make temporary tex file including MATH-EXP in TMPDIR and compile it."
   (let ((dot-tex (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".tex"))
-	(dot-dvi (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".dvi")))
+	(dot-dvi (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".dvi"))
+	(usepck (or usepackages latex-math-preview-latex-template-usepackage)))
     (with-temp-file dot-tex
       (insert latex-math-preview-latex-template-header)
-      (if latex-math-preview-latex-template-usepackage
-	  (insert (mapconcat 'identity latex-math-preview-latex-template-usepackage "\n")))
+      (if usepck (insert (mapconcat 'identity usepck "\n")))
       (insert "\\begin{document}\n")
       (insert math-exp)
       (insert "\\par\n\\end{document}\n"))
@@ -703,11 +703,9 @@ Image is saved in DIRNAME. NUM is used for distingushing other images."
 		      (format "%05d" num) "_"
 		      (downcase (replace-regexp-in-string "\\(\\\\\\)\\|\\({\\)\\|\\(}\\)"
 							  "_" math-symbol)) ".png"))
-	(packages (nth 1 (assoc dirname latex-math-preview-candidates-for-insertion)))
-	(dot-dvi))
-    (let* ((latex-math-preview-latex-template-usepackage packages))
-      (setq dot-dvi (latex-math-preview-make-dvi-file latex-math-dir (concat "$" math-symbol "$"))))
-    (latex-math-preview-dvi-to-png dot-dvi path)
+	(packages (nth 1 (assoc dirname latex-math-preview-candidates-for-insertion))))
+    (latex-math-preview-dvi-to-png (latex-math-preview-make-dvi-file
+				    latex-math-dir (concat "$" math-symbol "$") packages) path)
     (latex-math-preview-clear-tmp-directory latex-math-dir)
     path))
 
@@ -818,7 +816,7 @@ Return maximum size of images and maximum length of strings and images"
       (insert (make-string num-dash ?-)))
     (insert "\n")
 
-    (setq latex-math-preview-number-start-candidates (line-number-at-pos))
+    (setq latex-math-preview-line-number-start-candidates (line-number-at-pos))
 
     (let* ((latex-symbols (nth 2 (assoc dirname latex-math-preview-candidates-for-insertion)))
 	   (dirpath (concat latex-math-preview-cache-directory-for-insertion "/" dirname))
@@ -851,7 +849,7 @@ Return maximum size of images and maximum length of strings and images"
       		(setq num row)
       		(insert "\n")))))
 
-    (goto-line latex-math-preview-number-start-candidates)
+    (goto-line latex-math-preview-line-number-start-candidates)
     (latex-math-preview-move-to-right-item)
     (buffer-disable-undo)
     (setq buffer-read-only t)
@@ -955,7 +953,7 @@ Return maximum size of images and maximum length of strings and images"
 (defun latex-math-preview-move-to-right-item ()
   "Move to right item."
   (interactive)
-  (if (re-search-forward "\t\\([^\t]+\\)  " (line-end-position) t)
+  (if (re-search-forward "\t\\([^\t]+\\)  " nil t)
       (progn
 	(goto-char (match-beginning 1))
 	(latex-math-preview-set-overlay-for-selected-item))))
@@ -963,7 +961,8 @@ Return maximum size of images and maximum length of strings and images"
 (defun latex-math-preview-move-to-left-item ()
   "Move to left item."
   (interactive)
-  (if (re-search-backward "\t\\([^\t]+\\)  " (line-beginning-position) t)
+  (if (re-search-backward "\t\\([^\t]+\\)  "
+			  (line-beginning-position latex-math-preview-line-number-start-candidates) t)
       (progn
 	(goto-char (match-beginning 1))
 	(latex-math-preview-set-overlay-for-selected-item))))
@@ -971,7 +970,7 @@ Return maximum size of images and maximum length of strings and images"
 (defun latex-math-preview-move-to-upward-item ()
   "Move to upward item."
   (interactive)
-  (if (< latex-math-preview-number-start-candidates (line-number-at-pos))
+  (if (< latex-math-preview-line-number-start-candidates (line-number-at-pos))
       (progn
 	(let ((col (current-column)))
 	  (forward-line -1)
