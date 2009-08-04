@@ -476,6 +476,7 @@ If you use YaTeX mode then the recommended value of this variable is YaTeX-in-ma
     (define-key map (kbd ",") 'latex-math-preview-previous-candidates-for-insertion)
     (define-key map (kbd "i") 'latex-math-preview-next-candidates-for-insertion)
     (define-key map (kbd "u") 'latex-math-preview-previous-candidates-for-insertion)
+    (define-key map (kbd "\C-d") 'latex-math-preview-delete-current-cache)
     (define-key map (kbd "\C-m") 'latex-math-preview-put-selected-candidate)
     (define-key map (kbd "<return>") 'latex-math-preview-put-selected-candidate)
     map)
@@ -758,6 +759,78 @@ Return maximum size of images and maximum length of strings and images"
 	(setq syms (cdr syms))))
     `(,max-img-size ,max-str-length ,(nreverse img-list))))
 
+(defun latex-math-preview-insert-key-explanations ()
+  "Insert explanations of key map."
+  (insert "key:")
+  (add-text-properties (point-min) (point) '(face bold))
+  (let ((max (window-width)))
+    (dolist (text '("[RET] insert" "[j] down" "[k] up" "[h] left" "[l] right"
+		    "[i] next page" "[u] previous page" "[o] change window size"
+		    "[c] change group" "[q] quit"))
+      (if (> (+ (current-column) (length text)) max)
+	  (insert "\n    "))
+      (insert "   " text)))
+  (insert "\n")
+  (save-excursion
+    (goto-char (point-min))
+    (while (re-search-forward "\\[" nil t)
+      (backward-char)
+      (let ((start-pt (point)))
+	(if (re-search-forward "\\]" nil t)
+	    (add-text-properties start-pt (point)
+				 '(face latex-math-preview-key-for-insertion-face)))))))
+
+(defun latex-math-preview-insert-group-name (dirname)
+  (let* ((group (concat (make-string 5 ?-) " * " dirname " * "))
+	 (package (nth 1 (assoc dirname latex-math-preview-candidates-for-insertion)))
+	 (package-str)
+	 (num-dash (- (window-width) (length group)))
+	 (start-pt (point)))
+    (insert group)
+    (add-text-properties start-pt (point) '(face bold))
+    (setq start-pt (point))
+    (if package
+	(progn
+	  (setq package-str (concat (mapconcat 'identity package " ") " "))
+	  (insert package-str)
+	  (setq num-dash (- num-dash (length package-str)))
+	  (add-text-properties start-pt (point)
+			       '(face latex-math-preview-key-for-insertion-face))))
+    (insert (make-string num-dash ?-)))
+  (insert "\n"))
+
+(defun latex-math-preview-insert-candidate-images (dirname)
+  (let* ((latex-symbols (nth 2 (assoc dirname latex-math-preview-candidates-for-insertion)))
+	 (dirpath (concat latex-math-preview-cache-directory-for-insertion "/" dirname))
+	 (data (latex-math-preview-strings-and-images-sizes
+		(mapcar (lambda (path) (concat latex-math-preview-cache-directory-for-insertion
+					       "/" dirname "/" path))
+			(sort (delete-if (lambda (file) (not (string-match "^[0-9]+_" file)))
+					 (directory-files dirpath)) 'string<)) latex-symbols))
+	 (new-tab-width (+ 4 (ceiling (/ (float (car data)) (float (frame-char-width))))))
+	 (str-size (* new-tab-width (ceiling (/ (float (+ 6 (car (cdr data)))) (float new-tab-width)))))
+	 ;; You must not remove (+ 6 ...).
+	 ;; Implementation of latex-math-preview-set-overlay-for-selected-item needs redundant space.
+	 (str-format (format "%%-%ds" str-size))
+	 (row (floor (/ (window-width)
+			(+ str-size (* (ceiling (/ (float (car data))
+						   (float (* (frame-char-width) new-tab-width))))
+				       new-tab-width)))))
+	 (num row))
+
+    (setq tab-width new-tab-width)
+    (dolist (imgdata (car (cdr (cdr data))))
+      (insert-image (car (cdr imgdata)))
+      (insert "\t")
+      (let ((start-pt (point)))
+	(insert (format str-format (car imgdata)))
+	(add-text-properties start-pt (point) '(face latex-math-preview-candidate-for-insertion-face)))
+      (setq num (- num 1))
+      (if (<= num 0)
+	  (progn
+	    (setq num row)
+	    (insert "\n"))))))
+
 (defun latex-math-preview-create-buffer-for-insertion (dirname)
   "Create buffer displaying cache images in DIRNAME."
   (or (and (image-type-available-p 'png)
@@ -778,76 +851,13 @@ Return maximum size of images and maximum length of strings and images"
     (setq buffer-read-only nil)
     (erase-buffer)
 
-    (insert "key:")
-    (add-text-properties (point-min) (point) '(face bold))
-    (let ((max (window-width)))
-      (dolist (text '("[RET] insert" "[j] down" "[k] up" "[h] left" "[l] right"
-		      "[i] next page" "[u] previous page" "[o] change window size"
-		      "[c] change group" "[q] quit"))
-	(if (> (+ (current-column) (length text)) max)
-	    (insert "\n    "))
-	(insert "   " text)))
-    (insert "\n")
-        
-    (save-excursion
-      (goto-char (point-min))
-      (while (re-search-forward "\\[" nil t)
-	(backward-char)
-	(let ((start-pt (point)))
-	  (if (re-search-forward "\\]" nil t)
-	      (add-text-properties start-pt (point)
-				   '(face latex-math-preview-key-for-insertion-face))))))
-
-    (let* ((group (concat (make-string 5 ?-) " * " dirname " * "))
-	   (package (nth 1 (assoc dirname latex-math-preview-candidates-for-insertion)))
-	   (package-str)
-	   (num-dash (- (window-width) (length group)))
-	   (start-pt (point)))
-      (insert group)
-      (add-text-properties start-pt (point) '(face bold))
-      (setq start-pt (point))
-      (if package
-      	  (progn
-      	    (setq package-str (concat (mapconcat 'identity package " ") " "))
-	    (insert package-str)
-      	    (setq num-dash (- num-dash (length package-str)))
-	    (add-text-properties start-pt (point)
-				 '(face latex-math-preview-key-for-insertion-face))))
-      (insert (make-string num-dash ?-)))
-    (insert "\n")
+    (latex-math-preview-insert-key-explanations)
+  
+    (latex-math-preview-insert-group-name dirname)
 
     (setq latex-math-preview-line-number-start-candidates (line-number-at-pos))
 
-    (let* ((latex-symbols (nth 2 (assoc dirname latex-math-preview-candidates-for-insertion)))
-	   (dirpath (concat latex-math-preview-cache-directory-for-insertion "/" dirname))
-	   (data (latex-math-preview-strings-and-images-sizes
-		  (mapcar (lambda (path) (concat latex-math-preview-cache-directory-for-insertion
-						 "/" dirname "/" path))
-			   (sort (delete-if (lambda (file) (not (string-match "^[0-9]+_" file)))
-					    (directory-files dirpath)) 'string<)) latex-symbols))
-	   (new-tab-width (+ 4 (ceiling (/ (float (car data)) (float (frame-char-width))))))
-	   (str-size (* new-tab-width (ceiling (/ (float (+ 6 (car (cdr data)))) (float new-tab-width)))))
-	   ;; You must not remove (+ 6 ...).
-	   ;; Implementation of latex-math-preview-set-overlay-for-selected-item needs redundant space.
-	   (str-format (format "%%-%ds" str-size))
-	   (row (floor (/ (window-width)
-			  (+ str-size (* (ceiling (/ (float (car data))
-						     (float (* (frame-char-width) new-tab-width))))
-					 new-tab-width)))))
-	   (num row))
-
-      (setq tab-width new-tab-width)
-      (dolist (imgdata (car (cdr (cdr data))))
-	  (insert-image (car (cdr imgdata)))
-	  (insert "\t")
-	  (let ((start-pt (point)))
-	    (insert (format str-format (car imgdata)))
-	    (add-text-properties start-pt (point) '(face latex-math-preview-candidate-for-insertion-face)))
-      	  (setq num (- num 1))
-      	  (if (<= num 0)
-      	      (progn
-      		(setq num row)
-      		(insert "\n")))))
+    (latex-math-preview-insert-candidate-images dirname)
 
     (goto-line latex-math-preview-line-number-start-candidates)
     (latex-math-preview-move-to-right-item)
@@ -927,6 +937,13 @@ Return maximum size of images and maximum length of strings and images"
     (latex-math-preview-symbol-insertion str)
     (setq latex-math-preview-inserted-last-symbol str)))
 
+(defun latex-math-preview-delete-current-cache ()
+  "Delete cache and make cache again."
+  (interactive)
+  (latex-math-preview-quit-window)
+  (latex-math-preview-clear-cache-for-insertion latex-math-preview-current-group)
+  (latex-math-preview-create-buffer-for-insertion latex-math-preview-current-group))
+
 (defun latex-math-preview-last-symbol-again ()
   "Insert last symbol which is inserted by `latex-math-preview-insert-symbol'"
   (interactive)
@@ -961,8 +978,7 @@ Return maximum size of images and maximum length of strings and images"
 (defun latex-math-preview-move-to-left-item ()
   "Move to left item."
   (interactive)
-  (if (re-search-backward "\t\\([^\t]+\\)  "
-			  (line-beginning-position latex-math-preview-line-number-start-candidates) t)
+  (if (re-search-backward "\t\\([^\t]+\\)  " nil t)
       (progn
 	(goto-char (match-beginning 1))
 	(latex-math-preview-set-overlay-for-selected-item))))
