@@ -406,8 +406,10 @@
 (defvar latex-math-preview-current-group nil
   "Group of present buffer displaying mathematical symbols.")
 
-(defvar latex-math-preview-line-number-start-candidates 0
-  "Temporary variable which is line number starting display of candidates.")
+(defvar latex-math-preview-information-line-number nil
+  "Temporary variable. List of line numbers at which various information is descripted.")
+;; (defvar latex-math-preview-line-number-start-candidates 0
+;;   "Temporary variable which is line number starting display of candidates.")
 
 (defface latex-math-preview-candidate-for-insertion-face
   '((t (:foreground "dark orange")))
@@ -449,7 +451,7 @@ If you use YaTeX mode then the recommended value of this variable is YaTeX-in-ma
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "q") 'latex-math-preview-quit-window)
     (define-key map (kbd "Q") 'latex-math-preview-delete-buffer)
-    (define-key map (kbd "\C-g") 'latex-math-preview-quit-window)
+    (define-key map (kbd "C-g") 'latex-math-preview-quit-window)
     (define-key map (kbd "o") 'latex-math-preview-toggle-window-maximization)
     (define-key map (kbd "c") 'latex-math-preview-symbols-of-other-group)
     (define-key map (kbd "j") 'latex-math-preview-move-to-downward-item)
@@ -458,16 +460,16 @@ If you use YaTeX mode then the recommended value of this variable is YaTeX-in-ma
     (define-key map (kbd "h") 'latex-math-preview-move-to-left-item)
     (define-key map (kbd "a") 'latex-math-preview-move-to-current-line-first-item)
     (define-key map (kbd "e") 'latex-math-preview-move-to-current-line-last-item)
-    (define-key map (kbd "\C-a") 'latex-math-preview-move-to-current-line-first-item)
-    (define-key map (kbd "\C-e") 'latex-math-preview-move-to-current-line-last-item)
+    (define-key map (kbd "C-a") 'latex-math-preview-move-to-current-line-first-item)
+    (define-key map (kbd "C-e") 'latex-math-preview-move-to-current-line-last-item)
     (define-key map (kbd "n") 'latex-math-preview-move-to-downward-item)
     (define-key map (kbd "p") 'latex-math-preview-move-to-upward-item)
-    (define-key map (kbd "\C-n") 'latex-math-preview-move-to-downward-item)
-    (define-key map (kbd "\C-p") 'latex-math-preview-move-to-upward-item)
+    (define-key map (kbd "C-n") 'latex-math-preview-move-to-downward-item)
+    (define-key map (kbd "C-p") 'latex-math-preview-move-to-upward-item)
     (define-key map (kbd "f") 'latex-math-preview-move-to-right-item)
     (define-key map (kbd "b") 'latex-math-preview-move-to-left-item)
-    (define-key map (kbd "\C-f") 'latex-math-preview-move-to-right-item)
-    (define-key map (kbd "\C-b") 'latex-math-preview-move-to-left-item)
+    (define-key map (kbd "C-f") 'latex-math-preview-move-to-right-item)
+    (define-key map (kbd "C-b") 'latex-math-preview-move-to-left-item)
     (define-key map (kbd "<down>") 'latex-math-preview-move-to-downward-item)
     (define-key map (kbd "<up>") 'latex-math-preview-move-to-upward-item)
     (define-key map (kbd "<right>") 'latex-math-preview-move-to-right-item)
@@ -476,8 +478,10 @@ If you use YaTeX mode then the recommended value of this variable is YaTeX-in-ma
     (define-key map (kbd ",") 'latex-math-preview-previous-candidates-for-insertion)
     (define-key map (kbd "i") 'latex-math-preview-next-candidates-for-insertion)
     (define-key map (kbd "u") 'latex-math-preview-previous-candidates-for-insertion)
-    (define-key map (kbd "\C-d") 'latex-math-preview-delete-current-cache)
-    (define-key map (kbd "\C-m") 'latex-math-preview-put-selected-candidate)
+    (define-key map (kbd "C-d") 'latex-math-preview-delete-current-cache)
+    (define-key map (kbd "C-m") 'latex-math-preview-put-selected-candidate)
+    (define-key map (kbd "M-<") 'latex-math-preview-move-to-beggining-of-candidates)
+    (define-key map (kbd "M->") 'latex-math-preview-move-to-end-of-candidates)
     (define-key map (kbd "<return>") 'latex-math-preview-put-selected-candidate)
     map)
   "Keymap for insertion mode of latex-math-preview-insert-symbol.")
@@ -686,34 +690,35 @@ buffer is left showing the messages and the return is nil."
 ;;-----------------------------------------------------------------------------
 ;; Insert Mathematical expression 
 
-(defun latex-math-preview-clear-cache-for-insertion (&optional dirname)
-  "Delete cache images in DIRNAME.
-If DIRNAME is nil then all directories saving caches is deleted."
+(defun latex-math-preview-clear-cache-for-insertion (&optional dataset)
+  "Delete cache images in directory of which name is DATASET.
+If DATASET is nil then all directories saving caches is deleted."
   (interactive)
-  (if dirname
-      (if (assoc dirname latex-math-preview-candidates-for-insertion)
+  (if dataset
+      (if (assoc dataset latex-math-preview-candidates-for-insertion)
 	  (latex-math-preview-clear-tmp-directory
-	   (concat latex-math-preview-cache-directory-for-insertion "/" dirname)))
+	   (concat latex-math-preview-cache-directory-for-insertion "/" dataset)))
     (latex-math-preview-clear-tmp-directory latex-math-preview-cache-directory-for-insertion)))
 
-(defun latex-math-preview-make-candidate-image (math-symbol dirname num)
+(defun latex-math-preview-make-candidate-image (math-symbol dataset num)
   "Create a cache image from latex file for including MATH-SYMBOL.
-Image is saved in DIRNAME. NUM is used for distingushing other images."
+Image is saved in directory of which name is DATASET.
+ NUM is used for distingushing other images."
   (let ((latex-math-dir (make-temp-file "latex-math-preview-" t))
-	(path (concat latex-math-preview-cache-directory-for-insertion "/" dirname "/"
+	(path (concat latex-math-preview-cache-directory-for-insertion "/" dataset "/"
 		      (format "%05d" num) "_"
 		      (downcase (replace-regexp-in-string "\\(\\\\\\)\\|\\({\\)\\|\\(}\\)"
 							  "_" math-symbol)) ".png"))
-	(packages (nth 1 (assoc dirname latex-math-preview-candidates-for-insertion))))
+	(packages (nth 1 (assoc dataset latex-math-preview-candidates-for-insertion))))
     (latex-math-preview-dvi-to-png (latex-math-preview-make-dvi-file
 				    latex-math-dir (concat "$" math-symbol "$") packages) path)
     (latex-math-preview-clear-tmp-directory latex-math-dir)
     path))
 
-(defun latex-math-preview-make-cache-for-insertion (dirname)
-  "Create cache images in DIRNAME."
-  (let* ((latex-syms (nth 2 (assoc dirname latex-math-preview-candidates-for-insertion)))
-	 (dirpath (concat latex-math-preview-cache-directory-for-insertion "/" dirname))
+(defun latex-math-preview-make-cache-for-insertion (dataset)
+  "Create cache images in directory of which name is DATASET."
+  (let* ((latex-syms (nth 2 (assoc dataset latex-math-preview-candidates-for-insertion)))
+	 (dirpath (concat latex-math-preview-cache-directory-for-insertion "/" dataset))
 	 (num 0))
     (if (file-directory-p dirpath)
 	(message "'%s' exists. Cache may be used." dirpath)
@@ -725,7 +730,7 @@ Image is saved in DIRNAME. NUM is used for distingushing other images."
 	    (if (listp sym-src)
 		(setq math-exp (eval `(concat ,@sym-src)))
 	      (setq math-exp sym-src))
-	    (latex-math-preview-make-candidate-image math-exp dirname num))
+	    (latex-math-preview-make-candidate-image math-exp dataset num))
 	  (setq num (+ num 1)))))))
 
 (defun latex-math-preview-make-all-cache-images ()
@@ -780,9 +785,10 @@ Return maximum size of images and maximum length of strings and images"
 	    (add-text-properties start-pt (point)
 				 '(face latex-math-preview-key-for-insertion-face)))))))
 
-(defun latex-math-preview-insert-group-name (dirname)
-  (let* ((group (concat (make-string 5 ?-) " * " dirname " * "))
-	 (package (nth 1 (assoc dirname latex-math-preview-candidates-for-insertion)))
+(defun latex-math-preview-insert-group-name (dataset)
+  "Insert information of dataset."
+  (let* ((group (concat (make-string 5 ?-) " * " dataset " * "))
+	 (package (nth 1 (assoc dataset latex-math-preview-candidates-for-insertion)))
 	 (package-str)
 	 (num-dash (- (window-width) (length group)))
 	 (start-pt (point)))
@@ -799,12 +805,13 @@ Return maximum size of images and maximum length of strings and images"
     (insert (make-string num-dash ?-)))
   (insert "\n"))
 
-(defun latex-math-preview-insert-candidate-images (dirname)
-  (let* ((latex-symbols (nth 2 (assoc dirname latex-math-preview-candidates-for-insertion)))
-	 (dirpath (concat latex-math-preview-cache-directory-for-insertion "/" dirname))
+(defun latex-math-preview-insert-candidate-images (dataset)
+  "Insert images and expressions."
+  (let* ((latex-symbols (nth 2 (assoc dataset latex-math-preview-candidates-for-insertion)))
+	 (dirpath (concat latex-math-preview-cache-directory-for-insertion "/" dataset))
 	 (data (latex-math-preview-strings-and-images-sizes
 		(mapcar (lambda (path) (concat latex-math-preview-cache-directory-for-insertion
-					       "/" dirname "/" path))
+					       "/" dataset "/" path))
 			(sort (delete-if (lambda (file) (not (string-match "^[0-9]+_" file)))
 					 (directory-files dirpath)) 'string<)) latex-symbols))
 	 (new-tab-width (+ 4 (ceiling (/ (float (car data)) (float (frame-char-width))))))
@@ -831,19 +838,20 @@ Return maximum size of images and maximum length of strings and images"
 	    (setq num row)
 	    (insert "\n"))))))
 
-(defun latex-math-preview-create-buffer-for-insertion (dirname)
-  "Create buffer displaying cache images in DIRNAME."
+(defun latex-math-preview-create-buffer-for-insertion (dataset)
+  "Create buffer displaying cache images in DATASET."
   (or (and (image-type-available-p 'png)
            (display-images-p))
       (error "Cannot display PNG in this Emacs"))
 
-  (setq latex-math-preview-current-group dirname)
-  (latex-math-preview-make-cache-for-insertion dirname)
+  (setq latex-math-preview-current-group dataset)
+  (latex-math-preview-make-cache-for-insertion dataset)
   (setq latex-math-preview-window-configuration (current-window-configuration))
 
   (pop-to-buffer latex-math-preview-insert-symbol-buffer-name)
   (if latex-math-preview-always-maximize-window (delete-other-windows))
 
+  (setq latex-math-preview-information-line-number nil)
   (with-current-buffer (get-buffer-create latex-math-preview-insert-symbol-buffer-name)
     (setq cursor-type nil)
     (setq truncate-lines t)
@@ -852,14 +860,15 @@ Return maximum size of images and maximum length of strings and images"
     (erase-buffer)
 
     (latex-math-preview-insert-key-explanations)
-  
-    (latex-math-preview-insert-group-name dirname)
+    (latex-math-preview-insert-group-name dataset)
 
-    (setq latex-math-preview-line-number-start-candidates (line-number-at-pos))
+    ;; (setq latex-math-preview-line-number-start-candidates (line-number-at-pos))
+    (add-to-list 'latex-math-preview-information-line-number (1- (line-number-at-pos)))
 
-    (latex-math-preview-insert-candidate-images dirname)
+    (latex-math-preview-insert-candidate-images dataset)
 
-    (goto-line latex-math-preview-line-number-start-candidates)
+    (goto-line (nth (1- (length latex-math-preview-information-line-number))
+		    latex-math-preview-information-line-number))
     (latex-math-preview-move-to-right-item)
     (buffer-disable-undo)
     (setq buffer-read-only t)
@@ -872,8 +881,8 @@ Return maximum size of images and maximum length of strings and images"
   (if (or (not num) (= num 1))
       (latex-math-preview-create-buffer-for-insertion
        (or latex-math-preview-current-group latex-math-preview-initial-group))
-    (let ((dirname (completing-read "group: " latex-math-preview-candidates-for-insertion nil t)))
-      (latex-math-preview-create-buffer-for-insertion dirname))))
+    (let ((dataset (completing-read "group: " latex-math-preview-candidates-for-insertion nil t)))
+      (latex-math-preview-create-buffer-for-insertion dataset))))
 
 (defun latex-math-preview-symbols-of-other-group ()
   "Change other page."
@@ -881,12 +890,12 @@ Return maximum size of images and maximum length of strings and images"
   (latex-math-preview-quit-window)
   (latex-math-preview-insert-symbol -1))
 
-(defun latex-math-preview-get-page-number (dirname)
-  "Get number of page for DIRNAME."
+(defun latex-math-preview-get-page-number (dataset)
+  "Get number of page for DATASET."
   (let ((num 0) (cont t)
 	(max-num (length latex-math-preview-candidates-for-insertion)))
     (while (and cont (< num max-num))
-      (if (string= dirname (car (nth num latex-math-preview-candidates-for-insertion)))
+      (if (string= dataset (car (nth num latex-math-preview-candidates-for-insertion)))
 	  (setq cont nil))
       (setq num (1+ num)))
     (if (not cont)
@@ -900,10 +909,10 @@ Return maximum size of images and maximum length of strings and images"
 	(len (length latex-math-preview-candidates-for-insertion)))
     (while (< num 0) (setq num (+ num len)))
     (if page
-	(let ((dirname (car (nth (% (+ page num) len)
+	(let ((dataset (car (nth (% (+ page num) len)
 				 latex-math-preview-candidates-for-insertion))))
 	  (latex-math-preview-quit-window)
-	  (latex-math-preview-create-buffer-for-insertion dirname)))))
+	  (latex-math-preview-create-buffer-for-insertion dataset)))))
 
 (defun latex-math-preview-previous-candidates-for-insertion (num)
   "Previous page of candidates buffer for insertion."
@@ -986,28 +995,31 @@ Return maximum size of images and maximum length of strings and images"
 (defun latex-math-preview-move-to-upward-item ()
   "Move to upward item."
   (interactive)
-  (if (< latex-math-preview-line-number-start-candidates (line-number-at-pos))
-      (progn
-	(let ((col (current-column)))
-	  (forward-line -1)
-	  (move-to-column col))
-	(skip-chars-backward "^\t ")
+  (let ((lnum (1- (line-number-at-pos)))
+	(col (current-column)))
+    (if (< (nth (1- (length latex-math-preview-information-line-number))
+		latex-math-preview-information-line-number) lnum)
+	(progn
+	(if (not (member lnum latex-math-preview-information-line-number))
+	    (forward-line -1) (forward-line -2))
+	(move-to-column col)
+	(skip-chars-backward "^\t")
 	(backward-char)
-	(latex-math-preview-move-to-right-item))))
+	(latex-math-preview-move-to-right-item)))))
 
 (defun latex-math-preview-move-to-downward-item ()
   "Move to downward item."
   (interactive)
-  (let ((col (current-column))
-	(cur-pos (point)))
-    (forward-line 1)
-    (if (= (point) (point-max))
-	(goto-char cur-pos)
-      (progn
-	(move-to-column col)
-	(skip-chars-backward "^\t ")
-	(backward-char)
-	(latex-math-preview-move-to-right-item)))))
+  (let ((lnum (1+ (line-number-at-pos)))
+	(col (current-column)))
+    (if (< lnum (max-line))
+	(progn
+	  (if (not (member lnum latex-math-preview-information-line-number))
+	      (forward-line 1) (forward-line 2))
+	  (move-to-column col)
+	  (skip-chars-backward "^\t")
+	  (backward-char)
+	  (latex-math-preview-move-to-right-item)))))
 
 (defun latex-math-preview-move-to-current-line-first-item ()
   "Move to first item in current line."
@@ -1019,6 +1031,19 @@ Return maximum size of images and maximum length of strings and images"
   "Move to last item in current line."
   (interactive)
   (end-of-line)
+  (latex-math-preview-move-to-left-item))
+
+(defun latex-math-preview-move-to-beggining-of-candidates ()
+  "Move to first candidate item in current buffer."
+  (interactive)
+  (goto-line (nth (1- (length latex-math-preview-information-line-number))
+		  latex-math-preview-information-line-number))
+  (latex-math-preview-move-to-right-item))
+
+(defun latex-math-preview-move-to-end-of-candidates ()
+  "Move to last candidate item in current buffer."
+  (interactive)
+  (goto-char (point-max))
   (latex-math-preview-move-to-left-item))
 
 (provide 'latex-math-preview)
