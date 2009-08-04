@@ -139,6 +139,8 @@
 ;;  k: scroll down
 
 ;; ChangeLog:
+;;     New function `latex-math-preview-move-to-current-line-first-item'.
+;;     New function `latex-math-preview-move-to-current-line-last-item'.
 ;; 2009/08/04 version 0.2.3 yamaguchi
 ;;     New function `latex-math-preview-toggle-window-maximization'.
 ;;     New function `latex-math-preview-last-symbol-again'.
@@ -467,18 +469,26 @@ If you use YaTeX mode then the recommended value of this variable is YaTeX-in-ma
     (define-key map (kbd "k") 'latex-math-preview-move-to-upward-item)
     (define-key map (kbd "l") 'latex-math-preview-move-to-right-item)
     (define-key map (kbd "h") 'latex-math-preview-move-to-left-item)
+    (define-key map (kbd "a") 'latex-math-preview-move-to-current-line-first-item)
+    (define-key map (kbd "e") 'latex-math-preview-move-to-current-line-last-item)
+    (define-key map (kbd "\C-a") 'latex-math-preview-move-to-current-line-first-item)
+    (define-key map (kbd "\C-e") 'latex-math-preview-move-to-current-line-last-item)
     (define-key map (kbd "n") 'latex-math-preview-move-to-downward-item)
     (define-key map (kbd "p") 'latex-math-preview-move-to-upward-item)
+    (define-key map (kbd "\C-n") 'latex-math-preview-move-to-downward-item)
+    (define-key map (kbd "\C-p") 'latex-math-preview-move-to-upward-item)
     (define-key map (kbd "f") 'latex-math-preview-move-to-right-item)
     (define-key map (kbd "b") 'latex-math-preview-move-to-left-item)
+    (define-key map (kbd "\C-f") 'latex-math-preview-move-to-right-item)
+    (define-key map (kbd "\C-b") 'latex-math-preview-move-to-left-item)
     (define-key map (kbd "<down>") 'latex-math-preview-move-to-downward-item)
     (define-key map (kbd "<up>") 'latex-math-preview-move-to-upward-item)
     (define-key map (kbd "<right>") 'latex-math-preview-move-to-right-item)
     (define-key map (kbd "<left>") 'latex-math-preview-move-to-left-item)
     (define-key map (kbd ".") 'latex-math-preview-next-candidates-for-insertion)
     (define-key map (kbd ",") 'latex-math-preview-previous-candidates-for-insertion)
-    (define-key map (kbd "\C-n") 'latex-math-preview-next-candidates-for-insertion)
-    (define-key map (kbd "\C-p") 'latex-math-preview-previous-candidates-for-insertion)
+    (define-key map (kbd "i") 'latex-math-preview-next-candidates-for-insertion)
+    (define-key map (kbd "u") 'latex-math-preview-previous-candidates-for-insertion)
     (define-key map (kbd "\C-m") 'latex-math-preview-put-selected-candidate)
     (define-key map (kbd "<return>") 'latex-math-preview-put-selected-candidate)
     map)
@@ -793,6 +803,10 @@ Return maximum size of images and maximum length of strings and images"
   (setq latex-math-preview-current-group dirname)
   (latex-math-preview-make-cache-for-insertion dirname)
   (setq latex-math-preview-window-configuration (current-window-configuration))
+
+  (pop-to-buffer latex-math-preview-insert-symbol-buffer-name)
+  (if latex-math-preview-always-maximize-window (delete-other-windows))
+
   (with-current-buffer (get-buffer-create latex-math-preview-insert-symbol-buffer-name)
     (setq cursor-type nil)
     (setq truncate-lines t)
@@ -802,16 +816,15 @@ Return maximum size of images and maximum length of strings and images"
 
     (insert "key:")
     (add-text-properties (point-min) (point) '(face bold))
-    (let ((max (frame-width)))
+    (let ((max (window-width)))
       (dolist (text '("[RET] insert" "[j] down" "[k] up" "[h] left" "[l] right"
-		      "[.] next page" "[,] previous page" "[o] change window size"
+		      "[i] next page" "[u] previous page" "[o] change window size"
 		      "[c] change group" "[q] quit"))
 	(if (> (+ (current-column) (length text)) max)
 	    (insert "\n    "))
 	(insert "   " text)))
     (insert "\n")
-    (setq latex-math-preview-number-start-candidates (line-number-at-pos))
-    
+        
     (save-excursion
       (goto-char (point-min))
       (while (re-search-forward "\\[" nil t)
@@ -821,7 +834,7 @@ Return maximum size of images and maximum length of strings and images"
 	      (add-text-properties start-pt (point)
 				   '(face latex-math-preview-key-for-insertion-face))))))
 
-    (let ((num-dash (- (/ (- (frame-width) (length dirname)) 2) 3))
+    (let ((num-dash (- (/ (- (window-width) (length dirname)) 2) 3))
 	  (start-pt))
       (insert (make-string num-dash ?-))
       (setq start-pt (point))
@@ -829,6 +842,8 @@ Return maximum size of images and maximum length of strings and images"
       (add-text-properties start-pt (point) '(face bold))
       (insert (make-string num-dash ?-)))
     (insert "\n")
+
+    (setq latex-math-preview-number-start-candidates (line-number-at-pos))
 
     (let* ((latex-symbols (cdr (assoc dirname latex-math-preview-candidates-for-insertion)))
 	   (dirpath (concat latex-math-preview-cache-directory-for-insertion "/" dirname))
@@ -842,7 +857,7 @@ Return maximum size of images and maximum length of strings and images"
 	   ;; You must not remove (+ 6 ...).
 	   ;; Implementation of latex-math-preview-set-overlay-for-selected-item needs redundant space.
 	   (str-format (format "%%-%ds" str-size))
-	   (row (floor (/ (frame-width)
+	   (row (floor (/ (window-width)
 			  (+ str-size (* (ceiling (/ (float (car data))
 						     (float (* (frame-char-width) new-tab-width))))
 					 new-tab-width)))))
@@ -866,10 +881,7 @@ Return maximum size of images and maximum length of strings and images"
     (buffer-disable-undo)
     (setq buffer-read-only t)
     (use-local-map latex-math-preview-insert-symbol-map)
-    (setq mode-name "LaTeXPreview"))
-  (pop-to-buffer latex-math-preview-insert-symbol-buffer-name)
-  (if latex-math-preview-always-maximize-window
-      (delete-other-windows)))
+    (setq mode-name "LaTeXPreview")))
 
 (defun latex-math-preview-insert-symbol (&optional num)
   "Insert LaTeX mathematical symbols with displaying."
@@ -968,16 +980,18 @@ Return maximum size of images and maximum length of strings and images"
 (defun latex-math-preview-move-to-right-item ()
   "Move to right item."
   (interactive)
-  (re-search-forward "\t\\([^\t]+\\)  " nil t)
-  (goto-char (match-beginning 1))
-  (latex-math-preview-set-overlay-for-selected-item))
+  (if (re-search-forward "\t\\([^\t]+\\)  " (line-end-position) t)
+      (progn
+	(goto-char (match-beginning 1))
+	(latex-math-preview-set-overlay-for-selected-item))))
 
 (defun latex-math-preview-move-to-left-item ()
   "Move to left item."
   (interactive)
-  (re-search-backward "\t\\([^\t]+\\)  " nil t)
-  (goto-char (match-beginning 1))
-  (latex-math-preview-set-overlay-for-selected-item))
+  (if (re-search-backward "\t\\([^\t]+\\)  " (line-beginning-position) t)
+      (progn
+	(goto-char (match-beginning 1))
+	(latex-math-preview-set-overlay-for-selected-item))))
 
 (defun latex-math-preview-move-to-upward-item ()
   "Move to upward item."
@@ -994,12 +1008,28 @@ Return maximum size of images and maximum length of strings and images"
 (defun latex-math-preview-move-to-downward-item ()
   "Move to downward item."
   (interactive)
-  (let ((col (current-column)))
+  (let ((col (current-column))
+	(cur-pos (point)))
     (forward-line 1)
-    (move-to-column col))
-  (skip-chars-backward "^\t ")
-  (backward-char)
+    (if (= (point) (point-max))
+	(goto-char cur-pos)
+      (progn
+	(move-to-column col)
+	(skip-chars-backward "^\t ")
+	(backward-char)
+	(latex-math-preview-move-to-right-item)))))
+
+(defun latex-math-preview-move-to-current-line-first-item ()
+  "Move to first item in current line."
+  (interactive)
+  (beginning-of-line)
   (latex-math-preview-move-to-right-item))
+
+(defun latex-math-preview-move-to-current-line-last-item ()
+  "Move to last item in current line."
+  (interactive)
+  (end-of-line)
+  (latex-math-preview-move-to-left-item))
 
 (provide 'latex-math-preview)
 
