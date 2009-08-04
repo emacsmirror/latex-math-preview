@@ -70,7 +70,7 @@
 ;;  latex-math-preview-command-dvipng
 ;;  latex-math-preview-command-dvi-view
 ;;  latex-math-preview-latex-template-header
-;;  latex-math-preview-latex-template-footer
+;;  latex-math-preview-latex-template-usepackage
 ;; 
 ;; latex-math-preview-expression makes a temporary latex file and compiles it and 
 ;; then gets a preview image by dvipng.
@@ -87,14 +87,14 @@
 ;; (part of latex-math-preview-latex-template-header
 ;;  the default value is the following)
 ;; \documentclass{article}
-;; \usepackage{amsmath, amssymb, amsthm}
 ;; \pagestyle{empty}
-;; \begin{document}
-;;
-;; (some mathematical expressions)
-;;
-;; (part of latex-math-preview-latex-template-footer
+;; 
+;; (part of latex-math-preview-latex-template-usepackage
 ;;  the default value is the following)
+;; \usepackage{amsmath, amssymb, amsthm}
+;; 
+;; \begin{document}
+;; (some mathematical expressions)
 ;; \par
 ;; \end{document}
 ;; 
@@ -222,12 +222,12 @@ methods, according to what Emacs and the system supports."
   "Temporary variable. You must not set this variable.")
 
 (defvar latex-math-preview-latex-template-header
-  "\\documentclass{article}\n\\usepackage{amsmath, amssymb, amsthm}\n\\pagestyle{empty}\n\\begin{document}\n"
+  "\\documentclass{article}\n\\pagestyle{empty}\n"
   "Insert string to beggining of temporary latex file to make image.")
 
-(defvar latex-math-preview-latex-template-footer
-  "\\par\n\\end{document}\n"
-  "Insert string to end of temporary latex file to make image.")
+(defvar latex-math-preview-latex-template-usepackage
+  '("\\usepackage{amsmath, amssymb, amsthm}")
+  "List of strings which are \\usepackage commands.")
 
 (defvar latex-math-preview-window-configuration nil
   "Temporary variable in which window configuration is saved.")
@@ -333,13 +333,13 @@ methods, according to what Emacs and the system supports."
      (("\\mathrm{" "abcdeABCDE" "}") ("\\mathbf{" "abcdeABCDE" "}")
       ("\\mathit{" "abcdeABCDE" "}") ("\\mathcal{" "ABCDE" "}")
       ("\\mathsf{" "abcdeABCDE" "}") ("\\mathtt{" "abcdeABCDE" "}")))
-    ("binary-operators2" ("amssymb")
+    ("binary-operators2" ("\\usepackage{amssymb}")
      ("\\boxdot" "\\boxplus" "\\centerdot" "\\boxminus" "\\veebar" "\\barwedge"
       "\\doublebarwedge" "\\Cup" "\\Cap" "\\curlywedge" "\\curlyvee"
       "\\leftthreetimes" "\\rightthreetimes" "\\dotplus" "\\intercal"
       "\\circledcirc" "\\circledast" "\\circleddash" "\\divideontimes" "\\lessdot"
       "\\gtrdot" "\\ltimes" "\\rtimes" "\\smallsetminus"))
-    ("relational-operators2" ("amssymb")
+    ("relational-operators2" ("\\usepackage{amssymb}")
      ("\\circlearrowright" "\\circlearrowleft" "\\rightleftharpoons"
       "\\leftrightharpoons" "\\Vdash" "\\Vvdash" "\\vDash" "\\twoheadrightarrow"
       "\\twoheadleftarrow" "\\leftleftarrows" "\\rightrightarrows" "\\upuparrows"
@@ -350,7 +350,7 @@ methods, according to what Emacs and the system supports."
       "\\multimap" "\\therefore" "\\because" "\\doteqdot" "\\triangleq" "\\precsim" 
       "\\lesssim" "\\lessapprox" "\\eqslantless" "\\eqslantgtr" "\\curlyeqprec"
       "\\curlyeqsucc"))
-    ("relational-operators3" ("amssymb")
+    ("relational-operators3" ("\\usepackage{amssymb}")
      ("\\preccurlyeq" "\\leqq" "\\leqslant" "\\lessgtr" "\\risingdotseq"
       "\\fallingdotseq" "\\succcurlyeq" "\\geqq" "\\geqslant" "\\gtrless"
       "\\sqsubset" "\\sqsupset" "\\vartriangleright" "\\vartriangleleft"
@@ -360,7 +360,7 @@ methods, according to what Emacs and the system supports."
       "\\smallsmile" "\\smallfrown" "\\Subset" "\\Supset" "\\subseteqq"
       "\\supseteqq" "\\bumpeq" "\\Bumpeq" "\\lll" "\\ggg" "\\pitchfork"
       "\\backsim" "\\backsimeq"))
-    ("relational-operators4" ("amssymb")
+    ("relational-operators4" ("\\usepackage{amssymb}")
      ("\\lvertneqq" "\\gvertneqq" "\\nleq" "\\ngeq" "\\nless" "\\ngtr" "\\nprec"
       "\\nsucc" "\\lneqq" "\\gneqq" "\\nleqslant" "\\ngeqslant" "\\lneq" "\\gneq"
       "\\npreceq" "\\nsucceq" "\\precnsim" "\\succnsim" "\\lnsim" "\\gnsim"
@@ -375,17 +375,17 @@ methods, according to what Emacs and the system supports."
       "\\shortmid" "\\shortparallel" "\\thicksim" "\\thickapprox" "\\approxeq"
       "\\succapprox" "\\precapprox" "\\curvearrowleft" "\\curvearrowright"
       "\\backepsilon"))
-    ("miscellaneous-symbols2" ("amssymb")
+    ("miscellaneous-symbols2" ("\\usepackage{amssymb}")
      ("\\square" "\\blacksquare" "\\lozenge" "\\blacklozenge" "\\backprime"
       "\\bigstar" "\\blacktriangledown" "\\blacktriangle" "\\triangledown"
       "\\angle" "\\measuredangle" "\\sphericalangle" "\\circledS" "\\complement"
       "\\diagup" "\\diagdown" "\\varnothing" "\\nexists" "\\Finv" "\\Game"
       "\\mho" "\\eth" "\\beth" "\\gimel" "\\daleth" "\\digamma"
       "\\varkappa" "\\Bbbk" "\\hslash" "\\hbar"))
-    ("italic-greeks" ("amsmath")
+    ("italic-greeks" ("\\usepackage{amsmath}")
      ("\\varGamma" "\\varDelta" "\\varTheta" "\\varLambda" "\\varXi" "\\varPi"
       "\\varSigma" "\\varUpsilon" "\\varPhi" "\\varPsi" "\\varOmega"))
-    ("AMSFonts-others" ("amsmath" "amssymb")
+    ("AMSFonts-others" ("\\usepackage{amsmath}" "\\usepackage{amssymb}")
      (("\\mathfrak{" "ABCDE" "}") ("\\mathbb{" "ABCDE" "}")
       "\\dots" "\\dotsc" "\\dotsb" "\\dotsm" "\\dotsi"
       ("\\overleftrightarrow{" "A" "}") ("\\underleftrightarrow{" "A" "}")
@@ -563,8 +563,11 @@ the notations which are stored in `latex-math-preview-match-expression'."
 	(dot-dvi (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".dvi")))
     (with-temp-file dot-tex
       (insert latex-math-preview-latex-template-header)
+      (if latex-math-preview-latex-template-usepackage
+	  (insert (mapconcat 'identity latex-math-preview-latex-template-usepackage "\n")))
+      (insert "\\begin{document}\n")
       (insert math-exp)
-      (insert latex-math-preview-latex-template-footer))
+      (insert "\\par\n\\end{document}\n"))
     (if (not (eq 0 (call-process latex-math-preview-latex-command nil nil nil
 				 (concat "-output-directory=" latex-math-dir) dot-tex)))
 	(error "TeX processing error")
@@ -743,10 +746,7 @@ Image is saved in DIRNAME. NUM is used for distingushing other images."
 							  "_" math-symbol)) ".png"))
 	(packages (nth 1 (assoc dirname latex-math-preview-candidates-for-insertion)))
 	(dot-dvi))
-    (let* ((usepackage (if packages (concat "\\usepackage{"
-					    (mapconcat 'identity packages ", ") "}\n") ""))
-	   (latex-math-preview-latex-template-header
-	    (concat "\\documentclass{article}\n" usepackage "\\pagestyle{empty}\n\\begin{document}\n")))
+    (let* ((latex-math-preview-latex-template-usepackage packages))
       (setq dot-dvi (latex-math-preview-make-dvi-file latex-math-dir (concat "$" math-symbol "$"))))
     (latex-math-preview-dvi-to-png dot-dvi path)
     (latex-math-preview-clear-tmp-directory latex-math-dir)
@@ -851,7 +851,7 @@ Return maximum size of images and maximum length of strings and images"
       (setq start-pt (point))
       (if package
       	  (progn
-      	    (setq package-str (concat "usepackage: " (mapconcat 'identity package ", ") " "))
+      	    (setq package-str (concat (mapconcat 'identity package " ") " "))
 	    (insert package-str)
       	    (setq num-dash (- num-dash (length package-str)))
 	    (add-text-properties start-pt (point)
@@ -902,7 +902,7 @@ Return maximum size of images and maximum length of strings and images"
 (defun latex-math-preview-insert-symbol (&optional num)
   "Insert LaTeX mathematical symbols with displaying."
   (interactive "p")
-  (if (= num 1)
+  (if (or (not num) (= num 1))
       (latex-math-preview-create-buffer-for-insertion
        (or latex-math-preview-current-group latex-math-preview-initial-group))
     (let ((dirname (completing-read "group: " latex-math-preview-candidates-for-insertion nil t)))
