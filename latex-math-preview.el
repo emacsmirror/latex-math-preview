@@ -289,26 +289,26 @@
   "These eqpressions are used for matching to extract tex math expression.")
 
 (defvar latex-math-preview-candidates-for-insertion
-  '(("delimiters" ()
+  '(("delimiters" nil
      (("(" "x" ")") ("[" "x" "]") ("\\{" "x" "\\}")
       ("\\lfloor " "x" " \\rfloor") ("\\lceil " "x" " \\rceil")
       ("\\langle " "x" " \\rangle")
       "\\backslash" "\\|" "\\uparrow" "\\Uparrow" "\\downarrow" "\\Downarrow"
       "\\updownarrow" "\\Updownarrow"))
-    ("greek-letters" ()
+    ("greek-letters" nil
      ("\\alpha" "\\beta" "\\gamma" "\\delta" "\\epsilon" "\\zeta" "\\eta"
       "\\theta" "\\iota" "\\kappa" "\\lambda" "\\mu" "\\nu" "\\xi" "\\pi"
       "\\rho" "\\sigma" "\\tau" "\\upsilon" "\\phi" "\\chi" "\\psi" "\\omega"
       "\\varepsilon" "\\vartheta" "\\varpi" "\\varrho" "\\varsigma" "\\varphi"
       "\\Gamma" "\\Delta" "\\Theta" "\\Lambda" "\\Xi" "\\Pi" "\\Sigma"
       "\\Upsilon" "\\Phi" "\\Psi" "\\Omega"))
-    ("binary-operators1" ()
+    ("binary-operators1" nil
      ("\\pm" "\\mp" "\\times" "\\div"  "\\ast" "\\star" "\\circ" "\\bullet"
       "\\cdot" "\\cap" "\\cup" "\\uplus" "\\sqcap" "\\sqcup" "\\vee" "\\wedge"
       "\\setminus" "\\wr" "\\diamond" "\\bigtriangleup" "\\bigtriangledown"
       "\\triangleleft" "\\triangleright" "\\oplus" "\\ominus" "\\otimes"
       "\\oslash" "\\odot" "\\bigcirc" "\\dagger" "\\ddagger" "\\amalg"))
-    ("relational-operators1" ()
+    ("relational-operators1" nil
      ("\\le" "\\prec" "\\preceq" "\\ll" "\\subset" "\\subseteq" "\\vdash"
       "\\in" "\\notin" "\\ge" "\\succ" "\\succeq" "\\gg" "\\supset" "\\supseteq"
       "\\sqsupseteq" "\\dashv" "\\ni"
@@ -317,7 +317,7 @@
       "\\doteq" "\\propto" "\\models" "\\perp" "\\mid" "\\parallel" "\\bowtie"
       "\\smile" "\\frown"
       "\\not\\equiv"))
-    ("arrows" ()
+    ("arrows" nil
      ("\\gets" "\\Leftarrow" "\\to" "\\Rightarrow"
       ;; omit "\\leftarrow" and "\\rightarrow"
       "\\leftrightarrow" "\\Leftrightarrow" "\\mapsto" "\\hookleftarrow"
@@ -326,23 +326,23 @@
       "\\hookrightarrow" "\\rightharpoonup" "\\rightharpoondown"
       "\\iff" "\\nearrow" "\\searrow" "\\swarrow" "\\nwarrow"
       "\\rightleftharpoons"))
-    ("miscellaneous-symbols1" ()
+    ("miscellaneous-symbols1" nil
      ("\\aleph" "\\hbar" "\\imath" "\\jmath" "\\ell" "\\wp" "\\Re" "\\Im"
       "\\partial" "\\infty" "\\prime" "\\emptyset" "\\nabla" "\\surd"
       "\\top" "\\bot" "\\angle" "\\triangle" "\\forall" "\\exists"
       "\\neg" "\\flat" "\\natural" "\\sharp" "\\clubsuit" "\\diamondsuit"
       "\\heartsuit" "\\spadesuit"))
-    ("big-symbols" ()
+    ("big-symbols" nil
      ("\\sum" "\\prod" "\\coprod" "\\int" "\\oint" "\\bigcap" "\\bigcup"
       "\\bigsqcup" "\\bigvee" "\\bigwedge" "\\bigodot" "\\bigotimes"
       "\\bigoplus" "\\biguplus"))
-    ("functions" ()
+    ("functions" nil
      ("\\arccos" "\\arcsin" "\\arctan" "\\arg" "\\cos" "\\cosh" "\\cot" "\\coth"
       "\\csc" "\\deg" "\\det" "\\dim" "\\exp" "\\gcd" "\\hom" "\\inf" "\\ker"
       "\\lg" "\\lim" "\\liminf" "\\limsup" "\\ln" "\\log" "\\max" "\\min"
       "\\Pr" "\\sec" "\\sin" "\\sinh" "\\sup" "\\tan" "\\tanh"
       "\\bmod" "\\pmod"))
-    ("attachments-and-others" ()
+    ("attachments-and-others" nil
      (("\\hat{" "a" "}") ("\\check{" "a" "}") ("\\breve{" "a" "}")
       ("\\acute{" "a" "}") ("\\grave{" "a" "}") ("\\tilde{" "a" "}")
       ("\\bar{" "a" "}") ("\\vec{" "a" "}") ("\\dot{" "a" "}") ("\\ddot{" "a" "}")
@@ -353,7 +353,7 @@
       "\\stackrel{\\mathrm{def}}{=}"
       ("\\frac{" "x" "}{y}") ("" "x" "^{n}") "\\sum_{i=0}^{\\infty}"
       ("\\sqrt{" "x" "}") ("\\sqrt[" "3" "]{x}")))
-    ("typefaces" ()
+    ("typefaces" nil
      (("\\mathrm{" "abcdeABCDE" "}") ("\\mathbf{" "abcdeABCDE" "}")
       ("\\mathit{" "abcdeABCDE" "}") ("\\mathcal{" "ABCDE" "}")
       ("\\mathsf{" "abcdeABCDE" "}") ("\\mathtt{" "abcdeABCDE" "}")))
@@ -444,8 +444,6 @@
 
 (defvar latex-math-preview-information-line-number nil
   "Temporary variable. List of line numbers at which various information is descripted.")
-;; (defvar latex-math-preview-line-number-start-candidates 0
-;;   "Temporary variable which is line number starting display of candidates.")
 
 (defface latex-math-preview-candidate-for-insertion-face
   '((t (:foreground "dark orange")))
@@ -898,7 +896,6 @@ Return maximum size of images and maximum length of strings and images"
     (latex-math-preview-insert-key-explanations)
     (latex-math-preview-insert-page-name dataset)
 
-    ;; (setq latex-math-preview-line-number-start-candidates (line-number-at-pos))
     (add-to-list 'latex-math-preview-information-line-number (1- (line-number-at-pos)))
 
     (latex-math-preview-insert-candidate-images dataset)
