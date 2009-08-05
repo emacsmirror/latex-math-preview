@@ -1,4 +1,4 @@
-;;; latex-math-preview.el --- preview LaTeX mathematical expressions.
+;; latex-math-preview.el --- preview LaTeX mathematical expressions.
 
 ;; Author: Takayuki YAMAGUCHI <d@ytak.info>
 ;; Keywords: LaTeX TeX
@@ -132,6 +132,10 @@
 ;; * List of symbols for insertion *
 ;; To change symbol set, you may customize the variable
 ;; `latex-math-preview-candidates-for-insertion'.
+;; If you always open the same inital page,
+;; you set nil to `latex-math-preview-restore-last-page-of-symbol-list'
+;; and string of initial page name to 
+;; `latex-math-preview-initial-page-of-symbol-list'.
 
 ;;; Usage:
 ;; * latex-math-preview-expression *
@@ -424,19 +428,19 @@
 (defvar latex-math-preview-always-maximize-window nil
   "Always maximize preview window for `latex-math-preview-insert-symbol' if non-nil.")
 
-(defvar latex-math-preview-restore-symbol-group t
-  "Restore last symbol group at next insertion
- if this `latex-math-preview-restore-symbol-group' is non-nil.")
+(defvar latex-math-preview-restore-last-page-of-symbol-list t
+  "Restore last page of symbol list at next insertion
+ if this `latex-math-preview-restore-last-page-of-symbol-list' is non-nil.")
 
 (defvar latex-math-preview-inserted-last-symbol nil
   "Inserted last symbol.")
 
-(defvar latex-math-preview-initial-group
+(defvar latex-math-preview-initial-page-of-symbol-list
   (car (nth 0 latex-math-preview-candidates-for-insertion))
-  "Group which is displayed initially.")
+  "Page of symbol list which is displayed initially.")
 
-(defvar latex-math-preview-current-group nil
-  "Group of present buffer displaying mathematical symbols.")
+(defvar latex-math-preview-current-page-of-symbol-list nil
+  "Page of symbol list on present buffer displaying mathematical symbols.")
 
 (defvar latex-math-preview-information-line-number nil
   "Temporary variable. List of line numbers at which various information is descripted.")
@@ -485,7 +489,7 @@ If you use YaTeX mode then the recommended value of this variable is YaTeX-in-ma
     (define-key map (kbd "Q") 'latex-math-preview-delete-buffer)
     (define-key map (kbd "C-g") 'latex-math-preview-quit-window)
     (define-key map (kbd "o") 'latex-math-preview-toggle-window-maximization)
-    (define-key map (kbd "c") 'latex-math-preview-symbols-of-other-group)
+    (define-key map (kbd "c") 'latex-math-preview-symbols-of-other-page)
     (define-key map (kbd "j") 'latex-math-preview-move-to-downward-item)
     (define-key map (kbd "k") 'latex-math-preview-move-to-upward-item)
     (define-key map (kbd "l") 'latex-math-preview-move-to-right-item)
@@ -803,7 +807,7 @@ Return maximum size of images and maximum length of strings and images"
   (let ((max (window-width)))
     (dolist (text '("[RET] insert" "[j] down" "[k] up" "[h] left" "[l] right"
 		    "[i] next page" "[u] previous page" "[o] change window size"
-		    "[c] change group" "[q] quit"))
+		    "[c] change page" "[q] quit"))
       (if (> (+ (current-column) (length text)) max)
 	  (insert "\n    "))
       (insert "   " text)))
@@ -817,14 +821,14 @@ Return maximum size of images and maximum length of strings and images"
 	    (add-text-properties start-pt (point)
 				 '(face latex-math-preview-key-for-insertion-face)))))))
 
-(defun latex-math-preview-insert-group-name (dataset)
+(defun latex-math-preview-insert-page-name (dataset)
   "Insert information of dataset."
-  (let* ((group (concat (make-string 5 ?-) " * " dataset " * "))
+  (let* ((desc (concat (make-string 5 ?-) " * " dataset " * "))
 	 (package (nth 1 (assoc dataset latex-math-preview-candidates-for-insertion)))
 	 (package-str)
-	 (num-dash (- (window-width) (length group)))
+	 (num-dash (- (window-width) (length desc)))
 	 (start-pt (point)))
-    (insert group)
+    (insert desc)
     (add-text-properties start-pt (point) '(face bold))
     (setq start-pt (point))
     (if package
@@ -876,7 +880,7 @@ Return maximum size of images and maximum length of strings and images"
            (display-images-p))
       (error "Cannot display PNG in this Emacs"))
 
-  (setq latex-math-preview-current-group dataset)
+  (setq latex-math-preview-current-page-of-symbol-list dataset)
   (latex-math-preview-make-cache-for-insertion dataset)
   (setq latex-math-preview-window-configuration (current-window-configuration))
 
@@ -892,7 +896,7 @@ Return maximum size of images and maximum length of strings and images"
     (erase-buffer)
 
     (latex-math-preview-insert-key-explanations)
-    (latex-math-preview-insert-group-name dataset)
+    (latex-math-preview-insert-page-name dataset)
 
     ;; (setq latex-math-preview-line-number-start-candidates (line-number-at-pos))
     (add-to-list 'latex-math-preview-information-line-number (1- (line-number-at-pos)))
@@ -912,11 +916,13 @@ Return maximum size of images and maximum length of strings and images"
   (interactive "p")
   (if (or (not num) (= num 1))
       (latex-math-preview-create-buffer-for-insertion
-       (or latex-math-preview-current-group latex-math-preview-initial-group))
-    (let ((dataset (completing-read "group: " latex-math-preview-candidates-for-insertion nil t)))
+       (if latex-math-preview-restore-last-page-of-symbol-list
+	   (or latex-math-preview-current-page-of-symbol-list latex-math-preview-initial-page-of-symbol-list)
+	 latex-math-preview-initial-page-of-symbol-list))
+    (let ((dataset (completing-read "page: " latex-math-preview-candidates-for-insertion nil t)))
       (latex-math-preview-create-buffer-for-insertion dataset))))
 
-(defun latex-math-preview-symbols-of-other-group ()
+(defun latex-math-preview-symbols-of-other-page ()
   "Change other page."
   (interactive)
   (latex-math-preview-quit-window)
@@ -937,7 +943,7 @@ Return maximum size of images and maximum length of strings and images"
 (defun latex-math-preview-next-candidates-for-insertion (num)
   "Next page of candidates buffer for insertion."
   (interactive "p")
-  (let ((page (latex-math-preview-get-page-number latex-math-preview-current-group))
+  (let ((page (latex-math-preview-get-page-number latex-math-preview-current-page-of-symbol-list))
 	(len (length latex-math-preview-candidates-for-insertion)))
     (while (< num 0) (setq num (+ num len)))
     (if page
@@ -956,7 +962,7 @@ Return maximum size of images and maximum length of strings and images"
   (interactive)
   (setq latex-math-preview-always-maximize-window (not latex-math-preview-always-maximize-window))
   (latex-math-preview-quit-window)
-  (latex-math-preview-create-buffer-for-insertion latex-math-preview-current-group))
+  (latex-math-preview-create-buffer-for-insertion latex-math-preview-current-page-of-symbol-list))
 
 (defun latex-math-preview-symbol-insertion (str)
   "Execute insertion from STR."
@@ -982,8 +988,8 @@ Return maximum size of images and maximum length of strings and images"
   "Delete cache and make cache again."
   (interactive)
   (latex-math-preview-quit-window)
-  (latex-math-preview-clear-cache-for-insertion latex-math-preview-current-group)
-  (latex-math-preview-create-buffer-for-insertion latex-math-preview-current-group))
+  (latex-math-preview-clear-cache-for-insertion latex-math-preview-current-page-of-symbol-list)
+  (latex-math-preview-create-buffer-for-insertion latex-math-preview-current-page-of-symbol-list))
 
 (defun latex-math-preview-last-symbol-again ()
   "Insert last symbol which is inserted by `latex-math-preview-insert-symbol'"
