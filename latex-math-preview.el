@@ -131,7 +131,7 @@
 ;; 
 ;; * List of symbols for insertion *
 ;; To change symbol set, you may customize the variable
-;; `latex-math-preview-candidates-for-insertion'.
+;; `latex-math-preview-symbol-datasets'.
 ;; If you always open the same inital page,
 ;; you set nil to `latex-math-preview-restore-last-page-of-symbol-list'
 ;; and string of initial page name to 
@@ -288,142 +288,164 @@
     )
   "These eqpressions are used for matching to extract tex math expression.")
 
-(defvar latex-math-preview-candidates-for-insertion
-  '(("delimiters" nil
-     (("(" "x" ")") ("[" "x" "]") ("\\{" "x" "\\}")
-      ("\\lfloor " "x" " \\rfloor") ("\\lceil " "x" " \\rceil")
-      ("\\langle " "x" " \\rangle")
-      "\\backslash" "\\|" "\\uparrow" "\\Uparrow" "\\downarrow" "\\Downarrow"
-      "\\updownarrow" "\\Updownarrow"))
-    ("greek-letters" nil
-     ("\\alpha" "\\beta" "\\gamma" "\\delta" "\\epsilon" "\\zeta" "\\eta"
-      "\\theta" "\\iota" "\\kappa" "\\lambda" "\\mu" "\\nu" "\\xi" "\\pi"
-      "\\rho" "\\sigma" "\\tau" "\\upsilon" "\\phi" "\\chi" "\\psi" "\\omega"
-      "\\varepsilon" "\\vartheta" "\\varpi" "\\varrho" "\\varsigma" "\\varphi"
-      "\\Gamma" "\\Delta" "\\Theta" "\\Lambda" "\\Xi" "\\Pi" "\\Sigma"
-      "\\Upsilon" "\\Phi" "\\Psi" "\\Omega"))
-    ("binary-operators1" nil
-     ("\\pm" "\\mp" "\\times" "\\div"  "\\ast" "\\star" "\\circ" "\\bullet"
-      "\\cdot" "\\cap" "\\cup" "\\uplus" "\\sqcap" "\\sqcup" "\\vee" "\\wedge"
-      "\\setminus" "\\wr" "\\diamond" "\\bigtriangleup" "\\bigtriangledown"
-      "\\triangleleft" "\\triangleright" "\\oplus" "\\ominus" "\\otimes"
-      "\\oslash" "\\odot" "\\bigcirc" "\\dagger" "\\ddagger" "\\amalg"))
-    ("relational-operators1" nil
-     ("\\le" "\\prec" "\\preceq" "\\ll" "\\subset" "\\subseteq" "\\vdash"
-      "\\in" "\\notin" "\\ge" "\\succ" "\\succeq" "\\gg" "\\supset" "\\supseteq"
-      "\\sqsupseteq" "\\dashv" "\\ni"
-      ;; omit "\\leq" and "geq" because this is the same as "\\le" and "\\ge", respectively.
-      "\\equiv" "\\sim" "\\simeq" "\\asymp" "\\approx" "\\cong" "\\neq"
-      "\\doteq" "\\propto" "\\models" "\\perp" "\\mid" "\\parallel" "\\bowtie"
-      "\\smile" "\\frown"
-      "\\not\\equiv"))
-    ("arrows" nil
-     ("\\gets" "\\Leftarrow" "\\to" "\\Rightarrow"
-      ;; omit "\\leftarrow" and "\\rightarrow"
-      "\\leftrightarrow" "\\Leftrightarrow" "\\mapsto" "\\hookleftarrow"
-      "\\leftharpoonup" "\\leftharpoondown" "\\longleftarrow" "\\Longleftarrow"
-      "\\longleftrightarrow" "\\Longleftrightarrow" "\\longmapsto"
-      "\\hookrightarrow" "\\rightharpoonup" "\\rightharpoondown"
-      "\\iff" "\\nearrow" "\\searrow" "\\swarrow" "\\nwarrow"
-      "\\rightleftharpoons"))
-    ("miscellaneous-symbols1" nil
-     ("\\aleph" "\\hbar" "\\imath" "\\jmath" "\\ell" "\\wp" "\\Re" "\\Im"
-      "\\partial" "\\infty" "\\prime" "\\emptyset" "\\nabla" "\\surd"
-      "\\top" "\\bot" "\\angle" "\\triangle" "\\forall" "\\exists"
-      "\\neg" "\\flat" "\\natural" "\\sharp" "\\clubsuit" "\\diamondsuit"
-      "\\heartsuit" "\\spadesuit"))
-    ("big-symbols" nil
-     ("\\sum" "\\prod" "\\coprod" "\\int" "\\oint" "\\bigcap" "\\bigcup"
-      "\\bigsqcup" "\\bigvee" "\\bigwedge" "\\bigodot" "\\bigotimes"
-      "\\bigoplus" "\\biguplus"))
-    ("functions" nil
-     ("\\arccos" "\\arcsin" "\\arctan" "\\arg" "\\cos" "\\cosh" "\\cot" "\\coth"
-      "\\csc" "\\deg" "\\det" "\\dim" "\\exp" "\\gcd" "\\hom" "\\inf" "\\ker"
-      "\\lg" "\\lim" "\\liminf" "\\limsup" "\\ln" "\\log" "\\max" "\\min"
-      "\\Pr" "\\sec" "\\sin" "\\sinh" "\\sup" "\\tan" "\\tanh"
-      "\\bmod" "\\pmod"))
-    ("attachments-and-others" nil
-     (("\\hat{" "a" "}") ("\\check{" "a" "}") ("\\breve{" "a" "}")
-      ("\\acute{" "a" "}") ("\\grave{" "a" "}") ("\\tilde{" "a" "}")
-      ("\\bar{" "a" "}") ("\\vec{" "a" "}") ("\\dot{" "a" "}") ("\\ddot{" "a" "}")
-      ("\\overline{" "xy" "}") "\\underline{xy}" ("\\widehat{" "xy" "}")
-      ("\\widetilde{" "xy" "}") ("\\overbrace{" "xy" "}")
-      ("\\underbrace{" "xy" "}") ("\\overrightarrow{" "\\mathrm{OA}" "}")
-      ("\\overleftarrow{" "\\mathrm{OA}" "}") ("\\stackrel{" "f" "}{\\to}")
-      "\\stackrel{\\mathrm{def}}{=}"
-      ("\\frac{" "x" "}{y}") ("" "x" "^{n}") "\\sum_{i=0}^{\\infty}"
-      ("\\sqrt{" "x" "}") ("\\sqrt[" "3" "]{x}")))
-    ("typefaces" nil
-     (("\\mathrm{" "abcdeABCDE" "}") ("\\mathbf{" "abcdeABCDE" "}")
-      ("\\mathit{" "abcdeABCDE" "}") ("\\mathcal{" "ABCDE" "}")
-      ("\\mathsf{" "abcdeABCDE" "}") ("\\mathtt{" "abcdeABCDE" "}")))
-    ("binary-operators2" ("\\usepackage{amssymb}")
-     ("\\boxdot" "\\boxplus" "\\centerdot" "\\boxminus" "\\veebar" "\\barwedge"
-      "\\doublebarwedge" "\\Cup" "\\Cap" "\\curlywedge" "\\curlyvee"
-      "\\leftthreetimes" "\\rightthreetimes" "\\dotplus" "\\intercal"
-      "\\circledcirc" "\\circledast" "\\circleddash" "\\divideontimes" "\\lessdot"
-      "\\gtrdot" "\\ltimes" "\\rtimes" "\\smallsetminus"))
-    ("relational-operators2" ("\\usepackage{amssymb}")
-     ("\\circlearrowright" "\\circlearrowleft" "\\rightleftharpoons"
-      "\\leftrightharpoons" "\\Vdash" "\\Vvdash" "\\vDash" "\\twoheadrightarrow"
-      "\\twoheadleftarrow" "\\leftleftarrows" "\\rightrightarrows" "\\upuparrows"
-      "\\downdownarrows" "\\upharpoonright" "\\downharpoonright" "\\upharpoonleft"
-      "\\downharpoonleft" "\\rightarrowtail" "\\leftarrowtail" "\\rightleftarrows"
-      "\\Lsh" "\\Rsh" "\\rightsquigarrow" "\\leftrightsquigarrow" "\\looparrowleft"
-      "\\looparrowright" "\\circeq" "\\succsim" "\\gtrsim" "\\gtrapprox"
-      "\\multimap" "\\therefore" "\\because" "\\doteqdot" "\\triangleq" "\\precsim" 
-      "\\lesssim" "\\lessapprox" "\\eqslantless" "\\eqslantgtr" "\\curlyeqprec"
-      "\\curlyeqsucc"))
-    ("relational-operators3" ("\\usepackage{amssymb}")
-     ("\\preccurlyeq" "\\leqq" "\\leqslant" "\\lessgtr" "\\risingdotseq"
-      "\\fallingdotseq" "\\succcurlyeq" "\\geqq" "\\geqslant" "\\gtrless"
-      "\\sqsubset" "\\sqsupset" "\\vartriangleright" "\\vartriangleleft"
-      "\\trianglerighteq" "\\trianglelefteq" "\\between" "\\blacktriangleright"
-      "\\blacktriangleleft" "\\vartriangle" "\\eqcirc" "\\lesseqgtr" "\\gtreqless"
-      "\\lesseqqgtr" "\\gtreqqless" "\\Rrightarrow" "\\Lleftarrow" "\\varpropto"
-      "\\smallsmile" "\\smallfrown" "\\Subset" "\\Supset" "\\subseteqq"
-      "\\supseteqq" "\\bumpeq" "\\Bumpeq" "\\lll" "\\ggg" "\\pitchfork"
-      "\\backsim" "\\backsimeq"))
-    ("relational-operators4" ("\\usepackage{amssymb}")
-     ("\\lvertneqq" "\\gvertneqq" "\\nleq" "\\ngeq" "\\nless" "\\ngtr" "\\nprec"
-      "\\nsucc" "\\lneqq" "\\gneqq" "\\nleqslant" "\\ngeqslant" "\\lneq" "\\gneq"
-      "\\npreceq" "\\nsucceq" "\\precnsim" "\\succnsim" "\\lnsim" "\\gnsim"
-      "\\nleqq" "\\ngeqq" "\\precneqq" "\\succneqq" "\\precnapprox" "\\succnapprox"
-      "\\lnapprox" "\\gnapprox" "\\nsim" "\\ncong" "\\varsubsetneq" "\\varsupsetneq"
-      "\\nsubseteqq" "\\nsupseteqq" "\\subsetneqq" "\\supsetneqq" "\\varsubsetneqq"
-      "\\varsupsetneqq" "\\subsetneq" "\\supsetneq" "\\nsubseteq" "\\nsupseteq"
-      "\\nparallel" "\\nmid" "\\nshortmid" "\\nshortparallel" "\\nvdash"
-      "\\nVdash" "\\nvDash" "\\nVDash" "\\ntrianglerighteq" "\\ntrianglelefteq"
-      "\\ntriangleleft" "\\ntriangleright" "\\nleftarrow" "\\nLeftarrow"
-      "\\nRightarrow" "\\nLeftrightarrow" "\\nleftrightarrow" "\\eqsim"
-      "\\shortmid" "\\shortparallel" "\\thicksim" "\\thickapprox" "\\approxeq"
-      "\\succapprox" "\\precapprox" "\\curvearrowleft" "\\curvearrowright"
-      "\\backepsilon"))
-    ("miscellaneous-symbols2" ("\\usepackage{amssymb}")
-     ("\\square" "\\blacksquare" "\\lozenge" "\\blacklozenge" "\\backprime"
-      "\\bigstar" "\\blacktriangledown" "\\blacktriangle" "\\triangledown"
-      "\\angle" "\\measuredangle" "\\sphericalangle" "\\circledS" "\\complement"
-      "\\diagup" "\\diagdown" "\\varnothing" "\\nexists" "\\Finv" "\\Game"
-      "\\mho" "\\eth" "\\beth" "\\gimel" "\\daleth" "\\digamma"
-      "\\varkappa" "\\Bbbk" "\\hslash" "\\hbar"))
-    ("italic-greeks" ("\\usepackage{amsmath}")
-     ("\\varGamma" "\\varDelta" "\\varTheta" "\\varLambda" "\\varXi" "\\varPi"
-      "\\varSigma" "\\varUpsilon" "\\varPhi" "\\varPsi" "\\varOmega"))
-    ("AMSFonts-others" ("\\usepackage{amsmath}" "\\usepackage{amssymb}")
-     (("\\mathfrak{" "ABCDE" "}") ("\\mathbb{" "ABCDE" "}")
-      "\\dots" "\\dotsc" "\\dotsb" "\\dotsm" "\\dotsi"
-      ("\\overleftrightarrow{" "A" "}") ("\\underleftrightarrow{" "A" "}")
-      ("\\xrightarrow{" "\\text{text}" "}") ("\\xrightarrow[" "abc" "]{}")
-      ("\\xleftarrow{" "\\text{text}" "}") ("\\xleftarrow[" "abc" "]{}")
-      ("\\Hat{" "A" "}") ("\\Dot{" "A" "}") ("\\Check{" "A" "}")
-      ("\\Ddot{" "A" "}") ("\\Tilde{" "A" "}") ("\\Breve{" "A" "}")
-      ("\\Acute{" "A" "}") ("\\Bar{" "A" "}") ("\\Vec{" "A" "}")
-      ("\\dddot{" "x" "}") ("\\ddddot{" "x" "}")
-      "\\int" "\\iint" "\\iiint" "\\iiiint" "\\idotsint"
-      ("\\tfrac{" "a" "}{b}") ("\\dfrac{" "a" "}{b}") ("\\cfrac{" "a" "}{b}")
-      ("\\binom{" "a" "}{b}")))
+(defvar latex-math-preview-symbol-datasets
+  '(("DelimitersArrows"
+     ("delimiters" nil
+      (("(" "x" ")") ("[" "x" "]") ("\\{" "x" "\\}")
+       ("\\lfloor " "x" " \\rfloor") ("\\lceil " "x" " \\rceil")
+       ("\\langle " "x" " \\rangle")
+       "\\backslash" "\\|" "\\uparrow" "\\Uparrow" "\\downarrow" "\\Downarrow"
+       "\\updownarrow" "\\Updownarrow"))
+     ("arrows" nil
+      ("\\gets" "\\Leftarrow" "\\to" "\\Rightarrow"
+       ;; omit "\\leftarrow" and "\\rightarrow"
+       "\\leftrightarrow" "\\Leftrightarrow" "\\mapsto" "\\hookleftarrow"
+       "\\leftharpoonup" "\\leftharpoondown" "\\longleftarrow" "\\Longleftarrow"
+       "\\longleftrightarrow" "\\Longleftrightarrow" "\\longmapsto"
+       "\\hookrightarrow" "\\rightharpoonup" "\\rightharpoondown"
+       "\\iff" "\\nearrow" "\\searrow" "\\swarrow" "\\nwarrow"
+       "\\rightleftharpoons")))
+    ("GreekLetters"
+     ("greek letters" nil
+      ("\\alpha" "\\beta" "\\gamma" "\\delta" "\\epsilon" "\\zeta" "\\eta"
+       "\\theta" "\\iota" "\\kappa" "\\lambda" "\\mu" "\\nu" "\\xi" "\\pi"
+       "\\rho" "\\sigma" "\\tau" "\\upsilon" "\\phi" "\\chi" "\\psi" "\\omega"
+       "\\varepsilon" "\\vartheta" "\\varpi" "\\varrho" "\\varsigma" "\\varphi"
+       "\\Gamma" "\\Delta" "\\Theta" "\\Lambda" "\\Xi" "\\Pi" "\\Sigma"
+       "\\Upsilon" "\\Phi" "\\Psi" "\\Omega"))
+     ("italic greek letters" ("\\usepackage{amsmath}")
+      ("\\varGamma" "\\varDelta" "\\varTheta" "\\varLambda" "\\varXi" "\\varPi"
+       "\\varSigma" "\\varUpsilon" "\\varPhi" "\\varPsi" "\\varOmega")))
+    ("BinaryOperator1"
+     ("binary operators (1)" nil
+      ("\\pm" "\\mp" "\\times" "\\div"  "\\ast" "\\star" "\\circ" "\\bullet"
+       "\\cdot" "\\cap" "\\cup" "\\uplus" "\\sqcap" "\\sqcup" "\\vee" "\\wedge"
+       "\\setminus" "\\wr" "\\diamond" "\\bigtriangleup" "\\bigtriangledown"
+       "\\triangleleft" "\\triangleright" "\\oplus" "\\ominus" "\\otimes"
+       "\\oslash" "\\odot" "\\bigcirc" "\\dagger" "\\ddagger" "\\amalg")))
+    ("RelationalOperator1"
+     ("relational operators (1)" nil
+      ("\\le" "\\prec" "\\preceq" "\\ll" "\\subset" "\\subseteq" "\\vdash"
+       "\\in" "\\notin" "\\ge" "\\succ" "\\succeq" "\\gg" "\\supset" "\\supseteq"
+       "\\sqsupseteq" "\\dashv" "\\ni"
+       ;; omit "\\leq" and "geq" because this is the same as "\\le" and "\\ge", respectively.
+       "\\equiv" "\\sim" "\\simeq" "\\asymp" "\\approx" "\\cong" "\\neq"
+       "\\doteq" "\\propto" "\\models" "\\perp" "\\mid" "\\parallel" "\\bowtie"
+       "\\smile" "\\frown"
+       "\\not\\equiv")))
+    ("BinaryOperator2"
+     ("binary operators (2)" ("\\usepackage{amssymb}")
+      ("\\boxdot" "\\boxplus" "\\centerdot" "\\boxminus" "\\veebar" "\\barwedge"
+       "\\doublebarwedge" "\\Cup" "\\Cap" "\\curlywedge" "\\curlyvee"
+       "\\leftthreetimes" "\\rightthreetimes" "\\dotplus" "\\intercal"
+       "\\circledcirc" "\\circledast" "\\circleddash" "\\divideontimes" "\\lessdot"
+       "\\gtrdot" "\\ltimes" "\\rtimes" "\\smallsetminus")))
+    ("RelationalOperator2"
+     ("relational operators (2)" ("\\usepackage{amssymb}")
+      ("\\circlearrowright" "\\circlearrowleft" "\\rightleftharpoons"
+       "\\leftrightharpoons" "\\Vdash" "\\Vvdash" "\\vDash" "\\twoheadrightarrow"
+       "\\twoheadleftarrow" "\\leftleftarrows" "\\rightrightarrows" "\\upuparrows"
+       "\\downdownarrows" "\\upharpoonright" "\\downharpoonright" "\\upharpoonleft"
+       "\\downharpoonleft" "\\rightarrowtail" "\\leftarrowtail" "\\rightleftarrows"
+       "\\Lsh" "\\Rsh" "\\rightsquigarrow" "\\leftrightsquigarrow" "\\looparrowleft"
+       "\\looparrowright" "\\circeq" "\\succsim" "\\gtrsim" "\\gtrapprox"
+       "\\multimap" "\\therefore" "\\because" "\\doteqdot" "\\triangleq" "\\precsim" 
+       "\\lesssim" "\\lessapprox" "\\eqslantless" "\\eqslantgtr" "\\curlyeqprec"
+       "\\curlyeqsucc")))
+    ("RelationalOperator3"
+     ("relational operators (3)" ("\\usepackage{amssymb}")
+      ("\\preccurlyeq" "\\leqq" "\\leqslant" "\\lessgtr" "\\risingdotseq"
+       "\\fallingdotseq" "\\succcurlyeq" "\\geqq" "\\geqslant" "\\gtrless"
+       "\\sqsubset" "\\sqsupset" "\\vartriangleright" "\\vartriangleleft"
+       "\\trianglerighteq" "\\trianglelefteq" "\\between" "\\blacktriangleright"
+       "\\blacktriangleleft" "\\vartriangle" "\\eqcirc" "\\lesseqgtr" "\\gtreqless"
+       "\\lesseqqgtr" "\\gtreqqless" "\\Rrightarrow" "\\Lleftarrow" "\\varpropto"
+       "\\smallsmile" "\\smallfrown" "\\Subset" "\\Supset" "\\subseteqq"
+       "\\supseteqq" "\\bumpeq" "\\Bumpeq" "\\lll" "\\ggg" "\\pitchfork"
+       "\\backsim" "\\backsimeq")))
+    ("RelationalOperator4"
+     ("relational operators (4)" ("\\usepackage{amssymb}")
+      ("\\lvertneqq" "\\gvertneqq" "\\nleq" "\\ngeq" "\\nless" "\\ngtr" "\\nprec"
+       "\\nsucc" "\\lneqq" "\\gneqq" "\\nleqslant" "\\ngeqslant" "\\lneq" "\\gneq"
+       "\\npreceq" "\\nsucceq" "\\precnsim" "\\succnsim" "\\lnsim" "\\gnsim"
+       "\\nleqq" "\\ngeqq" "\\precneqq" "\\succneqq" "\\precnapprox" "\\succnapprox"
+       "\\lnapprox" "\\gnapprox" "\\nsim" "\\ncong" "\\varsubsetneq" "\\varsupsetneq"
+       "\\nsubseteqq" "\\nsupseteqq" "\\subsetneqq" "\\supsetneqq" "\\varsubsetneqq"
+       "\\varsupsetneqq" "\\subsetneq" "\\supsetneq" "\\nsubseteq" "\\nsupseteq"
+       "\\nparallel" "\\nmid" "\\nshortmid" "\\nshortparallel" "\\nvdash"
+       "\\nVdash" "\\nvDash" "\\nVDash" "\\ntrianglerighteq" "\\ntrianglelefteq"
+       "\\ntriangleleft" "\\ntriangleright" "\\nleftarrow" "\\nLeftarrow"
+       "\\nRightarrow" "\\nLeftrightarrow" "\\nleftrightarrow" "\\eqsim"
+       "\\shortmid" "\\shortparallel" "\\thicksim" "\\thickapprox" "\\approxeq"
+       "\\succapprox" "\\precapprox" "\\curvearrowleft" "\\curvearrowright"
+       "\\backepsilon")))
+    ("BigSymbolsIntegralDots"
+     ("big symbols" nil
+      ("\\sum" "\\prod" "\\coprod" "\\int" "\\oint" "\\bigcap" "\\bigcup"
+       "\\bigsqcup" "\\bigvee" "\\bigwedge" "\\bigodot" "\\bigotimes"
+       "\\bigoplus" "\\biguplus"))
+     ("Integral" ("\\usepackage{amsmath}" "\\usepackage{amssymb}")
+      ("\\int" "\\iint" "\\iiint" "\\iiiint" "\\idotsint"))
+     ("Dots" ("\\usepackage{amsmath}" "\\usepackage{amssymb}")
+      ("\\dots" "\\dotsc" "\\dotsb" "\\dotsm" "\\dotsi")))
+    ("MiscellaneousSymbols"
+     ("miscellaneous" nil
+      ("\\aleph" "\\hbar" "\\imath" "\\jmath" "\\ell" "\\wp" "\\Re" "\\Im"
+       "\\partial" "\\infty" "\\prime" "\\emptyset" "\\nabla" "\\surd"
+       "\\top" "\\bot" "\\angle" "\\triangle" "\\forall" "\\exists"
+       "\\neg" "\\flat" "\\natural" "\\sharp" "\\clubsuit" "\\diamondsuit"
+       "\\heartsuit" "\\spadesuit"))
+     ("other symbols" ("\\usepackage{amssymb}")
+      ("\\square" "\\blacksquare" "\\lozenge" "\\blacklozenge" "\\backprime"
+       "\\bigstar" "\\blacktriangledown" "\\blacktriangle" "\\triangledown"
+       "\\angle" "\\measuredangle" "\\sphericalangle" "\\circledS" "\\complement"
+       "\\diagup" "\\diagdown" "\\varnothing" "\\nexists" "\\Finv" "\\Game"
+       "\\mho" "\\eth" "\\beth" "\\gimel" "\\daleth" "\\digamma"
+       "\\varkappa" "\\Bbbk" "\\hslash" "\\hbar")))
+    ("Functions"
+     ("often used" nil
+      (("\\frac{" "x" "}{y}") ("" "x" "^{n}") "\\sum_{i=0}^{\\infty}"
+       ("\\sqrt{" "x" "}") ("\\sqrt[" "3" "]{x}")))
+     ("fraction" ("\\usepackage{amsmath}" "\\usepackage{amssymb}")
+      (("\\tfrac{" "a" "}{b}") ("\\dfrac{" "a" "}{b}") ("\\cfrac{" "a" "}{b}")
+       ("\\binom{" "a" "}{b}")))
+     ("functions" nil
+      ("\\arccos" "\\arcsin" "\\arctan" "\\arg" "\\cos" "\\cosh" "\\cot" "\\coth"
+       "\\csc" "\\deg" "\\det" "\\dim" "\\exp" "\\gcd" "\\hom" "\\inf" "\\ker"
+       "\\lg" "\\lim" "\\liminf" "\\limsup" "\\ln" "\\log" "\\max" "\\min"
+       "\\Pr" "\\sec" "\\sin" "\\sinh" "\\sup" "\\tan" "\\tanh"
+       "\\bmod" "\\pmod")))
+    ("Accent"
+     ("accent (1)" nil
+      (("\\hat{" "a" "}") ("\\check{" "a" "}") ("\\breve{" "a" "}")
+       ("\\acute{" "a" "}") ("\\grave{" "a" "}") ("\\tilde{" "a" "}")
+       ("\\bar{" "a" "}") ("\\vec{" "a" "}") ("\\dot{" "a" "}") ("\\ddot{" "a" "}")))
+     ("accent (2)" ("\\usepackage{amsmath}" "\\usepackage{amssymb}")
+      (("\\Hat{" "A" "}") ("\\Dot{" "A" "}") ("\\Check{" "A" "}")
+       ("\\Ddot{" "A" "}") ("\\Tilde{" "A" "}") ("\\Breve{" "A" "}")
+       ("\\Acute{" "A" "}") ("\\Bar{" "A" "}") ("\\Vec{" "A" "}")
+       ("\\dddot{" "x" "}") ("\\ddddot{" "x" "}"))))
+    ("Decoration"
+     ("decoration 1" nil
+      (("\\overline{" "xy" "}") "\\underline{xy}" ("\\widehat{" "xy" "}")
+       ("\\widetilde{" "xy" "}") ("\\overbrace{" "xy" "}")
+       ("\\underbrace{" "xy" "}") ("\\overrightarrow{" "\\mathrm{OA}" "}")
+       ("\\overleftarrow{" "\\mathrm{OA}" "}") ("\\stackrel{" "f" "}{\\to}")
+       "\\stackrel{\\mathrm{def}}{=}"))
+     ("decoration 2" ("\\usepackage{amsmath}" "\\usepackage{amssymb}")
+      (("\\overleftrightarrow{" "A" "}") ("\\underleftrightarrow{" "A" "}")
+       ("\\xrightarrow{" "\\text{text}" "}") ("\\xrightarrow[" "abc" "]{}")
+       ("\\xleftarrow{" "\\text{text}" "}") ("\\xleftarrow[" "abc" "]{}"))))
+    ("Typefaces"
+     ("typefaces (1)" nil
+      (("\\mathrm{" "abcdefghABCDEFGH" "}") ("\\mathbf{" "abcdefghABCDEFGH" "}")
+       ("\\mathit{" "abcdefghABCDEFGH" "}") ("\\mathcal{" "abcdefghABCDEFGHz" "}")
+       ("\\mathsf{" "abcdefghABCDEFGH" "}") ("\\mathtt{" "abcdefghABCDEFGH" "}")))
+     ("typefaces (2)" ("\\usepackage{amssymb}")
+      (("\\mathfrak{" "abcdefghABCDEFGH" "}") ("\\mathbb{" "abcdefghABCDEFGH" "}"))))
     )
   "List of candidates for insertion of LaTeX mathematical symbol.")
+
 
 (defvar latex-math-preview-always-maximize-window nil
   "Always maximize preview window for `latex-math-preview-insert-symbol' if non-nil.")
@@ -436,7 +458,7 @@
   "Inserted last symbol.")
 
 (defvar latex-math-preview-initial-page-of-symbol-list
-  (car (nth 0 latex-math-preview-candidates-for-insertion))
+  (car (nth 0 latex-math-preview-symbol-datasets))
   "Page of symbol list which is displayed initially.")
 
 (defvar latex-math-preview-current-page-of-symbol-list nil
@@ -724,65 +746,61 @@ buffer is left showing the messages and the return is nil."
 ;;-----------------------------------------------------------------------------
 ;; Insert Mathematical expression 
 
-(defun latex-math-preview-clear-cache-for-insertion (&optional dataset)
-  "Delete cache images in directory of which name is DATASET.
-If DATASET is nil then all directories saving caches is deleted."
+(defun latex-math-preview-clear-cache-for-insertion (&optional key)
+  "Delete cache images in directory of which name is KEY.
+If KEY is nil then all directories saving caches is deleted."
   (interactive)
-  (if dataset
-      (if (assoc dataset latex-math-preview-candidates-for-insertion)
+  (if key
+      (if (assoc key latex-math-preview-symbol-datasets)
 	  (latex-math-preview-clear-tmp-directory
-	   (concat latex-math-preview-cache-directory-for-insertion "/" dataset)))
+	   (concat latex-math-preview-cache-directory-for-insertion "/" key)))
     (latex-math-preview-clear-tmp-directory latex-math-preview-cache-directory-for-insertion)))
 
-(defun latex-math-preview-make-candidate-image (math-symbol dataset num)
+(defun latex-math-preview-make-symbol-candidate-image (math-symbol dirpath packages num)
   "Create a cache image from latex file for including MATH-SYMBOL.
-Image is saved in directory of which name is DATASET.
+Image is saved in directory of which path is DIRPATH.
  NUM is used for distingushing other images."
   (let ((latex-math-dir (make-temp-file "latex-math-preview-" t))
-	(path (concat latex-math-preview-cache-directory-for-insertion "/" dataset "/"
-		      (format "%05d" num) "_"
+	(path (concat dirpath "/" (format "%05d" num) "_"
 		      (downcase (replace-regexp-in-string "\\(\\\\\\)\\|\\({\\)\\|\\(}\\)"
-							  "_" math-symbol)) ".png"))
-	(packages (nth 1 (assoc dataset latex-math-preview-candidates-for-insertion))))
+							  "_" math-symbol)) ".png")))
     (latex-math-preview-dvi-to-png (latex-math-preview-make-dvi-file
 				    latex-math-dir (concat "$" math-symbol "$") packages) path)
     (latex-math-preview-clear-tmp-directory latex-math-dir)
     path))
 
-(defun latex-math-preview-make-cache-for-insertion (dataset)
-  "Create cache images in directory of which name is DATASET."
-  (let* ((latex-syms (nth 2 (assoc dataset latex-math-preview-candidates-for-insertion)))
-	 (dirpath (concat latex-math-preview-cache-directory-for-insertion "/" dataset))
-	 (num 0))
+(defun latex-math-preview-make-symbol-caches (key)
+  "Create cache images which are associated with KEY in directory of which name is KEY."
+  (let ((dataset (cdr (assoc key latex-math-preview-symbol-datasets)))
+	(dirpath (concat latex-math-preview-cache-directory-for-insertion "/" key))
+	(num 0))
     (if (file-directory-p dirpath)
 	(message "'%s' exists. Cache may be used." dirpath)
       (progn
 	(make-directory dirpath t)
 	(message "Creating images. Please wait for a while.")
-	(dolist (sym-src latex-syms)
-	  (let ((math-exp))
-	    (if (listp sym-src)
-		(setq math-exp (eval `(concat ,@sym-src)))
-	      (setq math-exp sym-src))
-	    (latex-math-preview-make-candidate-image math-exp dataset num))
-	  (setq num (+ num 1)))))))
+	(dolist (subcat dataset)
+	  (let ((desc (car subcat))
+		(packages (cadr subcat))
+		(sym-set (nth 2 subcat)))
+	    (dolist (sym sym-set)
+	      (let ((math-exp (if (listp sym) (eval `(concat ,@sym)) sym)))
+		(latex-math-preview-make-symbol-candidate-image math-exp dirpath packages num))
+	      (setq num (1+ num)))))))))
 
 (defun latex-math-preview-make-all-cache-images ()
   "Create all cache images."
   (interactive)
-  (dolist (data latex-math-preview-candidates-for-insertion)
-    (latex-math-preview-make-cache-for-insertion (car data))))
+  (dolist (dataset latex-math-preview-symbol-datasets)
+    (latex-math-preview-make-symbol-caches (car dataset))))
 
-(defun latex-math-preview-strings-and-images-sizes (images latex-syms)
+(defun latex-math-preview-strings-and-images-sizes (imagepaths sym-set)
   "Look over cache images.
 Return maximum size of images and maximum length of strings and images"
   (setq latex-math-preview-candidates-defined-as-list nil)
-  (let ((max-img-size 0)
-	(max-str-length 0)
-	(img-list nil)
-	(syms latex-syms)
-	(ret-list nil))
-    (dolist (pngpath images)
+  (let ((max-img-size 0) (max-str-length 0) (syms sym-set)
+	(img-list nil) (ret-list nil))
+    (dolist (pngpath imagepaths)
       (let* ((img (create-image pngpath	'png nil :ascent 'center))
 	     (size (car (image-size img t))))
 	(if (< max-img-size size) (setq max-img-size size))
@@ -819,19 +837,18 @@ Return maximum size of images and maximum length of strings and images"
 	    (add-text-properties start-pt (point)
 				 '(face latex-math-preview-key-for-insertion-face)))))))
 
-(defun latex-math-preview-insert-page-name (dataset)
-  "Insert information of dataset."
-  (let* ((desc (concat (make-string 5 ?-) " * " dataset " * "))
-	 (package (nth 1 (assoc dataset latex-math-preview-candidates-for-insertion)))
+(defun latex-math-preview-insert-subcategory-infomation (subcat-str packages)
+  "Insert information of images associated with SUBCAT-STR."
+  (let* ((desc (concat (make-string 5 ?-) " * " subcat-str " * "))
 	 (package-str)
 	 (num-dash (- (window-width) (length desc)))
 	 (start-pt (point)))
     (insert desc)
     (add-text-properties start-pt (point) '(face bold))
     (setq start-pt (point))
-    (if package
+    (if packages
 	(progn
-	  (setq package-str (concat (mapconcat 'identity package " ") " "))
+	  (setq package-str (concat (mapconcat 'identity packages " ") " "))
 	  (insert package-str)
 	  (setq num-dash (- num-dash (length package-str)))
 	  (add-text-properties start-pt (point)
@@ -839,53 +856,67 @@ Return maximum size of images and maximum length of strings and images"
     (insert (make-string num-dash ?-)))
   (insert "\n"))
 
-(defun latex-math-preview-insert-candidate-images (dataset)
+(defun latex-math-preview-insert-candidate-images (key)
   "Insert images and expressions."
-  (let* ((latex-symbols (nth 2 (assoc dataset latex-math-preview-candidates-for-insertion)))
-	 (dirpath (concat latex-math-preview-cache-directory-for-insertion "/" dataset))
-	 (data (latex-math-preview-strings-and-images-sizes
-		(mapcar (lambda (path) (concat latex-math-preview-cache-directory-for-insertion
-					       "/" dataset "/" path))
-			(sort (delete-if (lambda (file) (not (string-match "^[0-9]+_" file)))
-					 (directory-files dirpath)) 'string<)) latex-symbols))
-	 (new-tab-width (+ 4 (ceiling (/ (float (car data)) (float (frame-char-width))))))
-	 (str-size (* new-tab-width (ceiling (/ (float (+ 6 (car (cdr data)))) (float new-tab-width)))))
-	 ;; You must not remove (+ 6 ...).
-	 ;; Implementation of latex-math-preview-set-overlay-for-selected-item needs redundant space.
-	 (str-format (format "%%-%ds" str-size))
-	 (row (floor (/ (window-width)
-			(+ str-size (* (ceiling (/ (float (car data))
-						   (float (* (frame-char-width) new-tab-width))))
-				       new-tab-width)))))
-	 (num row))
+  (setq latex-math-preview-information-line-number nil)
+  (let* ((dataset (cdr (assoc key latex-math-preview-symbol-datasets)))
+	 (dirpath (concat latex-math-preview-cache-directory-for-insertion "/" key))
+	 (pngpaths (mapcar (lambda (path) (concat latex-math-preview-cache-directory-for-insertion
+						  "/" key "/" path))
+			   (sort (delete-if (lambda (file) (not (string-match "^[0-9]+_" file)))
+					    (directory-files dirpath)) 'string<)))
+	 (imgdata) (all-sym-set))
+    (dolist (subcat dataset)
+      (setq all-sym-set (append all-sym-set (nth 2 subcat))))
+    (setq imgdata (latex-math-preview-strings-and-images-sizes pngpaths all-sym-set))
+    (let* ((new-tab-width (+ 4 (ceiling (/ (float (car imgdata)) (float (frame-char-width))))))
+	   (str-size (* new-tab-width (ceiling (/ (float (+ 6 (car (cdr imgdata)))) (float new-tab-width)))))
+	   ;; You must not remove (+ 6 ...).
+	   ;; Implementation of latex-math-preview-set-overlay-for-selected-item needs redundant space.
+	   (str-format (format "%%-%ds" str-size))
+	   (col (floor (/ (window-width)
+			  (+ str-size (* (ceiling (/ (float (car imgdata))
+						     (float (* (frame-char-width) new-tab-width))))
+					 new-tab-width)))))
+	   (current-col 0)
+	   (num-of-items 0)
+	   (num-subcat-end 0))
+      (setq tab-width new-tab-width)
+      (let ((pngset (nth 2 imgdata)))
+	(dolist (subcat dataset)
+	  (latex-math-preview-insert-subcategory-infomation (car subcat) (cadr subcat))
+	  (add-to-list 'latex-math-preview-information-line-number (1- (line-number-at-pos)))
 
-    (setq tab-width new-tab-width)
-    (dolist (imgdata (car (cdr (cdr data))))
-      (insert-image (car (cdr imgdata)))
-      (insert "\t")
-      (let ((start-pt (point)))
-	(insert (format str-format (car imgdata)))
-	(add-text-properties start-pt (point) '(face latex-math-preview-candidate-for-insertion-face)))
-      (setq num (- num 1))
-      (if (<= num 0)
-	  (progn
-	    (setq num row)
-	    (insert "\n"))))))
+	  (setq num-subcat-end (+ num-subcat-end (length (nth 2 subcat))))
+	  (while (< num-of-items num-subcat-end)
+	    (let ((png (car pngset)))
+	      (insert-image (cadr png))
+	      (insert "\t")
+	      (let ((start-pt (point)))
+		(insert (format str-format (car png)))
+		(add-text-properties start-pt (point) '(face latex-math-preview-candidate-for-insertion-face))))
+	    (setq pngset (cdr pngset))
+	    (setq current-col (1+ current-col))
+	    (setq num-of-items (1+ num-of-items))
+	    (if (>= current-col col)
+		(progn (setq current-col 0) (insert "\n"))))
+	  (if (> current-col 0)
+	      (progn (insert "\n") (setq current-col 0)))
+	  )))))
 
-(defun latex-math-preview-create-buffer-for-insertion (dataset)
-  "Create buffer displaying cache images in DATASET."
+(defun latex-math-preview-create-buffer-for-insertion (key)
+  "Create buffer displaying cache images in KEY."
   (or (and (image-type-available-p 'png)
            (display-images-p))
       (error "Cannot display PNG in this Emacs"))
 
-  (setq latex-math-preview-current-page-of-symbol-list dataset)
-  (latex-math-preview-make-cache-for-insertion dataset)
+  (setq latex-math-preview-current-page-of-symbol-list key)
+  (latex-math-preview-make-symbol-caches key)
   (setq latex-math-preview-window-configuration (current-window-configuration))
 
   (pop-to-buffer latex-math-preview-insert-symbol-buffer-name)
   (if latex-math-preview-always-maximize-window (delete-other-windows))
 
-  (setq latex-math-preview-information-line-number nil)
   (with-current-buffer (get-buffer-create latex-math-preview-insert-symbol-buffer-name)
     (setq cursor-type nil)
     (setq truncate-lines t)
@@ -894,11 +925,7 @@ Return maximum size of images and maximum length of strings and images"
     (erase-buffer)
 
     (latex-math-preview-insert-key-explanations)
-    (latex-math-preview-insert-page-name dataset)
-
-    (add-to-list 'latex-math-preview-information-line-number (1- (line-number-at-pos)))
-
-    (latex-math-preview-insert-candidate-images dataset)
+    (latex-math-preview-insert-candidate-images key)
 
     (goto-line (nth (1- (length latex-math-preview-information-line-number))
 		    latex-math-preview-information-line-number))
@@ -916,7 +943,7 @@ Return maximum size of images and maximum length of strings and images"
        (if latex-math-preview-restore-last-page-of-symbol-list
 	   (or latex-math-preview-current-page-of-symbol-list latex-math-preview-initial-page-of-symbol-list)
 	 latex-math-preview-initial-page-of-symbol-list))
-    (let ((dataset (completing-read "page: " latex-math-preview-candidates-for-insertion nil t)))
+    (let ((dataset (completing-read "page: " latex-math-preview-symbol-datasets nil t)))
       (latex-math-preview-create-buffer-for-insertion dataset))))
 
 (defun latex-math-preview-symbols-of-other-page ()
@@ -928,9 +955,9 @@ Return maximum size of images and maximum length of strings and images"
 (defun latex-math-preview-get-page-number (dataset)
   "Get number of page for DATASET."
   (let ((num 0) (cont t)
-	(max-num (length latex-math-preview-candidates-for-insertion)))
+	(max-num (length latex-math-preview-symbol-datasets)))
     (while (and cont (< num max-num))
-      (if (string= dataset (car (nth num latex-math-preview-candidates-for-insertion)))
+      (if (string= dataset (car (nth num latex-math-preview-symbol-datasets)))
 	  (setq cont nil))
       (setq num (1+ num)))
     (if (not cont)
@@ -941,11 +968,11 @@ Return maximum size of images and maximum length of strings and images"
   "Next page of candidates buffer for insertion."
   (interactive "p")
   (let ((page (latex-math-preview-get-page-number latex-math-preview-current-page-of-symbol-list))
-	(len (length latex-math-preview-candidates-for-insertion)))
+	(len (length latex-math-preview-symbol-datasets)))
     (while (< num 0) (setq num (+ num len)))
     (if page
 	(let ((dataset (car (nth (% (+ page num) len)
-				 latex-math-preview-candidates-for-insertion))))
+				 latex-math-preview-symbol-datasets))))
 	  (latex-math-preview-quit-window)
 	  (latex-math-preview-create-buffer-for-insertion dataset)))))
 
