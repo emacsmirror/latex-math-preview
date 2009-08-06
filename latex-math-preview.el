@@ -2,8 +2,8 @@
 
 ;; Author: Takayuki YAMAGUCHI <d@ytak.info>
 ;; Keywords: LaTeX TeX
-;; Version: 0.2.3
-;; Created: Tue Aug  4 08:46:49 2009
+;; Version: 0.3.0 beta
+;; Created: Thu Aug  6 11:34:03 2009
 
 ;; latex-math-preview.el is a modified version which is based on
 ;; tex-math-preview.el and has been created at July 2009.
@@ -131,7 +131,7 @@
 ;; 
 ;; * List of symbols for insertion *
 ;; To change symbol set, you may customize the variable
-;; `latex-math-preview-symbol-datasets'.
+;; `latex-math-preview-mathematical-symbol-datasets'.
 ;; If you always open the same inital page,
 ;; you set nil to `latex-math-preview-restore-last-page-of-symbol-list'
 ;; and string of initial page name to 
@@ -176,6 +176,8 @@
 ;;     New function `latex-math-preview-move-to-end-of-candidates'.
 ;;     New function `latex-math-preview-move-to-current-line-first-item'.
 ;;     New function `latex-math-preview-move-to-current-line-last-item'.
+;;     New function `latex-math-preview-insert-mathematical-symbol'
+;;     New function `latex-math-preview-insert-text-symbol'
 ;; 2009/08/04 version 0.2.3 yamaguchi
 ;;     New function `latex-math-preview-toggle-window-maximization'.
 ;;     New function `latex-math-preview-last-symbol-again'.
@@ -210,6 +212,10 @@
 (defvar latex-math-preview-expression-buffer-name
   "*latex-math-preview*"
   "Name of buffer which displays preview image.")
+
+(defvar latex-math-preview-tex-processing-error-buffer-name
+  "*latex-math-preview-tex-processing-error*"
+  "Name of buffer displaying TeX temporary file which raises error")
 
 (defvar latex-math-preview-insert-symbol-buffer-name
   "*latex-math-preview-candidates*"
@@ -256,7 +262,18 @@
 (defvar latex-math-preview-window-configuration nil
   "Temporary variable in which window configuration is saved.")
 
-(defvar latex-math-preview-candidates-defined-as-list nil
+(defvar latex-math-preview-current-insert-mode nil
+  "Temporary variable of which value is 'math or 'text.")
+
+(defvar latex-math-preview-list-name-for-candidates-defined-as-list
+  '((math . latex-math-preview-candidates-defined-as-list-for-math)
+    (text . latex-math-preview-candidates-defined-as-list-for-text))
+  "Symbols of list which includes candidates defined as list.")
+
+(defvar latex-math-preview-candidates-defined-as-list-for-math nil
+  "Temporary variable.")
+
+(defvar latex-math-preview-candidates-defined-as-list-for-text nil
   "Temporary variable.")
 
 (defvar latex-math-preview-match-expression
@@ -288,7 +305,44 @@
     )
   "These eqpressions are used for matching to extract tex math expression.")
 
-(defvar latex-math-preview-symbol-datasets
+(defvar latex-math-preview-list-name-symbol-datasets
+  '((math . latex-math-preview-mathematical-symbol-datasets)
+    (text . latex-math-preview-text-symbol-datasets))
+  "Name of list of datasets.")
+
+(defvar latex-math-preview-text-symbol-datasets
+  '(("SpecialCharacter"
+     ("special character" nil
+      ("\\#" "\\$" "\\%" "\\&" "\\_" "\\{" "\\}" "\\S" "\\P" "\\dag" "\\ddag"
+       "\\copyright" "\\pounds" "\\oe" "\\OE" "\\ae" "\\AE" "\\aa" "\\AA"
+       "\\o" "\\O" "\\l" "\\L" "\\ss" "?`" "!`" "\\i"
+       "\\j" "`" "'" "``"
+       "''" "*" "``\\,'" "'\\,``" "-" "--" "---" "\\textregistered"
+       "\\texttrademark" "\\textvisiblespace" "\\textbackslash"
+        "\\textasciitilde" "\\textasciicircum" ("\\textcircled{" "s" "}")
+     	))
+     ("special charactor (2)" ("\\usepackage[T1]{fontenc}")
+      ("\\DH" "\\dh" "\\DJ" "\\dj" "\\NG" "\\ng" "\\TH" "\\th"
+       "\\guillemotleft" "\\guilsinglleft" "\\quotedblbase" "\\textquotedbl"
+       "\\guillemotright" "\\guilsinglright" "\\quotesinglbase")))
+     ("AccentText"
+      ("accent (1)" nil
+       (("\\`{" "o" "}") ("\\'{" "o" "}") ("\\^{" "o" "}") ("\\\"{" "o" "}")
+	("\\~{" "o" "}") ("\\={" "o" "}") ("\\.{" "o" "}") ("\\u{" "o" "}")
+	("\\v{" "o" "}") ("\\H{" "o" "}") ("\\t{" "oo" "}") ("\\c{" "o" "}")
+	("\\d{" "o" "}") ("\\b{" "o" "}") ("\\r{" "a" "}")
+	))
+      ("accent (2)" ("\\usepackage[T1]{fontenc}")
+	(("\\k{" "a" "}"))))
+     ("Logo"
+      ("logo (1)" nil
+       ("\\TeX" "\\LaTeX" "\\LaTeXe"))
+      ("logo (2)" ("\\usepackage{mflogo}")
+       ("\\MF" "\\MP")))
+    )
+  "List of candidates for insertion of symbol.")
+
+(defvar latex-math-preview-mathematical-symbol-datasets
   '(("DelimitersArrows"
      ("delimiters" nil
       (("(" "x" ")") ("[" "x" "]") ("\\{" "x" "\\}")
@@ -415,7 +469,7 @@
        "\\lg" "\\lim" "\\liminf" "\\limsup" "\\ln" "\\log" "\\max" "\\min"
        "\\Pr" "\\sec" "\\sin" "\\sinh" "\\sup" "\\tan" "\\tanh"
        "\\bmod" "\\pmod")))
-    ("Accent"
+    ("AccentMath"
      ("accent (1)" nil
       (("\\hat{" "a" "}") ("\\check{" "a" "}") ("\\breve{" "a" "}")
        ("\\acute{" "a" "}") ("\\grave{" "a" "}") ("\\tilde{" "a" "}")
@@ -454,14 +508,15 @@
   "Restore last page of symbol list at next insertion
  if this `latex-math-preview-restore-last-page-of-symbol-list' is non-nil.")
 
-(defvar latex-math-preview-inserted-last-symbol nil
+(defvar latex-math-preview-inserted-last-symbol '((math . nil) (text . nil))
   "Inserted last symbol.")
 
 (defvar latex-math-preview-initial-page-of-symbol-list
-  (car (nth 0 latex-math-preview-symbol-datasets))
+  `((math . ,(car (nth 0 latex-math-preview-mathematical-symbol-datasets)))
+    (text . ,(car (nth 0 latex-math-preview-text-symbol-datasets))))
   "Page of symbol list which is displayed initially.")
 
-(defvar latex-math-preview-current-page-of-symbol-list nil
+(defvar latex-math-preview-current-page-of-symbol-list '((math . nil) (text . nil))
   "Page of symbol list on present buffer displaying mathematical symbols.")
 
 (defvar latex-math-preview-information-line-number nil
@@ -608,18 +663,23 @@ the notations which are stored in `latex-math-preview-match-expression'."
 
 (defun latex-math-preview-make-dvi-file (tmpdir math-exp &optional usepackages)
   "Make temporary tex file including MATH-EXP in TMPDIR and compile it."
-  (let ((dot-tex (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".tex"))
+  (let* ((dot-tex (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".tex"))
 	(dot-dvi (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".dvi"))
-	(usepck (or usepackages latex-math-preview-latex-template-usepackage)))
-    (with-temp-file dot-tex
-      (insert latex-math-preview-latex-template-header)
-      (if usepck (insert (mapconcat 'identity usepck "\n")))
-      (insert "\\begin{document}\n")
-      (insert math-exp)
-      (insert "\\par\n\\end{document}\n"))
+	(usepck (or usepackages latex-math-preview-latex-template-usepackage))
+	(tempfile-str (concat latex-math-preview-latex-template-header
+			      (if usepck (mapconcat 'identity usepck "\n") "")
+			      "\\begin{document}\n" math-exp "\n\\par\n\\end{document}\n")))
+    (with-temp-file dot-tex (insert tempfile-str))
     (if (not (eq 0 (call-process latex-math-preview-latex-command nil nil nil
 				 (concat "-output-directory=" latex-math-dir) dot-tex)))
-	(error "TeX processing error")
+	(progn
+	  (with-current-buffer (get-buffer-create latex-math-preview-tex-processing-error-buffer-name)
+	    (goto-char (point-max))
+	    (insert "%" (make-string 20 ?-) "\n")
+	    (insert tempfile-str)
+	    (goto-char (point-max)))
+	  (pop-to-buffer latex-math-preview-tex-processing-error-buffer-name)
+	  (error "TeX processing error"))
       dot-dvi)))
 
 (defun latex-math-preview-clear-tmp-directory (dir)
@@ -751,27 +811,28 @@ buffer is left showing the messages and the return is nil."
 If KEY is nil then all directories saving caches is deleted."
   (interactive)
   (if key
-      (if (assoc key latex-math-preview-symbol-datasets)
-	  (latex-math-preview-clear-tmp-directory
-	   (concat latex-math-preview-cache-directory-for-insertion "/" key)))
+      (dolist (name-and-sets latex-math-preview-list-name-symbol-datasets)
+	(if (eval `(assoc key ,(cdr name-and-sets)))
+	    (latex-math-preview-clear-tmp-directory
+	     (concat latex-math-preview-cache-directory-for-insertion "/" key))))
     (latex-math-preview-clear-tmp-directory latex-math-preview-cache-directory-for-insertion)))
 
-(defun latex-math-preview-make-symbol-candidate-image (math-symbol dirpath packages num)
-  "Create a cache image from latex file for including MATH-SYMBOL.
+(defun latex-math-preview-make-symbol-candidate-image (latex-symbol dirpath packages num &optional math-sym-p)
+  "Create a cache image from latex file for including LATEX-SYMBOL.
 Image is saved in directory of which path is DIRPATH.
  NUM is used for distingushing other images."
   (let ((latex-math-dir (make-temp-file "latex-math-preview-" t))
-	(path (concat dirpath "/" (format "%05d" num) "_"
-		      (downcase (replace-regexp-in-string "\\(\\\\\\)\\|\\({\\)\\|\\(}\\)"
-							  "_" math-symbol)) ".png")))
+	(path (concat dirpath "/" (format "%05d" num) "_" (format-time-string "%Y%m%d%H%M%S") ".png"))
+	(latex-str (if math-sym-p (concat "$" latex-symbol "$") latex-symbol)))
     (latex-math-preview-dvi-to-png (latex-math-preview-make-dvi-file
-				    latex-math-dir (concat "$" math-symbol "$") packages) path)
+				    latex-math-dir latex-str packages) path)
     (latex-math-preview-clear-tmp-directory latex-math-dir)
     path))
 
-(defun latex-math-preview-make-symbol-caches (key)
-  "Create cache images which are associated with KEY in directory of which name is KEY."
-  (let ((dataset (cdr (assoc key latex-math-preview-symbol-datasets)))
+(defun latex-math-preview-make-symbol-caches (key symbol-datasets type)
+  "Create cache images which are associated with KEY in directory of which name is KEY.
+TYPE is 'math or 'text."
+  (let ((dataset (cdr (assoc key symbol-datasets)))
 	(dirpath (concat latex-math-preview-cache-directory-for-insertion "/" key))
 	(num 0))
     (if (file-directory-p dirpath)
@@ -785,21 +846,27 @@ Image is saved in directory of which path is DIRPATH.
 		(sym-set (nth 2 subcat)))
 	    (dolist (sym sym-set)
 	      (let ((math-exp (if (listp sym) (eval `(concat ,@sym)) sym)))
-		(latex-math-preview-make-symbol-candidate-image math-exp dirpath packages num))
+		(latex-math-preview-make-symbol-candidate-image math-exp dirpath packages num (eq 'math type)))
 	      (setq num (1+ num)))))))))
 
 (defun latex-math-preview-make-all-cache-images ()
   "Create all cache images."
   (interactive)
-  (dolist (dataset latex-math-preview-symbol-datasets)
-    (latex-math-preview-make-symbol-caches (car dataset))))
+  (dolist (name-and-sets latex-math-preview-list-name-symbol-datasets)
+    (let ((symbol-datasets (eval `,(cdr name-and-sets)))
+	  (type (car name-and-sets)))
+      (dolist (dataset symbol-datasets)
+	(latex-math-preview-make-symbol-caches (car dataset) symbol-datasets type)))))
 
 (defun latex-math-preview-strings-and-images-sizes (imagepaths sym-set)
   "Look over cache images.
 Return maximum size of images and maximum length of strings and images"
-  (setq latex-math-preview-candidates-defined-as-list nil)
-  (let ((max-img-size 0) (max-str-length 0) (syms sym-set)
+  (let ((candidates-defined-as-list
+	 (cdr (assq latex-math-preview-current-insert-mode 
+		    latex-math-preview-list-name-for-candidates-defined-as-list)))
+	(max-img-size 0) (max-str-length 0) (syms sym-set)
 	(img-list nil) (ret-list nil))
+    (eval `(setq ,candidates-defined-as-list nil))
     (dolist (pngpath imagepaths)
       (let* ((img (create-image pngpath	'png nil :ascent 'center))
 	     (size (car (image-size img t))))
@@ -808,7 +875,7 @@ Return maximum size of images and maximum length of strings and images"
 	  (if (listp s)
 	      (progn
 		(setq str (eval `(concat ,@s)))
-		(add-to-list 'latex-math-preview-candidates-defined-as-list `(,str ,s)))
+		(add-to-list candidates-defined-as-list `(,str ,s)))
 	    (setq str s))
 	  (let ((len (length str)))
 	    (if (< max-str-length len) (setq max-str-length len)))
@@ -856,10 +923,10 @@ Return maximum size of images and maximum length of strings and images"
     (insert (make-string num-dash ?-)))
   (insert "\n"))
 
-(defun latex-math-preview-insert-candidate-images (key)
+(defun latex-math-preview-insert-candidate-images (key symbol-datasets)
   "Insert images and expressions."
   (setq latex-math-preview-information-line-number nil)
-  (let* ((dataset (cdr (assoc key latex-math-preview-symbol-datasets)))
+  (let* ((dataset (cdr (assoc key symbol-datasets)))
 	 (dirpath (concat latex-math-preview-cache-directory-for-insertion "/" key))
 	 (pngpaths (mapcar (lambda (path) (concat latex-math-preview-cache-directory-for-insertion
 						  "/" key "/" path))
@@ -910,41 +977,72 @@ Return maximum size of images and maximum length of strings and images"
            (display-images-p))
       (error "Cannot display PNG in this Emacs"))
 
-  (setq latex-math-preview-current-page-of-symbol-list key)
-  (latex-math-preview-make-symbol-caches key)
-  (setq latex-math-preview-window-configuration (current-window-configuration))
+  (setcdr (assq latex-math-preview-current-insert-mode
+		latex-math-preview-current-page-of-symbol-list) key)
+  
+  (let ((symbol-datasets (eval `,(cdr (assq latex-math-preview-current-insert-mode 
+					    latex-math-preview-list-name-symbol-datasets)))))
+    (latex-math-preview-make-symbol-caches key symbol-datasets latex-math-preview-current-insert-mode)
+    (setq latex-math-preview-window-configuration (current-window-configuration))
 
-  (pop-to-buffer latex-math-preview-insert-symbol-buffer-name)
-  (if latex-math-preview-always-maximize-window (delete-other-windows))
+    (pop-to-buffer latex-math-preview-insert-symbol-buffer-name)
+    (if latex-math-preview-always-maximize-window (delete-other-windows))
 
-  (with-current-buffer (get-buffer-create latex-math-preview-insert-symbol-buffer-name)
-    (setq cursor-type nil)
-    (setq truncate-lines t)
-    (setq line-spacing 8)
-    (setq buffer-read-only nil)
-    (erase-buffer)
+    (with-current-buffer (get-buffer-create latex-math-preview-insert-symbol-buffer-name)
+      (setq cursor-type nil)
+      (setq truncate-lines t)
+      (setq line-spacing 8)
+      (setq buffer-read-only nil)
+      (erase-buffer)
 
-    (latex-math-preview-insert-key-explanations)
-    (latex-math-preview-insert-candidate-images key)
+      (latex-math-preview-insert-key-explanations)
+      (latex-math-preview-insert-candidate-images key symbol-datasets)
 
-    (goto-line (nth (1- (length latex-math-preview-information-line-number))
-		    latex-math-preview-information-line-number))
-    (latex-math-preview-move-to-right-item)
-    (buffer-disable-undo)
-    (setq buffer-read-only t)
-    (use-local-map latex-math-preview-insert-symbol-map)
-    (setq mode-name "LaTeXPreview")))
+      (goto-line (nth (1- (length latex-math-preview-information-line-number))
+		      latex-math-preview-information-line-number))
+      (latex-math-preview-move-to-right-item)
+      (buffer-disable-undo)
+      (setq buffer-read-only t)
+      (use-local-map latex-math-preview-insert-symbol-map)
+      (setq mode-name "LaTeXPreview"))))
+
+(defun latex-math-preview-insert-symbol-base (num)
+  (if (or (not num) (= num 1))
+      (latex-math-preview-create-buffer-for-insertion
+       (if latex-math-preview-restore-last-page-of-symbol-list
+	   (or (cdr (assq latex-math-preview-current-insert-mode
+			  latex-math-preview-current-page-of-symbol-list))
+	       (cdr (assq latex-math-preview-current-insert-mode
+			  latex-math-preview-initial-page-of-symbol-list)))
+	 (cdr (assq latex-math-preview-current-insert-mode
+		    latex-math-preview-initial-page-of-symbol-list))))
+    (let ((key (completing-read "page: " 
+				(eval `,(cdr (assq latex-math-preview-current-insert-mode
+						   latex-math-preview-list-name-symbol-datasets)))
+				nil t)))
+      (latex-math-preview-create-buffer-for-insertion key))))
+
+(defun latex-math-preview-insert-mathematical-symbol (&optional num)
+  "Insert LaTeX mathematical symbols with displaying."
+  (interactive "p")
+  (setq latex-math-preview-current-insert-mode 'math)
+  (latex-math-preview-insert-symbol-base num))
+
+(defun latex-math-preview-insert-text-symbol (&optional num)
+  "Insert symbols for text part with displaying."
+  (interactive "p")
+  (setq latex-math-preview-current-insert-mode 'text)
+  (latex-math-preview-insert-symbol-base num))
+
+(defun latex-math-preview-set-current-insert-mode ()
+  (setq latex-math-preview-current-insert-mode
+	(if (funcall latex-math-preview-in-math-mode-p-func) 'math 'text)))
 
 (defun latex-math-preview-insert-symbol (&optional num)
   "Insert LaTeX mathematical symbols with displaying."
   (interactive "p")
-  (if (or (not num) (= num 1))
-      (latex-math-preview-create-buffer-for-insertion
-       (if latex-math-preview-restore-last-page-of-symbol-list
-	   (or latex-math-preview-current-page-of-symbol-list latex-math-preview-initial-page-of-symbol-list)
-	 latex-math-preview-initial-page-of-symbol-list))
-    (let ((dataset (completing-read "page: " latex-math-preview-symbol-datasets nil t)))
-      (latex-math-preview-create-buffer-for-insertion dataset))))
+  (latex-math-preview-set-current-insert-mode)
+  (latex-math-preview-insert-symbol-base num))
 
 (defun latex-math-preview-symbols-of-other-page ()
   "Change other page."
@@ -954,25 +1052,27 @@ Return maximum size of images and maximum length of strings and images"
 
 (defun latex-math-preview-get-page-number (dataset)
   "Get number of page for DATASET."
-  (let ((num 0) (cont t)
-	(max-num (length latex-math-preview-symbol-datasets)))
+  (let* ((num 0) (cont t)
+	(symbol-datasets (eval `,(cdr (assq latex-math-preview-current-insert-mode
+					    latex-math-preview-list-name-symbol-datasets))))
+	(max-num (length symbol-datasets)))
     (while (and cont (< num max-num))
-      (if (string= dataset (car (nth num latex-math-preview-symbol-datasets)))
-	  (setq cont nil))
+      (if (string= dataset (car (nth num symbol-datasets))) (setq cont nil))
       (setq num (1+ num)))
-    (if (not cont)
-	(- num 1)
-      nil)))
+    (if (not cont) (- num 1) nil)))
 
 (defun latex-math-preview-next-candidates-for-insertion (num)
   "Next page of candidates buffer for insertion."
   (interactive "p")
-  (let ((page (latex-math-preview-get-page-number latex-math-preview-current-page-of-symbol-list))
-	(len (length latex-math-preview-symbol-datasets)))
+  (let* ((page (latex-math-preview-get-page-number
+	       (cdr (assq latex-math-preview-current-insert-mode
+			  latex-math-preview-current-page-of-symbol-list))))
+	 (symbol-datasets (eval `,(cdr (assq latex-math-preview-current-insert-mode
+					     latex-math-preview-list-name-symbol-datasets))))
+	 (len (length symbol-datasets)))
     (while (< num 0) (setq num (+ num len)))
     (if page
-	(let ((dataset (car (nth (% (+ page num) len)
-				 latex-math-preview-symbol-datasets))))
+	(let ((dataset (car (nth (% (+ page num) len) symbol-datasets))))
 	  (latex-math-preview-quit-window)
 	  (latex-math-preview-create-buffer-for-insertion dataset)))))
 
@@ -986,16 +1086,19 @@ Return maximum size of images and maximum length of strings and images"
   (interactive)
   (setq latex-math-preview-always-maximize-window (not latex-math-preview-always-maximize-window))
   (latex-math-preview-quit-window)
-  (latex-math-preview-create-buffer-for-insertion latex-math-preview-current-page-of-symbol-list))
+  (latex-math-preview-create-buffer-for-insertion
+   (cdr (assq latex-math-preview-current-insert-mode
+	      latex-math-preview-current-page-of-symbol-list))))
 
 (defun latex-math-preview-symbol-insertion (str)
   "Execute insertion from STR."
-  (let ((sym (assoc str latex-math-preview-candidates-defined-as-list)))
-    (if sym
-	(progn
-	  (insert (car (car (cdr sym))))
-	  (save-excursion
-	    (insert (car (cdr (cdr (car (cdr sym))))))))
+  (let ((sym (eval `(assoc str
+			   ,(cdr (assq latex-math-preview-current-insert-mode 
+				       latex-math-preview-list-name-for-candidates-defined-as-list))))))
+    (if sym (progn
+	      (insert (car (car (cdr sym))))
+	      (save-excursion
+		(insert (car (cdr (cdr (car (cdr sym))))))))
       (insert str))))
 
 (defun latex-math-preview-put-selected-candidate ()
@@ -1006,20 +1109,27 @@ Return maximum size of images and maximum length of strings and images"
 	       (overlay-end latex-math-preview-selection-overlay-for-insertion))))
     (latex-math-preview-quit-window)
     (latex-math-preview-symbol-insertion str)
-    (setq latex-math-preview-inserted-last-symbol str)))
+
+    (setcdr (assq latex-math-preview-current-insert-mode
+		  latex-math-preview-inserted-last-symbol) str)))
 
 (defun latex-math-preview-delete-current-cache ()
   "Delete cache and make cache again."
   (interactive)
   (latex-math-preview-quit-window)
-  (latex-math-preview-clear-cache-for-insertion latex-math-preview-current-page-of-symbol-list)
-  (latex-math-preview-create-buffer-for-insertion latex-math-preview-current-page-of-symbol-list))
+  (latex-math-preview-clear-cache-for-insertion
+   (cdr (assq latex-math-preview-current-insert-mode
+	      latex-math-preview-current-page-of-symbol-list)))
+  (latex-math-preview-create-buffer-for-insertion
+   (cdr (assq latex-math-preview-current-insert-mode
+	      latex-math-preview-current-page-of-symbol-list))))
 
 (defun latex-math-preview-last-symbol-again ()
   "Insert last symbol which is inserted by `latex-math-preview-insert-symbol'"
   (interactive)
-  (if latex-math-preview-inserted-last-symbol
-      (latex-math-preview-symbol-insertion latex-math-preview-inserted-last-symbol)))
+  (let ((last-symbol (cdr (assq latex-math-preview-current-insert-mode
+				latex-math-preview-inserted-last-symbol))))
+    (if last-symbol (latex-math-preview-symbol-insertion last-symbol))))
 
 ;;-----------------------------------------------------------------------------
 ;; Move to other item
