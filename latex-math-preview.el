@@ -3,7 +3,7 @@
 ;; Author: Takayuki YAMAGUCHI <d@ytak.info>
 ;; Keywords: LaTeX TeX
 ;; Version: 0.3.0 beta
-;; Created: Thu Aug  6 11:34:03 2009
+;; Created: Thu Aug  6 15:31:32 2009
 
 ;; latex-math-preview.el is a modified version which is based on
 ;; tex-math-preview.el and has been created at July 2009.
@@ -37,6 +37,14 @@
 ;; 
 ;; M-x latex-math-preview-insert-symbol displays list of symbols.
 ;; Selecting a LaTeX symbol from it, you can insert it.
+;; `latex-math-preview-insert-symbol' give you the list of mathematical symbols
+;; when the cursor is in mathematical expression.
+;; If the cursor is not in mathematical expression,
+;; `latex-math-preview-insert-symbol' shows the list of symbols
+;; for normal text.
+;; If you want to insert a mathematical symbol (not a mathematical symbol)
+;; anyway, you can excute `latex-math-preview-insert-mathematical-symbol'
+;; (`latex-math-preview-insert-text-symbol' respectively).
 
 ;; Requirements;
 ;; Emacs (version 22 or 23) on Linux or Meadow3 on Windows.
@@ -57,6 +65,10 @@
 ;; 	      (YaTeX-define-key "p" 'latex-math-preview-expression)
 ;; 	      (YaTeX-define-key "j" 'latex-math-preview-insert-symbol)
 ;;            (YaTeX-define-key "\C-j" 'latex-math-preview-last-symbol-again)))
+;;   (setq latex-math-preview-in-math-mode-p-func 'YaTeX-in-math-mode-p)
+;; 
+;; In particular case latex-math-preview-in-math-mode-p does not work well.
+;; So you may use YaTeX-in-math-mode-p alternatively.
 ;;
 ;; This setting almost binds latex-math-preview-expression to "C-c p",
 ;; latex-math-preview-insert-symbol to "C-c j"
@@ -136,6 +148,14 @@
 ;; you set nil to `latex-math-preview-restore-last-page-of-symbol-list'
 ;; and string of initial page name to 
 ;; `latex-math-preview-initial-page-of-symbol-list'.
+;; 
+;; This program keep the created images as cache.
+;; These images saved in `latex-math-preview-cache-directory-for-insertion'
+;; of which default value is "~/.emacs.d/latex-math-preview-cache".
+;; If you change the cache directory, please put the following code
+;; in "~/.emacs.el".
+;; (setq latex-math-preview-cache-directory-for-insertion
+;;       "cache directory in your system")
 
 ;;; Usage:
 ;; * latex-math-preview-expression *
@@ -158,6 +178,9 @@
 ;; that you want to open before preview buffer is created.
 ;; "M-x latex-math-preview-last-symbol-again" make you
 ;; insert the last inserted symbol.
+;; Also, depending on the situation, you can execute
+;; "M-x latex-math-preview-mathematical-symbol-datasets" or
+;; "M-x latex-math-preview-insert-text-symbol".
 
 ;;; Keymap:
 ;; In preview window for mathematical expression, the following binded key
@@ -171,6 +194,7 @@
 ;; on the head of buffer.
 
 ;; ChangeLog:
+;; 2009/08/06 version 0.3.0 yamaguchi
 ;;     Remove feature viewing dvi file.
 ;;     New function `latex-math-preview-move-to-beggining-of-candidates'.
 ;;     New function `latex-math-preview-move-to-end-of-candidates'.
@@ -438,9 +462,9 @@
       ("\\sum" "\\prod" "\\coprod" "\\int" "\\oint" "\\bigcap" "\\bigcup"
        "\\bigsqcup" "\\bigvee" "\\bigwedge" "\\bigodot" "\\bigotimes"
        "\\bigoplus" "\\biguplus"))
-     ("Integral" ("\\usepackage{amsmath}" "\\usepackage{amssymb}")
+     ("integral" ("\\usepackage{amsmath}" "\\usepackage{amssymb}")
       ("\\int" "\\iint" "\\iiint" "\\iiiint" "\\idotsint"))
-     ("Dots" ("\\usepackage{amsmath}" "\\usepackage{amssymb}")
+     ("dots" ("\\usepackage{amsmath}" "\\usepackage{amssymb}")
       ("\\dots" "\\dotsc" "\\dotsb" "\\dotsm" "\\dotsi")))
     ("MiscellaneousSymbols"
      ("miscellaneous" nil
@@ -585,8 +609,10 @@ If you use YaTeX mode then the recommended value of this variable is YaTeX-in-ma
     (define-key map (kbd "<up>") 'latex-math-preview-move-to-upward-item)
     (define-key map (kbd "<right>") 'latex-math-preview-move-to-right-item)
     (define-key map (kbd "<left>") 'latex-math-preview-move-to-left-item)
-    (define-key map (kbd ".") 'latex-math-preview-next-candidates-for-insertion)
-    (define-key map (kbd ",") 'latex-math-preview-previous-candidates-for-insertion)
+    (define-key map (kbd "C-v") 'latex-math-preview-scroll-up)
+    (define-key map (kbd "M-v") 'latex-math-preview-scroll-down)
+    (define-key map (kbd "SPC") 'latex-math-preview-scroll-up)
+    (define-key map (kbd "S-SPC") 'latex-math-preview-scroll-down)
     (define-key map (kbd "i") 'latex-math-preview-next-candidates-for-insertion)
     (define-key map (kbd "u") 'latex-math-preview-previous-candidates-for-insertion)
     (define-key map (kbd "C-d") 'latex-math-preview-delete-current-cache)
@@ -1127,6 +1153,7 @@ Return maximum size of images and maximum length of strings and images"
 (defun latex-math-preview-last-symbol-again ()
   "Insert last symbol which is inserted by `latex-math-preview-insert-symbol'"
   (interactive)
+  (latex-math-preview-set-current-insert-mode)
   (let ((last-symbol (cdr (assq latex-math-preview-current-insert-mode
 				latex-math-preview-inserted-last-symbol))))
     (if last-symbol (latex-math-preview-symbol-insertion last-symbol))))
@@ -1217,6 +1244,41 @@ Return maximum size of images and maximum length of strings and images"
   (interactive)
   (goto-char (point-max))
   (latex-math-preview-move-to-left-item))
+
+(defun latex-math-preview-scroll-up ()
+  "Scroll up and move to nearestd item."
+  (interactive)
+  (let ((lnum (1+ (line-number-at-pos)))
+	(col (current-column)))
+    (if (< lnum (max-line))
+	(progn
+	  (scroll-up)
+	  (if (member (line-number-at-pos) latex-math-preview-information-line-number)
+	      (forward-line -1))
+	  (move-to-column col)
+	  (skip-chars-backward "^\t")
+	  (backward-char)
+	  (latex-math-preview-move-to-right-item)))))
+
+(defun latex-math-preview-scroll-down ()
+  "Scroll down and move to nearestd item."
+  (interactive)
+  (let ((start-num (nth (1- (length latex-math-preview-information-line-number))
+			latex-math-preview-information-line-number))
+	(lnum (1+ (line-number-at-pos)))
+	(col (current-column)))
+    (if (< start-num lnum)
+	(progn
+	  (scroll-down)
+	  (cond
+	   ((< (line-number-at-pos) start-num)
+	    (goto-char start-num))
+	   ((member (line-number-at-pos) latex-math-preview-information-line-number)
+	    (forward-line 1)))
+	  (move-to-column col)
+	  (skip-chars-backward "^\t")
+	  (backward-char)
+	  (latex-math-preview-move-to-right-item)))))
 
 (provide 'latex-math-preview)
 
