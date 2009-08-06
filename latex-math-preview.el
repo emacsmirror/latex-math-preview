@@ -2,8 +2,8 @@
 
 ;; Author: Takayuki YAMAGUCHI <d@ytak.info>
 ;; Keywords: LaTeX TeX
-;; Version: 0.3.0
-;; Created: Thu Aug  6 17:34:15 2009
+;; Version: 0.3.1
+;; Created: Thu Aug  6 23:05:45 2009
 
 ;; latex-math-preview.el is a modified version which is based on
 ;; tex-math-preview.el and has been created at July 2009.
@@ -79,7 +79,6 @@
 ;; according to your system if needed.
 ;;  latex-math-preview-latex-command
 ;;  latex-math-preview-command-dvipng
-;;  latex-math-preview-command-dvi-view
 ;;  latex-math-preview-latex-template-header
 ;;  latex-math-preview-latex-template-usepackage
 ;; 
@@ -91,7 +90,6 @@
 ;; The example of setting values for unix or linux is the following.
 ;;  (setq latex-math-preview-latex-command "/usr/bin/platex")
 ;;  (setq latex-math-preview-command-dvipng "/usr/bin/dvipng")
-;;  (setq latex-math-preview-command-dvi-view "/usr/bin/xdvi")
 ;;
 ;; The construction of temporary latex file is the following.
 ;; 
@@ -192,6 +190,8 @@
 ;; on the head of buffer.
 
 ;; ChangeLog:
+;; 2009/08/06 version 0.3.1 yamaguchi
+;;     New function `latex-math-preview-save-image-file'.
 ;; 2009/08/06 version 0.3.0 yamaguchi
 ;;     New function `latex-math-preview-move-to-beginning-of-candidates'.
 ;;     New function `latex-math-preview-move-to-end-of-candidates'.
@@ -228,9 +228,9 @@
 ;;;###autoload
 (defgroup latex-math-preview nil
   "LaTeX Math Preview."
- :prefix "latex-math-preview-"
- :group 'applications
- )
+  :prefix "latex-math-preview-"
+  :group 'applications
+  )
 
 (defvar latex-math-preview-expression-buffer-name
   "*latex-math-preview*"
@@ -250,8 +250,8 @@
 (defvar latex-math-preview-command-dvipng
   "dvipng" "Path to dvipng.")
 
-(defvar latex-math-preview-command-dvi-view
-  "xdvi" "Path to dvi viewer.")
+(defvar latex-math-preview-command-dvips
+  "dvips" "Path to dvips.")
 
 (defvar latex-math-preview-temporary-file-prefix
   "temp_latex_math"
@@ -261,9 +261,48 @@
   (concat (getenv "HOME") "/.emacs.d/latex-math-preview-cache")
   "Cache directory.")
 
+(defvar latex-math-preview-latex-template-header
+  "\\documentclass{article}\n\\pagestyle{empty}\n"
+  "Insert string to beginning of temporary latex file to make image.")
+
+(defvar latex-math-preview-latex-template-usepackage
+  '("\\usepackage{amsmath, amssymb, amsthm}")
+  "List of strings which are \\usepackage commands.")
+
 (defvar latex-math-preview-dvipng-option
   '("-x" "1728" "-T" "tight")
-  "Option for dvipng.")
+  "Option of dvipng for previewing.")
+
+(defvar latex-math-preview-latex-make-png-file-template-header
+  "\\documentclass{article}\n\\pagestyle{empty}\n"
+  "Insert string to beginning of temporary latex file to make image.")
+
+(defvar latex-math-preview-latex-make-png-file-template-usepackage
+  '("\\usepackage{amsmath, amssymb, amsthm}")
+  "List of strings which are \\usepackage commands.")
+
+(defvar latex-math-preview-latex-make-eps-file-template-header
+  "\\documentclass{article}\n\\pagestyle{empty}\n"
+  "Insert string to beginning of temporary latex file to make image.")
+
+(defvar latex-math-preview-latex-make-eps-file-template-usepackage
+  '("\\usepackage{amsmath, amssymb, amsthm}")
+  "List of strings which are \\usepackage commands.")
+
+(defvar latex-math-preview-dvipng-option-make-png-file
+  '("-x" "1728" "-T" "tight")
+  "Option of dvipng when making png file.")
+
+(defvar latex-math-preview-dvips-option-make-eps-file
+  '("-E" "-Ppdf" "-x" "3000")
+  "Option of dvips when making eps file.")
+
+(defvar latex-math-preview-outline-eps-func nil
+  "If non-nil, eval this symbol to make eps file outline.")
+
+(defvar latex-math-preview-match-expression-remove-formula-number
+  '("equation" "gather" "align" "alignat")
+  "List of LaTeX enviroments string to remove number of formula when making image file.")
 
 (defvar latex-math-preview-image-foreground-color nil
   "Foreground color of image created by dvipng.")
@@ -273,14 +312,6 @@
 
 (defvar latex-math-preview-dvipng-color-option nil
   "Temporary variable. You must not set this variable.")
-
-(defvar latex-math-preview-latex-template-header
-  "\\documentclass{article}\n\\pagestyle{empty}\n"
-  "Insert string to beginning of temporary latex file to make image.")
-
-(defvar latex-math-preview-latex-template-usepackage
-  '("\\usepackage{amsmath, amssymb, amsthm}")
-  "List of strings which are \\usepackage commands.")
 
 (defvar latex-math-preview-window-configuration nil
   "Temporary variable in which window configuration is saved.")
@@ -345,26 +376,26 @@ The integer is the number to access needed string from regular-expressin.")
        "\\j" "`" "'" "``"
        "''" "*" "``\\,'" "'\\,``" "-" "--" "---" "\\textregistered"
        "\\texttrademark" "\\textvisiblespace" "\\textbackslash"
-        "\\textasciitilde" "\\textasciicircum" ("\\textcircled{" "s" "}")
-     	))
+       "\\textasciitilde" "\\textasciicircum" ("\\textcircled{" "s" "}")
+       ))
      ("special charactor (2)" ("\\usepackage[T1]{fontenc}")
       ("\\DH" "\\dh" "\\DJ" "\\dj" "\\NG" "\\ng" "\\TH" "\\th"
        "\\guillemotleft" "\\guilsinglleft" "\\quotedblbase" "\\textquotedbl"
        "\\guillemotright" "\\guilsinglright" "\\quotesinglbase")))
-     ("AccentText"
-      ("accent (1)" nil
-       (("\\`{" "o" "}") ("\\'{" "o" "}") ("\\^{" "o" "}") ("\\\"{" "o" "}")
-	("\\~{" "o" "}") ("\\={" "o" "}") ("\\.{" "o" "}") ("\\u{" "o" "}")
-	("\\v{" "o" "}") ("\\H{" "o" "}") ("\\t{" "oo" "}") ("\\c{" "o" "}")
-	("\\d{" "o" "}") ("\\b{" "o" "}") ("\\r{" "a" "}")
-	))
-      ("accent (2)" ("\\usepackage[T1]{fontenc}")
-	(("\\k{" "a" "}"))))
-     ("Logo"
-      ("logo (1)" nil
-       ("\\TeX" "\\LaTeX" "\\LaTeXe"))
-      ("logo (2)" ("\\usepackage{mflogo}")
-       ("\\MF" "\\MP")))
+    ("AccentText"
+     ("accent (1)" nil
+      (("\\`{" "o" "}") ("\\'{" "o" "}") ("\\^{" "o" "}") ("\\\"{" "o" "}")
+       ("\\~{" "o" "}") ("\\={" "o" "}") ("\\.{" "o" "}") ("\\u{" "o" "}")
+       ("\\v{" "o" "}") ("\\H{" "o" "}") ("\\t{" "oo" "}") ("\\c{" "o" "}")
+       ("\\d{" "o" "}") ("\\b{" "o" "}") ("\\r{" "a" "}")
+       ))
+     ("accent (2)" ("\\usepackage[T1]{fontenc}")
+      (("\\k{" "a" "}"))))
+    ("Logo"
+     ("logo (1)" nil
+      ("\\TeX" "\\LaTeX" "\\LaTeXe"))
+     ("logo (2)" ("\\usepackage{mflogo}")
+      ("\\MF" "\\MP")))
     )
   "List of candidates for insertion of symbol.
 The elements is the data having the following structure.
@@ -564,7 +595,7 @@ For data structure, refer to `latex-math-preview-text-symbol-datasets'")
 (defface latex-math-preview-key-for-insertion-face
   '((t (:foreground "dodger blue")))
   "Face for notations of LaTeX mathematical symbol.")
-  
+
 (defvar latex-math-preview-selection-face-for-insertion 'highlight
   "Face for currently selected item.")
 
@@ -675,7 +706,7 @@ no recognised expression at or surrounding point."
 
     (and beg
          (cons beg end))))
-          
+
 (put 'latex-math 'bounds-of-thing-at-point 'latex-math-preview-bounds-of-latex-math)
 
 (defun latex-math-preview-in-math-mode-p ()
@@ -684,32 +715,14 @@ This function may make mistake when there is sequence of '$'.
 If you use YaTeX, then you should use YaTeX-in-math-mode-p alternatively."
   (thing-at-point 'latex-math))
 
-;;;###autoload
-(defun latex-math-preview-expression ()
-  "Preview a TeX maths expression at (or surrounding) point.
-The `latex-math-preview-function' variable controls the viewing method. 
-The LaTeX notations which can be matched are $...$, $$...$$ or
-the notations which are stored in `latex-math-preview-match-expression'."
-
-  (interactive)
-  (let ((str (if transient-mark-mode (buffer-substring (region-beginning) (region-end))
-	       ;; If you use (region-active-p), then the program can not work on emacs 22.
-	       (thing-at-point 'latex-math))))
-    (if str
-	(progn 
-	  (setq latex-math-preview-window-configuration (current-window-configuration))
-	  (latex-math-preview-str str))
-      (message "Not in a TeX math expression")
-      nil)))
-
-(defun latex-math-preview-make-dvi-file (tmpdir math-exp &optional usepackages)
+(defun latex-math-preview-make-dvi-file (tmpdir math-exp template-header &optional usepackages)
   "Make temporary tex file including MATH-EXP in TMPDIR and compile it."
   (let* ((dot-tex (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".tex"))
-	(dot-dvi (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".dvi"))
-	(usepck (or usepackages latex-math-preview-latex-template-usepackage))
-	(tempfile-str (concat latex-math-preview-latex-template-header
-			      (if usepck (mapconcat 'identity usepck "\n") "")
-			      "\n\\begin{document}\n" math-exp "\n\\par\n\\end{document}\n")))
+	 (dot-dvi (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".dvi"))
+	 (usepck (or usepackages latex-math-preview-latex-template-usepackage))
+	 (tempfile-str (concat template-header
+			       (if usepck (mapconcat 'identity usepck "\n") "")
+			       "\n\\begin{document}\n" math-exp "\n\\par\n\\end{document}\n")))
     (with-temp-file dot-tex (insert tempfile-str))
     (if (not (eq 0 (call-process latex-math-preview-latex-command nil nil nil
 				 (concat "-output-directory=" latex-math-dir) dot-tex)))
@@ -742,17 +755,6 @@ the notations which are stored in `latex-math-preview-match-expression'."
 	(condition-case nil (delete-directory dir)
 	  (message "Can not delete '%s'" dir)))))
 
-(defun latex-math-preview-str (str)
-  "Preview the given STR string as a TeX math expression.
-STR should not have $ or $$ delimiters."
-
-  (let ((latex-math-dir (make-temp-file "latex-math-preview-" t)))
-    (latex-math-preview-png-image (latex-math-preview-make-dvi-file latex-math-dir str))
-    (if (not latex-math-preview-not-delete-tmpfile)
-	;; cleanup temp files
-	(latex-math-preview-clear-tmp-directory latex-math-dir)
-      )))
-
 ;;-----------------------------------------------------------------------------
 ;; view png in a buffer
 
@@ -768,7 +770,7 @@ This can be used in `latex-math-preview-function', but it requires:
            (display-images-p))
       (error "Cannot display PNG in this Emacs"))
 
-  (let ((image (latex-math-preview-dvi-to-png dvifile)))
+  (let ((image (latex-math-preview-dvi-to-png-for-previewing dvifile)))
     (if image
 	(progn
 	  (with-current-buffer (get-buffer-create latex-math-preview-expression-buffer-name)
@@ -812,7 +814,7 @@ This can be used in `latex-math-preview-function', but it requires:
 		   (color-values (or latex-math-preview-image-foreground-color
 				     (face-foreground 'default))) " ")))))
 
-(defun latex-math-preview-dvi-to-png (filename &optional output)
+(defun latex-math-preview-dvi-to-png-for-previewing (filename &optional output)
   "Render dvi FILENAME to an Emacs image and return that.
 The \"dvipng\" program is used for drawing.  If it fails a shell
 buffer is left showing the messages and the return is nil."
@@ -828,6 +830,88 @@ buffer is left showing the messages and the return is nil."
 	dot-png
       nil)))
 
+(defun latex-math-preview-dvi-to-png-for-save (filename &optional output)
+  "Convert dvi FILENAME to png and save as OUTPUT."
+  (let ((abs-path (expand-file-name output)))
+    (if (eq 0 (eval `(call-process latex-math-preview-command-dvipng nil
+				   latex-math-preview-dvipng-log-buffer nil "-o" abs-path
+				   ,@latex-math-preview-dvipng-option-make-png-file filename)))
+	abs-path nil)))
+
+(defun latex-math-preview-dvi-to-eps-for-save (filename &optional output)
+  "Convert dvi FILENAME to eps and save as OUTPUT."
+  (let ((abs-path (expand-file-name output)))
+    (if (eq 0 (eval `(call-process latex-math-preview-command-dvips nil
+				   latex-math-preview-dvipng-log-buffer nil "-o" abs-path
+				   ,@latex-math-preview-dvips-option-make-eps-file filename)))
+	abs-path nil)))
+
+(defun latex-math-preview-cut-mathematical-expression (&optional remove-num-expression)
+  (let ((str))
+    (if transient-mark-mode
+	(setq str (buffer-substring (region-beginning) (region-end)))
+      ;; If you use (region-active-p), then the program can not work on emacs 22.
+      (setq str (thing-at-point 'latex-math)))
+    (if (and str remove-num-expression)
+	(dolist (env remove-num-expression)
+	  (setq str (replace-regexp-in-string (format "{%s}" env) (format "{%s\*}" env) str))))
+      str))
+
+(defun latex-math-preview-expression ()
+  "Preview a TeX maths expression at (or surrounding) point.
+The `latex-math-preview-function' variable controls the viewing method. 
+The LaTeX notations which can be matched are $...$, $$...$$ or
+the notations which are stored in `latex-math-preview-match-expression'."
+
+  (interactive)
+  (let ((str (latex-math-preview-cut-mathematical-expression)))
+    (if str
+	(progn
+	  (setq latex-math-preview-window-configuration (current-window-configuration))
+	  (let ((latex-math-dir (make-temp-file "latex-math-preview-" t)))
+	    (latex-math-preview-png-image
+	     (latex-math-preview-make-dvi-file
+	      latex-math-dir str latex-math-preview-latex-template-header))
+	    (if (not latex-math-preview-not-delete-tmpfile)
+		(latex-math-preview-clear-tmp-directory latex-math-dir))))
+      (message "Not in a TeX mathematical expression."))))
+
+(defun latex-math-preview-save-image-file (output)
+  (interactive "FSave as \(\"*.png\" or \"*.exp\"\):")
+  (if (or (not (file-exists-p output)) (y-or-n-p "File exists. Overwrite? "))
+      (let ((str (latex-math-preview-cut-mathematical-expression
+		  latex-math-preview-match-expression-remove-formula-number)))
+	(if str
+	    (let ((latex-math-dir (make-temp-file "latex-math-preview-" t))
+		  (dot-dvi) (result nil))
+	      (cond ((string-match "\\.png$" output)
+		     (setq result (latex-math-preview-dvi-to-png-for-save 
+				   (latex-math-preview-make-dvi-file
+				    latex-math-dir str
+				    latex-math-preview-latex-make-png-file-template-header
+				    latex-math-preview-latex-make-png-file-template-usepackage) 
+				   output)))
+		    ((string-match "\\.eps" output)
+		     (setq result (latex-math-preview-dvi-to-eps-for-save 
+				   (latex-math-preview-make-dvi-file
+				    latex-math-dir str
+				    latex-math-preview-latex-make-eps-file-template-header
+				    latex-math-preview-latex-make-eps-file-template-usepackage)
+				   output))
+
+		     (if (and result latex-math-preview-outline-eps-func)
+			 (let ((tmp-file (replace-regexp-in-string
+					  "\.eps$" (concat (format-time-string "%Y%m%d%H%M%S") ".eps") output)))
+			   (rename-file output tmp-file)
+			   (funcall latex-math-preview-outline-eps-func tmp-file output)
+			   (delete-file tmp-file))))
+		    (t (message "Invalid extention of output file.")))
+	      (if (not latex-math-preview-not-delete-tmpfile)
+		  (latex-math-preview-clear-tmp-directory latex-math-dir))
+	      (if result (message "Save image as %s" output)))
+	  (message "Not in a TeX mathematical expression.")))
+    (message "Stop making image.")))
+
 ;;-----------------------------------------------------------------------------
 ;; Manage window
 
@@ -842,7 +926,7 @@ buffer is left showing the messages and the return is nil."
   (kill-buffer (buffer-name))
   (set-window-configuration latex-math-preview-window-configuration))
 
-; Clear dvipng option for coloring.
+					; Clear dvipng option for coloring.
 (setq latex-math-preview-dvipng-color-option nil)
 
 ;;-----------------------------------------------------------------------------
@@ -864,10 +948,12 @@ If KEY is nil then all directories saving caches is deleted."
 Image is saved in directory of which path is DIRPATH.
  NUM is used for distingushing other images."
   (let ((latex-math-dir (make-temp-file "latex-math-preview-" t))
-	(path (concat dirpath "/" (format "%05d" num) "_" (format-time-string "%Y%m%d%H%M%S") ".png"))
+	(path (concat dirpath "/" (format "%05d" num) "_"
+		      (format-time-string "%Y%m%d%H%M%S") ".png"))
 	(latex-str (if math-sym-p (concat "$" latex-symbol "$") latex-symbol)))
-    (latex-math-preview-dvi-to-png (latex-math-preview-make-dvi-file
-				    latex-math-dir latex-str packages) path)
+    (latex-math-preview-dvi-to-png-for-previewing
+     (latex-math-preview-make-dvi-file
+      latex-math-dir latex-str latex-math-preview-latex-template-header packages) path)
     (latex-math-preview-clear-tmp-directory latex-math-dir)
     path))
 
@@ -1095,9 +1181,9 @@ Return maximum size of images and maximum length of strings and images"
 (defun latex-math-preview-get-page-number (dataset)
   "Get number of page for DATASET."
   (let* ((num 0) (cont t)
-	(symbol-datasets (eval `,(cdr (assq latex-math-preview-current-insert-mode
-					    latex-math-preview-list-name-symbol-datasets))))
-	(max-num (length symbol-datasets)))
+	 (symbol-datasets (eval `,(cdr (assq latex-math-preview-current-insert-mode
+					     latex-math-preview-list-name-symbol-datasets))))
+	 (max-num (length symbol-datasets)))
     (while (and cont (< num max-num))
       (if (string= dataset (car (nth num symbol-datasets))) (setq cont nil))
       (setq num (1+ num)))
@@ -1107,8 +1193,8 @@ Return maximum size of images and maximum length of strings and images"
   "Next page of candidates buffer for insertion."
   (interactive "p")
   (let* ((page (latex-math-preview-get-page-number
-	       (cdr (assq latex-math-preview-current-insert-mode
-			  latex-math-preview-current-page-of-symbol-list))))
+		(cdr (assq latex-math-preview-current-insert-mode
+			   latex-math-preview-current-page-of-symbol-list))))
 	 (symbol-datasets (eval `,(cdr (assq latex-math-preview-current-insert-mode
 					     latex-math-preview-list-name-symbol-datasets))))
 	 (len (length symbol-datasets)))
@@ -1215,12 +1301,12 @@ Return maximum size of images and maximum length of strings and images"
     (if (< (nth (1- (length latex-math-preview-information-line-number))
 		latex-math-preview-information-line-number) lnum)
 	(progn
-	(if (not (member lnum latex-math-preview-information-line-number))
-	    (forward-line -1) (forward-line -2))
-	(move-to-column col)
-	(skip-chars-backward "^\t")
-	(backward-char)
-	(latex-math-preview-move-to-right-item)))))
+	  (if (not (member lnum latex-math-preview-information-line-number))
+	      (forward-line -1) (forward-line -2))
+	  (move-to-column col)
+	  (skip-chars-backward "^\t")
+	  (backward-char)
+	  (latex-math-preview-move-to-right-item)))))
 
 (defun latex-math-preview-move-to-downward-item ()
   "Move to downward item."
