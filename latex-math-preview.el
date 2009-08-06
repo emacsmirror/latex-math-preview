@@ -3,7 +3,7 @@
 ;; Author: Takayuki YAMAGUCHI <d@ytak.info>
 ;; Keywords: LaTeX TeX
 ;; Version: 0.3.0 beta
-;; Created: Thu Aug  6 15:31:32 2009
+;; Created: Thu Aug  6 16:50:15 2009
 
 ;; latex-math-preview.el is a modified version which is based on
 ;; tex-math-preview.el and has been created at July 2009.
@@ -30,18 +30,17 @@
 ;; this program. If not, see <http://www.gnu.org/licenses/>.
 
 ;;; Commentary:
-;; M-x latex-math-preview-expression previews mathematical expressions pointed
-;; by cursor in LaTeX files.
-;; The result of latex-math-preview-expression is shown in new buffer as image
+;; M-x `latex-math-preview-expression' previews mathematical expressions pointed
+;; by cursor in LaTeX files or selected strings at transient-mark-mode.
+;; The result of this command is shown in new buffer as image
 ;; or as dvi file by dvi viewer.
 ;; 
 ;; M-x latex-math-preview-insert-symbol displays list of symbols.
 ;; Selecting a LaTeX symbol from it, you can insert it.
-;; `latex-math-preview-insert-symbol' give you the list of mathematical symbols
-;; when the cursor is in mathematical expression.
+;; M-x `latex-math-preview-insert-symbol' give you the list of mathematical
+;; symbols when the cursor is in mathematical expression.
 ;; If the cursor is not in mathematical expression,
-;; `latex-math-preview-insert-symbol' shows the list of symbols
-;; for normal text.
+;; this command shows the list of symbols for normal text.
 ;; If you want to insert a mathematical symbol (not a mathematical symbol)
 ;; anyway, you can excute `latex-math-preview-insert-mathematical-symbol'
 ;; (`latex-math-preview-insert-text-symbol' respectively).
@@ -195,13 +194,14 @@
 
 ;; ChangeLog:
 ;; 2009/08/06 version 0.3.0 yamaguchi
-;;     Remove feature viewing dvi file.
-;;     New function `latex-math-preview-move-to-beggining-of-candidates'.
+;;     New function `latex-math-preview-move-to-beginning-of-candidates'.
 ;;     New function `latex-math-preview-move-to-end-of-candidates'.
 ;;     New function `latex-math-preview-move-to-current-line-first-item'.
 ;;     New function `latex-math-preview-move-to-current-line-last-item'.
 ;;     New function `latex-math-preview-insert-mathematical-symbol'
 ;;     New function `latex-math-preview-insert-text-symbol'
+;;     Extention of `latex-math-preview-expression'.
+;;     Remove feature viewing dvi file.
 ;; 2009/08/04 version 0.2.3 yamaguchi
 ;;     New function `latex-math-preview-toggle-window-maximization'.
 ;;     New function `latex-math-preview-last-symbol-again'.
@@ -277,7 +277,7 @@
 
 (defvar latex-math-preview-latex-template-header
   "\\documentclass{article}\n\\pagestyle{empty}\n"
-  "Insert string to beggining of temporary latex file to make image.")
+  "Insert string to beginning of temporary latex file to make image.")
 
 (defvar latex-math-preview-latex-template-usepackage
   '("\\usepackage{amsmath, amssymb, amsthm}")
@@ -327,7 +327,10 @@
     (0 . "\\\\begin{alignat\\(\\|\\*\\)}\\(\\(.\\|\n\\)*?\\)\\\\end{alignat\\(\\|\\*\\)}")
 
     )
-  "These eqpressions are used for matching to extract tex math expression.")
+  "These eqpressions are used for matching to extract tex math expression.
+The elements of this list are list which is \(integer regular-expression\).
+The regular-expression matchs string including LaTeX mathematical expressions.
+The integer is the number to access needed string from regular-expressin.")
 
 (defvar latex-math-preview-list-name-symbol-datasets
   '((math . latex-math-preview-mathematical-symbol-datasets)
@@ -364,7 +367,15 @@
       ("logo (2)" ("\\usepackage{mflogo}")
        ("\\MF" "\\MP")))
     )
-  "List of candidates for insertion of symbol.")
+  "List of candidates for insertion of symbol.
+The elements is the data having the following structure.
+\(\"unique id\" \(\"usepackage command 1\" \"usepackage command 2\" ...\)
+\(data of symbol candidates\)\)
+
+Each data of symbol candidates is string or list. In the case of string, 
+just insert it in the buffer. If the data is list, list must have three strings,
+that is \(StringA, StringB StringC\). Then, insert the composition 
+StringA and StringB.")
 
 (defvar latex-math-preview-mathematical-symbol-datasets
   '(("DelimitersArrows"
@@ -522,7 +533,8 @@
      ("typefaces (2)" ("\\usepackage{amssymb}")
       (("\\mathfrak{" "abcdefghABCDEFGH" "}") ("\\mathbb{" "abcdefghABCDEFGH" "}"))))
     )
-  "List of candidates for insertion of LaTeX mathematical symbol.")
+  "List of candidates for insertion of LaTeX mathematical symbol.
+For data structure, refer to `latex-math-preview-text-symbol-datasets'")
 
 
 (defvar latex-math-preview-always-maximize-window nil
@@ -574,7 +586,7 @@ If you use YaTeX mode then the recommended value of this variable is YaTeX-in-ma
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "q") 'latex-math-preview-quit-window)
     (define-key map (kbd "Q") 'latex-math-preview-delete-buffer)
-    (define-key map (kbd "\C-g") 'latex-math-preview-quit-window)
+    (define-key map (kbd "g") 'latex-math-preview-quit-window)
     (define-key map (kbd "j") 'scroll-up)
     (define-key map (kbd "k") 'scroll-down)
     (define-key map (kbd "n") 'scroll-up)
@@ -586,7 +598,7 @@ If you use YaTeX mode then the recommended value of this variable is YaTeX-in-ma
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "q") 'latex-math-preview-quit-window)
     (define-key map (kbd "Q") 'latex-math-preview-delete-buffer)
-    (define-key map (kbd "C-g") 'latex-math-preview-quit-window)
+    (define-key map (kbd "g") 'latex-math-preview-quit-window)
     (define-key map (kbd "o") 'latex-math-preview-toggle-window-maximization)
     (define-key map (kbd "c") 'latex-math-preview-symbols-of-other-page)
     (define-key map (kbd "j") 'latex-math-preview-move-to-downward-item)
@@ -617,7 +629,7 @@ If you use YaTeX mode then the recommended value of this variable is YaTeX-in-ma
     (define-key map (kbd "u") 'latex-math-preview-previous-candidates-for-insertion)
     (define-key map (kbd "C-d") 'latex-math-preview-delete-current-cache)
     (define-key map (kbd "C-m") 'latex-math-preview-put-selected-candidate)
-    (define-key map (kbd "M-<") 'latex-math-preview-move-to-beggining-of-candidates)
+    (define-key map (kbd "M-<") 'latex-math-preview-move-to-beginning-of-candidates)
     (define-key map (kbd "M->") 'latex-math-preview-move-to-end-of-candidates)
     (define-key map (kbd "<return>") 'latex-math-preview-put-selected-candidate)
     map)
@@ -681,11 +693,14 @@ The LaTeX notations which can be matched are $...$, $$...$$ or
 the notations which are stored in `latex-math-preview-match-expression'."
 
   (interactive)
-  (let ((str (thing-at-point 'latex-math)))
-    (or str
-        (error "Not in a TeX math expression"))
-    (setq latex-math-preview-window-configuration (current-window-configuration))
-    (latex-math-preview-str str)))
+  (let ((str (if (region-active-p) (buffer-substring (region-beginning) (region-end))
+	       (thing-at-point 'latex-math))))
+    (if str
+	(progn 
+	  (setq latex-math-preview-window-configuration (current-window-configuration))
+	  (latex-math-preview-str str))
+      (message "Not in a TeX math expression")
+      nil)))
 
 (defun latex-math-preview-make-dvi-file (tmpdir math-exp &optional usepackages)
   "Make temporary tex file including MATH-EXP in TMPDIR and compile it."
@@ -694,18 +709,19 @@ the notations which are stored in `latex-math-preview-match-expression'."
 	(usepck (or usepackages latex-math-preview-latex-template-usepackage))
 	(tempfile-str (concat latex-math-preview-latex-template-header
 			      (if usepck (mapconcat 'identity usepck "\n") "")
-			      "\\begin{document}\n" math-exp "\n\\par\n\\end{document}\n")))
+			      "\n\\begin{document}\n" math-exp "\n\\par\n\\end{document}\n")))
     (with-temp-file dot-tex (insert tempfile-str))
     (if (not (eq 0 (call-process latex-math-preview-latex-command nil nil nil
 				 (concat "-output-directory=" latex-math-dir) dot-tex)))
 	(progn
 	  (with-current-buffer (get-buffer-create latex-math-preview-tex-processing-error-buffer-name)
 	    (goto-char (point-max))
-	    (insert "%" (make-string 20 ?-) "\n")
+	    (insert "%" (make-string 5 ?-) " Created by latex-math-preview.el at "
+		    (format-time-string "%Y/%m/%d %H:%M:%S") " " (make-string 5 ?-) "\n")
 	    (insert tempfile-str)
 	    (goto-char (point-max)))
 	  (pop-to-buffer latex-math-preview-tex-processing-error-buffer-name)
-	  (error "TeX processing error"))
+	  (signal 'tex-processing-error '("TeX processing error")))
       dot-dvi)))
 
 (defun latex-math-preview-clear-tmp-directory (dir)
@@ -719,12 +735,12 @@ the notations which are stored in `latex-math-preview-match-expression'."
 		     (add-to-list 'directories file))
 		    ((file-regular-p path)
 		     (condition-case nil (delete-file path)
-		       (error (message "Can not delete '%s'" path)))))))
+		       (message "Can not delete '%s'" path))))))
 	  (dolist (del-dir directories)
 	    (message del-dir)
 	    (latex-math-preview-clear-tmp-directory (concat dir "/" del-dir))))
 	(condition-case nil (delete-directory dir)
-	  (error (message "Can not delete '%s'" dir))))))
+	  (message "Can not delete '%s'" dir)))))
 
 (defun latex-math-preview-str (str)
   "Preview the given STR string as a TeX math expression.
@@ -1232,7 +1248,7 @@ Return maximum size of images and maximum length of strings and images"
   (end-of-line)
   (latex-math-preview-move-to-left-item))
 
-(defun latex-math-preview-move-to-beggining-of-candidates ()
+(defun latex-math-preview-move-to-beginning-of-candidates ()
   "Move to first candidate item in current buffer."
   (interactive)
   (goto-line (nth (1- (length latex-math-preview-information-line-number))
