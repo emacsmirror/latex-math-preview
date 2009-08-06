@@ -1,9 +1,9 @@
-;; latex-math-preview.el --- preview LaTeX mathematical expressions.
+;;; latex-math-preview.el --- preview LaTeX mathematical expressions.
 
 ;; Author: Takayuki YAMAGUCHI <d@ytak.info>
 ;; Keywords: LaTeX TeX
-;; Version: 0.3.0 beta
-;; Created: Thu Aug  6 16:50:15 2009
+;; Version: 0.3.0
+;; Created: Thu Aug  6 17:34:15 2009
 
 ;; latex-math-preview.el is a modified version which is based on
 ;; tex-math-preview.el and has been created at July 2009.
@@ -32,8 +32,7 @@
 ;;; Commentary:
 ;; M-x `latex-math-preview-expression' previews mathematical expressions pointed
 ;; by cursor in LaTeX files or selected strings at transient-mark-mode.
-;; The result of this command is shown in new buffer as image
-;; or as dvi file by dvi viewer.
+;; The result of this command is shown in new buffer as image.
 ;; 
 ;; M-x latex-math-preview-insert-symbol displays list of symbols.
 ;; Selecting a LaTeX symbol from it, you can insert it.
@@ -693,7 +692,8 @@ The LaTeX notations which can be matched are $...$, $$...$$ or
 the notations which are stored in `latex-math-preview-match-expression'."
 
   (interactive)
-  (let ((str (if (region-active-p) (buffer-substring (region-beginning) (region-end))
+  (let ((str (if transient-mark-mode (buffer-substring (region-beginning) (region-end))
+	       ;; If you use (region-active-p), then the program can not work on emacs 22.
 	       (thing-at-point 'latex-math))))
     (if str
 	(progn 
@@ -1227,7 +1227,7 @@ Return maximum size of images and maximum length of strings and images"
   (interactive)
   (let ((lnum (1+ (line-number-at-pos)))
 	(col (current-column)))
-    (if (< lnum (max-line))
+    (if (< lnum (line-number-at-pos (point-max)))
 	(progn
 	  (if (not (member lnum latex-math-preview-information-line-number))
 	      (forward-line 1) (forward-line 2))
@@ -1266,7 +1266,7 @@ Return maximum size of images and maximum length of strings and images"
   (interactive)
   (let ((lnum (1+ (line-number-at-pos)))
 	(col (current-column)))
-    (if (< lnum (max-line))
+    (if (< lnum (line-number-at-pos (point-max)))
 	(progn
 	  (scroll-up)
 	  (if (member (line-number-at-pos) latex-math-preview-information-line-number)

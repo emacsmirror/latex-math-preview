@@ -3,7 +3,7 @@
 ;; Author: Takayuki YAMAGUCHI <d@ytak.info>
 ;; Keywords: LaTeX TeX
 ;; Version: 0.1.0
-;; Created: Thu Aug  6 13:25:24 2009
+;; Created: Thu Aug  6 17:36:25 2009
 
 ;; Copyright 2009 Takayuki YAMAGUCHI
 ;;
