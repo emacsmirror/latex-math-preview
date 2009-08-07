@@ -2,8 +2,8 @@
 
 ;; Author: Takayuki YAMAGUCHI <d@ytak.info>
 ;; Keywords: LaTeX TeX
-;; Version: 0.3.1
-;; Created: Thu Aug  6 23:05:45 2009
+;; Version: 0.3.2
+;; Created: Fri Aug  7 13:40:33 2009
 
 ;; latex-math-preview.el is a modified version which is based on
 ;; tex-math-preview.el and has been created at July 2009.
@@ -55,13 +55,15 @@
 ;; 
 ;;   (autoload 'latex-math-preview-expression "latex-math-preview" nil t)
 ;;   (autoload 'latex-math-preview-insert-symbol "latex-math-preview" nil t)
+;;   (autoload 'latex-math-preview-save-image-file "latex-math-preview" nil t)
 ;; 
 ;; For YaTeX mode, add the follwing to ~/.emacs.el if desired.
 ;;
 ;;   (add-hook 'yatex-mode-hook
 ;;            '(lambda ()
-;; 	      (YaTeX-define-key "p" 'latex-math-preview-expression)
-;; 	      (YaTeX-define-key "j" 'latex-math-preview-insert-symbol)
+;;            (YaTeX-define-key "p" 'latex-math-preview-expression)
+;;            (YaTeX-define-key "\C-p" 'latex-math-preview-save-image-file)
+;;            (YaTeX-define-key "j" 'latex-math-preview-insert-symbol)
 ;;            (YaTeX-define-key "\C-j" 'latex-math-preview-last-symbol-again)))
 ;;   (setq latex-math-preview-in-math-mode-p-func 'YaTeX-in-math-mode-p)
 ;; 
@@ -69,6 +71,7 @@
 ;; So you may use YaTeX-in-math-mode-p alternatively.
 ;;
 ;; This setting almost binds latex-math-preview-expression to "C-c p",
+;; latex-math-preview-save-image-file to "C-c C-p",
 ;; latex-math-preview-insert-symbol to "C-c j"
 ;; and latex-math-preview-last-symbol-again to "C-c C-j".
 
@@ -190,6 +193,8 @@
 ;; on the head of buffer.
 
 ;; ChangeLog:
+;; 2009/08/07 version 0.3.2 yamaguchi
+;;     Bug fix.
 ;; 2009/08/06 version 0.3.1 yamaguchi
 ;;     New function `latex-math-preview-save-image-file'.
 ;; 2009/08/06 version 0.3.0 yamaguchi
@@ -848,7 +853,7 @@ buffer is left showing the messages and the return is nil."
 
 (defun latex-math-preview-cut-mathematical-expression (&optional remove-num-expression)
   (let ((str))
-    (if transient-mark-mode
+    (if (and transient-mark-mode mark-active)
 	(setq str (buffer-substring (region-beginning) (region-end)))
       ;; If you use (region-active-p), then the program can not work on emacs 22.
       (setq str (thing-at-point 'latex-math)))
@@ -877,7 +882,7 @@ the notations which are stored in `latex-math-preview-match-expression'."
       (message "Not in a TeX mathematical expression."))))
 
 (defun latex-math-preview-save-image-file (output)
-  (interactive "FSave as \(\"*.png\" or \"*.exp\"\):")
+  (interactive "FSave as \(\"*.png\" or \"*.eps\"\):")
   (if (or (not (file-exists-p output)) (y-or-n-p "File exists. Overwrite? "))
       (let ((str (latex-math-preview-cut-mathematical-expression
 		  latex-math-preview-match-expression-remove-formula-number)))
@@ -939,9 +944,12 @@ If KEY is nil then all directories saving caches is deleted."
   (if key
       (dolist (name-and-sets latex-math-preview-list-name-symbol-datasets)
 	(if (eval `(assoc key ,(cdr name-and-sets)))
-	    (latex-math-preview-clear-tmp-directory
-	     (concat latex-math-preview-cache-directory-for-insertion "/" key))))
-    (latex-math-preview-clear-tmp-directory latex-math-preview-cache-directory-for-insertion)))
+	    (progn
+	      (latex-math-preview-clear-tmp-directory
+	       (concat latex-math-preview-cache-directory-for-insertion "/" key))
+	      (message "Finish deleting image caches of \"%s\"" key))))
+    (latex-math-preview-clear-tmp-directory latex-math-preview-cache-directory-for-insertion)
+    (message "Finish deleting all image caches.")))
 
 (defun latex-math-preview-make-symbol-candidate-image (latex-symbol dirpath packages num &optional math-sym-p)
   "Create a cache image from latex file for including LATEX-SYMBOL.
@@ -975,7 +983,8 @@ TYPE is 'math or 'text."
 	    (dolist (sym sym-set)
 	      (let ((math-exp (if (listp sym) (eval `(concat ,@sym)) sym)))
 		(latex-math-preview-make-symbol-candidate-image math-exp dirpath packages num (eq 'math type)))
-	      (setq num (1+ num)))))))))
+	      (setq num (1+ num)))))
+	(message "Finish making cache images of \"%s\"." key)))))
 
 (defun latex-math-preview-make-all-cache-images ()
   "Create all cache images."
@@ -984,7 +993,8 @@ TYPE is 'math or 'text."
     (let ((symbol-datasets (eval `,(cdr name-and-sets)))
 	  (type (car name-and-sets)))
       (dolist (dataset symbol-datasets)
-	(latex-math-preview-make-symbol-caches (car dataset) symbol-datasets type)))))
+	(latex-math-preview-make-symbol-caches (car dataset) symbol-datasets type))))
+  (message "Finish making all cache images."))
 
 (defun latex-math-preview-strings-and-images-sizes (imagepaths sym-set)
   "Look over cache images.
