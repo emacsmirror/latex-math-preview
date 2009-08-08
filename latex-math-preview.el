@@ -2,8 +2,10 @@
 
 ;; Author: Takayuki YAMAGUCHI <d@ytak.info>
 ;; Keywords: LaTeX TeX
-;; Version: 0.3.2
-;; Created: Fri Aug  7 13:40:33 2009
+;; Version: 0.3.3
+;; Created: Sat Aug  8 10:47:41 2009
+;; URL: http://www.emacswiki.org/latex-math-preview.el
+;; Site: http://www.emacswiki.org/LaTeXMathPreview
 
 ;; latex-math-preview.el is a modified version which is based on
 ;; tex-math-preview.el and has been created at July 2009.
@@ -30,34 +32,47 @@
 ;; this program. If not, see <http://www.gnu.org/licenses/>.
 
 ;;; Commentary:
-;; M-x `latex-math-preview-expression' previews mathematical expressions pointed
-;; by cursor in LaTeX files or selected strings at transient-mark-mode.
-;; The result of this command is shown in new buffer as image.
+;; latex-math-preview.el has the following three main commands.
 ;; 
-;; M-x latex-math-preview-insert-symbol displays list of symbols.
+;; M-x `latex-math-preview-expression' previews mathematical expressions pointed
+;; by cursor in LaTeX files or strings of selected region with transient-mark on.
+;; The result of this command is shown as image in new buffer.
+;; 
+;; M-x `latex-math-preview-insert-symbol' displays the list of LaTeX symbols.
 ;; Selecting a LaTeX symbol from it, you can insert it.
-;; M-x `latex-math-preview-insert-symbol' give you the list of mathematical
-;; symbols when the cursor is in mathematical expression.
-;; If the cursor is not in mathematical expression,
-;; this command shows the list of symbols for normal text.
-;; If you want to insert a mathematical symbol (not a mathematical symbol)
-;; anyway, you can excute `latex-math-preview-insert-mathematical-symbol'
-;; (`latex-math-preview-insert-text-symbol' respectively).
+;; Depending on whether cursor is in mathematical expression or not,
+;; this commands choose the symbol list.
+;; If you don't want to use the automatic selection,
+;; alternatively you may use M-x `latex-math-preview-insert-mathematical-symbol'
+;; and M-x `latex-math-preview-insert-text-symbol' for mathematical symbol
+;; and normal text symbol, respectively.
+;;
+;; M-x `latex-math-preview-save-image-file' make an image for the same object
+;; as `latex-math-preview-expression' and save it as a file which is png or eps.
+;; When making an image, this command may remove number of mathematical formulas.
 
 ;; Requirements;
-;; Emacs (version 22 or 23) on Linux or Meadow3 on Windows.
-;; dvipng
-;; latex or platex
+;;  - Emacs (version 22 or 23) on Linux or Meadow3 on Windows.
+;;  - dvipng
+;;  - dvips
+;;  - latex (or platex)
+;; 
+;; latex and dvipng is used for making preview image.
+;; dvips is for making eps image and not for previewing.
 
 ;;; Install:
-;; Put latex-math-preview.el to your load-path and
+;; Put latex-math-preview.el to your load-path of Emacs and
 ;; write the following code in ~/.emacs.el.
 ;; 
 ;;   (autoload 'latex-math-preview-expression "latex-math-preview" nil t)
 ;;   (autoload 'latex-math-preview-insert-symbol "latex-math-preview" nil t)
 ;;   (autoload 'latex-math-preview-save-image-file "latex-math-preview" nil t)
 ;; 
-;; For YaTeX mode, add the follwing to ~/.emacs.el if desired.
+;; Please set key bindings of TeX mode which you prefer if desired.
+
+;;; Install for YaTeX
+;; For YaTeX mode, in addition to above settings,
+;; you may add the follwing to ~/.emacs.el if desired.
 ;;
 ;;   (add-hook 'yatex-mode-hook
 ;;            '(lambda ()
@@ -75,33 +90,72 @@
 ;; latex-math-preview-insert-symbol to "C-c j"
 ;; and latex-math-preview-last-symbol-again to "C-c C-j".
 
+;;; Usage:
+;; * latex-math-preview-expression *
+;; If you type "M-x latex-math-preview-expression" when cursor points to 
+;; a mathematical expression, new buffer including an image is created.
+;; In this buffer, you check the result of LaTeX mathematical
+;; expression and type 'q' to exit the window.
+;; Also, you can preview the strings of selected region 
+;; if transient-mark is on (type "\C-@" twice).
+;; 
+;; In preview window, the following binded key is applicable.
+;;  q: exit preview buffer
+;;  Q: delete preview buffer
+;;  j: scroll up
+;;  k: scroll down
+;; 
+;; * latex-math-preview-insert-symbol *
+;; You can browse the list of LaTeX symbols if you execute 
+;; "M-x latex-math-preview-insert-symbol".
+;; Then you select the symbol by cursor which you want to insert and
+;; may type RET to insert it.
+;; When inserting symbols, you may look at the description of key map 
+;; on the head of buffer.
+;; 
+;; When you open viewing buffer, if there is not image caches then
+;; you want for a while until the program finish making images.
+;; Also, you can make all image caches by
+;; M-x `latex-math-preview-make-all-cache-images'.
+;; 
+;; C-u M-x `latex-math-preview-insert-symbol' asks you the page
+;; that you want to open before preview buffer is created.
+;; M-x `latex-math-preview-last-symbol-again' make you
+;; insert the last inserted symbol.
+;; Also, if you insert a symbol, not depending on the context, you can use
+;; M-x `latex-math-preview-mathematical-symbol-datasets' or
+;; M-x `latex-math-preview-insert-text-symbol'.
+;; 
+;; * latex-math-preview-save-image-file *
+;; First, M-x `latex-math-preview-save-image-file' asks you abount path of
+;; an outputted image. Then, you must input the path of which extention is
+;; '.png' or 'eps'. The program makes an image and you may get a desired one.
+
 ;;; Settings:
-;; * LaTeX template and dvipng *
-;; You can customize some variables.
-;; In particular, please set the value of the following variables
-;; according to your system if needed.
+;; * Path of programs *
+;; latex-math-preview.el uses 'latex', 'dvipng' and 'dvips'.
+;; So, if these programs are not in the load path of system or
+;; you want to use the different programs from the default,
+;; you need to the following variables according to your system.
 ;;  latex-math-preview-latex-command
 ;;  latex-math-preview-command-dvipng
-;;  latex-math-preview-latex-template-header
-;;  latex-math-preview-latex-template-usepackage
-;; 
-;; latex-math-preview-expression makes a temporary latex file and compiles it and 
-;; then gets a preview image by dvipng.
-;; latex-math-preview-latex-command is the path to command
-;; 'latex', 'platex' or etc.
-;; latex-math-preview-command-dvipng is the path to command 'dvipng'.
-;; The example of setting values for unix or linux is the following.
+;;  latex-math-preview-command-dvips
+;; For example,
 ;;  (setq latex-math-preview-latex-command "/usr/bin/platex")
 ;;  (setq latex-math-preview-command-dvipng "/usr/bin/dvipng")
-;;
-;; The construction of temporary latex file is the following.
+;;  (setq latex-math-preview-command-dvips "/usr/bin/dvips")
 ;; 
-;;   (part of latex-math-preview-latex-template-header
+;; * LaTeX template *
+;; latex-math-preview.el makes a temporary file and gets an image
+;; by commands 'latex' and 'dvipng'.
+;; The construction of a temporary latex file is the following.
+;; -------------------------------------------------------------------
+;;   (part of `latex-math-preview-latex-template-header'
 ;;    the default value is the following)
 ;;   \documentclass{article}
 ;;   \pagestyle{empty}
 ;;   
-;;   (part of latex-math-preview-latex-template-usepackage
+;;   (part of `latex-math-preview-latex-template-usepackage'
 ;;    the default value is the following)
 ;;   \usepackage{amsmath, amssymb, amsthm}
 ;;   
@@ -109,23 +163,36 @@
 ;;   (some mathematical expressions)
 ;;   \par
 ;;   \end{document}
-;;   
-;; So, if you can use some latex packages in temporary latex files,
-;; you should set the customized value to
-;; latex-math-preview-latex-template-usepackage.
-;; latex-math-preview-expression compiles a file like the above and
-;; the produced dvi file is converted to png by dvipng.
-;; Then this png file is shown in the buffer.
+;; -------------------------------------------------------------------
 ;; 
-;; If you want to set the options for dvipng, you may set some variables.
-;; latex-math-preview-dvipng-option is used as options of dvipng.
-;; latex-math-preview-image-foreground-color and
-;; latex-math-preview-image-background-color define the foreground and
-;; background colors of png images respectively.
-;; If these variables are nil, these colors are the same as it of default face.
+;; If you can use some latex packages or change the header in temporary
+;; latex files, you should set the customized value to
+;; `latex-math-preview-latex-template-usepackage' or
+;; `latex-math-preview-latex-template-header'.
+;; The following variables is prepared for making image files.
+;;  - `latex-math-preview-latex-make-png-file-template-header'
+;;  - `latex-math-preview-latex-make-png-file-template-usepackage'
+;;  - `latex-math-preview-latex-make-eps-file-template-header'
+;;  - `latex-math-preview-latex-make-eps-file-template-usepackage'
+;; 
+;; * Options of commands *
+;; The options of 'dvipng'  is set by `latex-math-preview-dvipng-option'
+;; for previewing.
+;; In particular, the color options of 'dvipng' is determined by
+;; `latex-math-preview-image-foreground-color' and
+;; `latex-math-preview-image-background-color', which define
+;; the foreground and background colors of png images respectively.
+;; If these variables are nil, these colors are the same as it of
+;;  the default face.
+;; 
+;; The following variables of command options is prepared for
+;; making image files.
+;;  - `latex-math-preview-dvipng-option-make-png-file'
+;;  - `latex-math-preview-dvips-option-make-eps-file'
 ;; 
 ;; * Matching mathematical expression *
-;; The default setting supports the following LaTeX mathematical
+;; When you make preview images, 
+;; the default setting supports the following LaTeX mathematical
 ;; expressions for "M-x latex-math-preview-expression".
 ;;  $ ... $
 ;;  $$ ... $$
@@ -156,43 +223,9 @@
 ;; (setq latex-math-preview-cache-directory-for-insertion
 ;;       "cache directory in your system")
 
-;;; Usage:
-;; * latex-math-preview-expression *
-;; If you type "M-x latex-math-preview-expression" when cursor points to 
-;; a mathematical expression, new buffer including an image
-;; is created when you have configuration to use png file.
-;; In this buffer, you check the result of LaTeX mathematical
-;; expression and type 'q' to exit the window.
-;; 
-;; * latex-math-preview-insert-symbol *
-;; You can browse the list of LaTeX symbols if you execute 
-;; "M-x latex-math-preview-insert-symbol".
-;; Then you select the symbol by cursor which you want to insert and
-;; may type RET to insert it.
-;; When you open viewing buffer, if there is not image caches then
-;; you want for a while until the program finish making images.
-;; Also, you can make all image caches by
-;; "M-x latex-math-preview-make-all-cache-images".
-;; "C-u M-x latex-math-preview-insert-symbol" asks you the page
-;; that you want to open before preview buffer is created.
-;; "M-x latex-math-preview-last-symbol-again" make you
-;; insert the last inserted symbol.
-;; Also, depending on the situation, you can execute
-;; "M-x latex-math-preview-mathematical-symbol-datasets" or
-;; "M-x latex-math-preview-insert-text-symbol".
-
-;;; Keymap:
-;; In preview window for mathematical expression, the following binded key
-;; is applicable.
-;;  q: exit preview buffer
-;;  Q: delete preview buffer
-;;  j: scroll up
-;;  k: scroll down
-;; 
-;; When inserting symbols, you may look at the description of key map 
-;; on the head of buffer.
-
 ;; ChangeLog:
+;; 2009/08/08 version 0.3.3 yamaguchi
+;;     Add detailed commentary.
 ;; 2009/08/07 version 0.3.2 yamaguchi
 ;;     Bug fix.
 ;; 2009/08/06 version 0.3.1 yamaguchi
