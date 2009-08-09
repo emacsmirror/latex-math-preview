@@ -129,14 +129,14 @@
 ;; * latex-math-preview-save-image-file *
 ;; First, M-x `latex-math-preview-save-image-file' asks you abount path of
 ;; an outputted image. Then, you must input the path of which extention is
-;; '.png' or 'eps'. The program makes an image and you may get a desired one.
+;; 'png' or 'eps'. The program makes an image and you may get a desired one.
 
 ;;; Settings:
 ;; * Path of programs *
 ;; latex-math-preview.el uses 'latex', 'dvipng' and 'dvips'.
 ;; So, if these programs are not in the load path of system or
 ;; you want to use the different programs from the default,
-;; you need to the following variables according to your system.
+;; you need to change the following variables according to your system.
 ;;  latex-math-preview-latex-command
 ;;  latex-math-preview-command-dvipng
 ;;  latex-math-preview-command-dvips
