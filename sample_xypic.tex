@@ -1,0 +1,74 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage[all]{xy}
+
+\begin{document}
+
+\[
+\xymatrix{
+& A & \\
+& M \ar[u]_h & \\
+M_i \ar[rr]_{\varphi_{ji}} \ar[ruu]^{f_i} \ar[ru]_{\varphi} & & M_j \ar[luu]_{f_i} \ar[lu]^{\varphi_j} \\
+}
+\]
+
+\[
+\xymatrix{
+A \ar[r] |f & B\\
+}
+\]
+
+\[
+\xymatrix{
+A \ar[d]_{\varphi} \ar[r]^f \ar@{}[dr]|\circlearrowleft & B \ar[d]^{\psi} \\
+X \ar[r]^g & Y \\
+}
+\]
+
+\[
+\xymatrix{A\ar[r]^(0.32){f} & \Phi(\Psi_{a,b}B)}
+\]
+
+\[
+\xymatrix {
+& \ar[r] &
+*++[o][F-]{q_0} \ar@(ur,ul)_1 \ar[r]^0 &
+*++[o][F-]{q_2} \ar@(ur,ul)_1 \ar[r]^1 &
+*++[o][F=]{q_1} \ar@(dr,ur)_{0,1}
+}
+\]
+
+\[
+    \xygraph{
+        {A_0} : [r] {A_1} : [r] {A_2}
+    }
+\]
+
+\[
+    \xygraph{
+        {A_0}
+        (
+            :[ru] {A_1},
+            :[rd] {A_2}
+        )
+    }
+\]
+
+\[
+ \xygraph{
+    \bullet ([]!{+(0,-.3)} {\alpha_1}) - [r]
+    \bullet ([]!{+(0,-.3)} {\alpha_2}) - [r] \cdots - [r]
+    \bullet ([]!{+(0,-.3)} {\alpha_{n - 1}}) - [r]
+    \bullet ([]!{+(0,-.3)} {\alpha_n})}
+\]
+
+\[
+    \begin{xy}
+    (0,0)="A"*{A},+/r1cm/="B"*{B},
+    "A"+<1.5cm,1cm>="C"*{C}
+    \ar "A"+/r.2cm/;"B"+/l.2cm/
+    \ar@/^/ "A"+<.2cm,.2cm>;"C"+/l.2cm/
+    \end{xy}
+\]
+
+\end{document}
