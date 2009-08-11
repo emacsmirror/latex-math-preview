@@ -2,8 +2,8 @@
 
 ;; Author: Takayuki YAMAGUCHI <d@ytak.info>
 ;; Keywords: LaTeX TeX
-;; Version: 0.3.3
-;; Created: Sat Aug  8 10:47:41 2009
+;; Version: 0.3.4
+;; Created: Tue Aug 11 21:47:15 2009
 ;; URL: http://www.emacswiki.org/latex-math-preview.el
 ;; Site: http://www.emacswiki.org/LaTeXMathPreview
 
@@ -155,9 +155,9 @@
 ;;   \documentclass{article}
 ;;   \pagestyle{empty}
 ;;   
-;;   (part of `latex-math-preview-latex-template-usepackage'
-;;    the default value is the following)
-;;   \usepackage{amsmath, amssymb, amsthm}
+;;   (part of usepackages
+;;    the values of \usepackage searched from current buffer or
+;;    `latex-math-preview-latex-usepackage-for-not-tex-file')
 ;;   
 ;;   \begin{document}
 ;;   (some mathematical expressions)
@@ -165,15 +165,18 @@
 ;;   \end{document}
 ;; -------------------------------------------------------------------
 ;; 
-;; If you can use some latex packages or change the header in temporary
-;; latex files, you should set the customized value to
-;; `latex-math-preview-latex-template-usepackage' or
+;; If you can change the header in temporary latex files,
+;; you should set the customized value to
 ;; `latex-math-preview-latex-template-header'.
+;; latex-math-preview searches '\usepackage' in current buffer and
+;; uses its value when making images.
+;; But when there is no '\usepackage' strings, alternatively
+;; `latex-math-preview-latex-usepackage-for-not-tex-file' is used.
+;; So you can set a preferd value to
+;; `latex-math-preview-latex-usepackage-for-not-tex-file'.
 ;; The following variables is prepared for making image files.
 ;;  - `latex-math-preview-latex-make-png-file-template-header'
-;;  - `latex-math-preview-latex-make-png-file-template-usepackage'
 ;;  - `latex-math-preview-latex-make-eps-file-template-header'
-;;  - `latex-math-preview-latex-make-eps-file-template-usepackage'
 ;; 
 ;; * Options of commands *
 ;; The options of 'dvipng'  is set by `latex-math-preview-dvipng-option'
@@ -224,6 +227,8 @@
 ;;       "cache directory in your system")
 
 ;; ChangeLog:
+;; 2009/08/11 version 0.3.4 yamaguchi
+;;     Add `latex-math-preview-search-header-usepackage'.
 ;; 2009/08/08 version 0.3.3 yamaguchi
 ;;     Add detailed commentary.
 ;; 2009/08/07 version 0.3.2 yamaguchi
@@ -303,7 +308,7 @@
   "\\documentclass{article}\n\\pagestyle{empty}\n"
   "Insert string to beginning of temporary latex file to make image.")
 
-(defvar latex-math-preview-latex-template-usepackage
+(defvar latex-math-preview-latex-usepackage-for-not-tex-file
   '("\\usepackage{amsmath, amssymb, amsthm}")
   "List of strings which are \\usepackage commands.")
 
@@ -315,17 +320,9 @@
   "\\documentclass{article}\n\\pagestyle{empty}\n"
   "Insert string to beginning of temporary latex file to make image.")
 
-(defvar latex-math-preview-latex-make-png-file-template-usepackage
-  '("\\usepackage{amsmath, amssymb, amsthm}")
-  "List of strings which are \\usepackage commands.")
-
 (defvar latex-math-preview-latex-make-eps-file-template-header
   "\\documentclass{article}\n\\pagestyle{empty}\n"
   "Insert string to beginning of temporary latex file to make image.")
-
-(defvar latex-math-preview-latex-make-eps-file-template-usepackage
-  '("\\usepackage{amsmath, amssymb, amsthm}")
-  "List of strings which are \\usepackage commands.")
 
 (defvar latex-math-preview-dvipng-option-make-png-file
   '("-x" "1728" "-T" "tight")
@@ -705,6 +702,18 @@ If you use YaTeX mode then the recommended value of this variable is YaTeX-in-ma
 
 ;;-----------------------------------------------------------------------------
 
+(defun latex-math-preview-search-header-usepackage ()
+  "Return list of \\usepackage which is used in current buffer."
+  (save-excursion
+    (let ((cmds) (beg-doc))
+      (goto-char (point-min))
+      (if (search-forward "\\begin{document}" nil t)
+	  (setq beg-doc (point)) (setq beg-doc (point-max)))
+      (goto-char (point-min))
+      (while (re-search-forward "\\\\usepackage[^}]*}" beg-doc t)
+	(add-to-list 'cmds (match-string 0)))
+      cmds)))
+
 (defun latex-math-preview-bounds-of-latex-math ()
   "A `bounds-of-thing-at-point' function for a LaTeX mathematical expression.
 See `latex-math-preview-match-expression' for what's matched.
@@ -757,7 +766,8 @@ If you use YaTeX, then you should use YaTeX-in-math-mode-p alternatively."
   "Make temporary tex file including MATH-EXP in TMPDIR and compile it."
   (let* ((dot-tex (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".tex"))
 	 (dot-dvi (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".dvi"))
-	 (usepck (or usepackages latex-math-preview-latex-template-usepackage))
+	 (usepck (or usepackages (latex-math-preview-search-header-usepackage)
+		     latex-math-preview-latex-usepackage-for-not-tex-file))
 	 (tempfile-str (concat template-header
 			       (if usepck (mapconcat 'identity usepck "\n") "")
 			       "\n\\begin{document}\n" math-exp "\n\\par\n\\end{document}\n")))
@@ -926,15 +936,13 @@ the notations which are stored in `latex-math-preview-match-expression'."
 		     (setq result (latex-math-preview-dvi-to-png-for-save 
 				   (latex-math-preview-make-dvi-file
 				    latex-math-dir str
-				    latex-math-preview-latex-make-png-file-template-header
-				    latex-math-preview-latex-make-png-file-template-usepackage) 
+				    latex-math-preview-latex-make-png-file-template-header)
 				   output)))
 		    ((string-match "\\.eps" output)
 		     (setq result (latex-math-preview-dvi-to-eps-for-save 
 				   (latex-math-preview-make-dvi-file
 				    latex-math-dir str
-				    latex-math-preview-latex-make-eps-file-template-header
-				    latex-math-preview-latex-make-eps-file-template-usepackage)
+				    latex-math-preview-latex-make-eps-file-template-header)
 				   output))
 
 		     (if (and result latex-math-preview-outline-eps-func)
