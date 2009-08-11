@@ -2,8 +2,8 @@
 
 ;; Author: Takayuki YAMAGUCHI <d@ytak.info>
 ;; Keywords: LaTeX TeX
-;; Version: 0.3.4
-;; Created: Tue Aug 11 21:47:15 2009
+;; Version: 0.3.5
+;; Created: Wed Aug 12 07:38:44 2009
 ;; URL: http://www.emacswiki.org/latex-math-preview.el
 ;; Site: http://www.emacswiki.org/LaTeXMathPreview
 
@@ -227,6 +227,8 @@
 ;;       "cache directory in your system")
 
 ;; ChangeLog:
+;; 2009/08/12 version 0.3.5 yamaguchi
+;;     Display error message of TeX processing.
 ;; 2009/08/11 version 0.3.4 yamaguchi
 ;;     Add `latex-math-preview-search-header-usepackage'.
 ;; 2009/08/08 version 0.3.3 yamaguchi
@@ -772,17 +774,21 @@ If you use YaTeX, then you should use YaTeX-in-math-mode-p alternatively."
 			       (if usepck (mapconcat 'identity usepck "\n") "")
 			       "\n\\begin{document}\n" math-exp "\n\\par\n\\end{document}\n")))
     (with-temp-file dot-tex (insert tempfile-str))
-    (if (not (eq 0 (call-process latex-math-preview-latex-command nil nil nil
+    (if (not (eq 0 (call-process latex-math-preview-latex-command nil 
+				 latex-math-preview-tex-processing-error-buffer-name nil
 				 (concat "-output-directory=" latex-math-dir) dot-tex)))
 	(progn
 	  (with-current-buffer (get-buffer-create latex-math-preview-tex-processing-error-buffer-name)
-	    (goto-char (point-max))
-	    (insert "%" (make-string 5 ?-) " Created by latex-math-preview.el at "
+	    (goto-char (point-min))
+	    (insert "% " (make-string 5 ?-) " Created by latex-math-preview.el at "
 		    (format-time-string "%Y/%m/%d %H:%M:%S") " " (make-string 5 ?-) "\n")
 	    (insert tempfile-str)
-	    (goto-char (point-max)))
+	    (insert "\n% " (make-string 5 ?-) "Error message by \"" 
+		    latex-math-preview-latex-command "\" " (make-string 5 ?-) "\n")
+	    (goto-char (point-min)))
 	  (pop-to-buffer latex-math-preview-tex-processing-error-buffer-name)
 	  (signal 'tex-processing-error '("TeX processing error")))
+      (kill-buffer latex-math-preview-tex-processing-error-buffer-name)
       dot-dvi)))
 
 (defun latex-math-preview-clear-tmp-directory (dir)
