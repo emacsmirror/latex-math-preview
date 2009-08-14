@@ -2,8 +2,8 @@
 
 ;; Author: Takayuki YAMAGUCHI <d@ytak.info>
 ;; Keywords: LaTeX TeX
-;; Version: 0.3.6
-;; Created: Thu Aug 13 08:37:46 2009
+;; Version: 0.3.7
+;; Created: Fri Aug 14 14:12:22 2009
 ;; URL: http://www.emacswiki.org/latex-math-preview.el
 ;; Site: http://www.emacswiki.org/LaTeXMathPreview
 
@@ -227,6 +227,8 @@
 ;;       "cache directory in your system")
 
 ;; ChangeLog:
+;; 2009/08/14 version 0.3.7 yamaguchi
+;;     Bug fix of `latex-math-preview-search-header-usepackage'.
 ;; 2009/08/13 version 0.3.6 yamaguchi
 ;;     Bug fix of `latex-math-preview-search-header-usepackage'.
 ;; 2009/08/12 version 0.3.5 yamaguchi
@@ -716,9 +718,11 @@ If you use YaTeX mode then the recommended value of this variable is YaTeX-in-ma
       (goto-char (point-min))
       (while (re-search-forward "\\\\usepackage[^}]*}" beg-doc t)
 	(setq tmp-str (match-string 0))
+	;; (add-to-list 'cmds tmp-str)
 	(save-excursion 
-	  (if (not (re-search-backward "^\\|[^\\\\]%" (line-beginning-position) t))
-	      (add-to-list 'cmds tmp-str))))
+	  (if (not (re-search-backward "\\(^\\|[^\\\\]\\)%" (line-beginning-position) t))
+	      (add-to-list 'cmds tmp-str)))
+	)
       cmds)))
 
 (defun latex-math-preview-bounds-of-latex-math ()
