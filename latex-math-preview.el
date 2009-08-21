@@ -2,8 +2,8 @@
 
 ;; Author: Takayuki YAMAGUCHI <d@ytak.info>
 ;; Keywords: LaTeX TeX
-;; Version: 0.3.7
-;; Created: Fri Aug 14 14:12:22 2009
+;; Version: 0.3.8
+;; Created: Fri Aug 21 12:47:06 2009
 ;; URL: http://www.emacswiki.org/latex-math-preview.el
 ;; Site: http://www.emacswiki.org/LaTeXMathPreview
 
@@ -227,6 +227,8 @@
 ;;       "cache directory in your system")
 
 ;; ChangeLog:
+;; 2009/08/21 version 0.3.8 yamaguchi
+;;     Some bug fixes.
 ;; 2009/08/14 version 0.3.7 yamaguchi
 ;;     Bug fix of `latex-math-preview-search-header-usepackage'.
 ;; 2009/08/13 version 0.3.6 yamaguchi
@@ -587,7 +589,7 @@ StringA and StringB.")
        ("\\dddot{" "x" "}") ("\\ddddot{" "x" "}"))))
     ("Decoration"
      ("decoration 1" nil
-      (("\\overline{" "xy" "}") "\\underline{xy}" ("\\widehat{" "xy" "}")
+      (("\\overline{" "xy" "}") ("\\underline{" "xy" "}") ("\\widehat{" "xy" "}")
        ("\\widetilde{" "xy" "}") ("\\overbrace{" "xy" "}")
        ("\\underbrace{" "xy" "}") ("\\overrightarrow{" "\\mathrm{OA}" "}")
        ("\\overleftarrow{" "\\mathrm{OA}" "}") ("\\stackrel{" "f" "}{\\to}")
@@ -850,8 +852,8 @@ This can be used in `latex-math-preview-function', but it requires:
 	    (use-local-map latex-math-preview-expression-map)
 	    (setq mode-name "LaTeXPreview")
 	    )
-	  (pop-to-buffer latex-math-preview-expression-buffer-name)
-	  ))))
+	  (pop-to-buffer latex-math-preview-expression-buffer-name))
+      (message "Can not create a png file."))))
 
 (defun latex-math-preview-get-dvipng-color-option ()
   "Get string for dvipng options '-bg' and '-fg'."
@@ -969,7 +971,8 @@ the notations which are stored in `latex-math-preview-match-expression'."
 		    (t (message "Invalid extention of output file.")))
 	      (if (not latex-math-preview-not-delete-tmpfile)
 		  (latex-math-preview-clear-tmp-directory latex-math-dir))
-	      (if result (message "Save image as %s" output)))
+	      (if result (message "Save image as %s" output)
+		(message "Can not create an image file.")))
 	  (message "Not in a TeX mathematical expression.")))
     (message "Stop making image.")))
 
