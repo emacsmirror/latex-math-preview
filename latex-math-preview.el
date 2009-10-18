@@ -2,8 +2,8 @@
 
 ;; Author: Takayuki YAMAGUCHI <d@ytak.info>
 ;; Keywords: LaTeX TeX
-;; Version: 0.3.8
-;; Created: Fri Aug 21 12:47:06 2009
+;; Version: 0.3.11
+;; Created: Sun Oct 18 16:50:02 2009
 ;; URL: http://www.emacswiki.org/latex-math-preview.el
 ;; Site: http://www.emacswiki.org/LaTeXMathPreview
 
@@ -227,6 +227,14 @@
 ;;       "cache directory in your system")
 
 ;; ChangeLog:
+;; 2009/10/18 version 0.3.11 yamaguchi
+;;     Change function latex-math-preview-bounds-of-latex-math
+;;     to distingush '$$ ... $$' from '$ ... $'.
+;; 2009/09/16 version 0.3.10 yamaguchi
+;;     Add new functions latex-math-preview-insert-isearch-forward and
+;;     latex-math-preview-insert-isearch-backward.
+;; 2009/08/27 version 0.3.9 yamaguchi
+;;     Fix bug that makes order of usepackage reverse.
 ;; 2009/08/21 version 0.3.8 yamaguchi
 ;;     Some bug fixes.
 ;; 2009/08/14 version 0.3.7 yamaguchi
@@ -698,6 +706,10 @@ If you use YaTeX mode then the recommended value of this variable is YaTeX-in-ma
     (define-key map (kbd "M-v") 'latex-math-preview-scroll-down)
     (define-key map (kbd "SPC") 'latex-math-preview-scroll-up)
     (define-key map (kbd "S-SPC") 'latex-math-preview-scroll-down)
+    (define-key map (kbd "s") 'latex-math-preview-insert-isearch-forward)
+    (define-key map (kbd "C-s") 'latex-math-preview-insert-isearch-forward)
+    (define-key map (kbd "r") 'latex-math-preview-insert-isearch-backward)
+    (define-key map (kbd "C-r") 'latex-math-preview-insert-isearch-backward)
     (define-key map (kbd "i") 'latex-math-preview-next-candidates-for-insertion)
     (define-key map (kbd "u") 'latex-math-preview-previous-candidates-for-insertion)
     (define-key map (kbd "C-d") 'latex-math-preview-delete-current-cache)
@@ -725,7 +737,7 @@ If you use YaTeX mode then the recommended value of this variable is YaTeX-in-ma
 	  (if (not (re-search-backward "\\(^\\|[^\\\\]\\)%" (line-beginning-position) t))
 	      (add-to-list 'cmds tmp-str)))
 	)
-      cmds)))
+      (nreverse cmds))))
 
 (defun latex-math-preview-bounds-of-latex-math ()
   "A `bounds-of-thing-at-point' function for a LaTeX mathematical expression.
@@ -754,7 +766,9 @@ no recognised expression at or surrounding point."
     (save-excursion
       (while (and (search-backward "$" nil t) ;; $ not preceded by \
                   (eq ?\\ (char-before))))
-      (when (looking-at "\\(\\$+\\(?:\\\\\\$\\|[^$]\\)+?\\$\\)")
+      (skip-chars-backward "$")
+      (when (or (looking-at "\\(\\$\\$\\(?:\\\\\\$\\|[^$]\\)+?\\$\\$\\)")
+		(looking-at "\\(\\$\\(?:\\\\\\$\\|[^$]\\)+?\\$\\)"))
         (setq beg (match-beginning 1) end (match-end 1))))
 
     (dolist (elem latex-math-preview-match-expression)
@@ -1450,6 +1464,28 @@ Return maximum size of images and maximum length of strings and images"
 	  (skip-chars-backward "^\t")
 	  (backward-char)
 	  (latex-math-preview-move-to-right-item)))))
+
+(defvar latex-math-preview-insert-isearch-map
+  (let ((map (copy-keymap isearch-mode-map)))
+    (define-key map (kbd "<return>") 'latex-math-preview-inseart-isearch-exit)
+    map)
+  "Keymap for latex-math-preview-insert-isearch.")
+
+(defun latex-math-preview-inseart-isearch-exit ()
+  "Search insertion item."
+  (interactive)
+  (latex-math-preview-set-overlay-for-selected-item)
+  (isearch-exit))
+
+(defun latex-math-preview-insert-isearch-forward ()
+  (interactive)
+  (let ((isearch-mode-map latex-math-preview-insert-isearch-map))
+    (isearch-forward)))
+
+(defun latex-math-preview-insert-isearch-backward ()
+  (interactive)
+  (let ((isearch-mode-map latex-math-preview-insert-isearch-map))
+    (isearch-backward)))
 
 (provide 'latex-math-preview)
 
