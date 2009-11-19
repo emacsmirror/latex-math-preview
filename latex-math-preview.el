@@ -408,9 +408,9 @@
     (0 . "\\\\begin{alignat\\(\\|\\*\\)}\\(\\(.\\|\n\\)*?\\)\\\\end{alignat\\(\\|\\*\\)}")
 
     )
-  "These eqpressions are used for matching to extract tex math expression.
-The elements of this list are list which is \(integer regular-expression\).
-The regular-expression matchs string including LaTeX mathematical expressions.
+  "We use these expressions when extracting a LaTeX mathematical expression.
+The elements of this list is the form which is a list of \(integer regular-expression\).
+The regular-expression matchs a string including LaTeX mathematical expressions.
 The integer is the number to access needed string from regular-expressin.")
 
 (defvar latex-math-preview-list-name-symbol-datasets
@@ -1467,11 +1467,11 @@ Return maximum size of images and maximum length of strings and images"
 
 (defvar latex-math-preview-insert-isearch-map
   (let ((map (copy-keymap isearch-mode-map)))
-    (define-key map (kbd "<return>") 'latex-math-preview-inseart-isearch-exit)
+    (define-key map (kbd "<return>") 'latex-math-preview-insert-isearch-exit)
     map)
   "Keymap for latex-math-preview-insert-isearch.")
 
-(defun latex-math-preview-inseart-isearch-exit ()
+(defun latex-math-preview-insert-isearch-exit ()
   "Search insertion item."
   (interactive)
   (latex-math-preview-set-overlay-for-selected-item)
