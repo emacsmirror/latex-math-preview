@@ -2,7 +2,7 @@
 
 ;; Author: Takayuki YAMAGUCHI <d@ytak.info>
 ;; Keywords: LaTeX TeX
-;; Version: 0.4.0
+;; Version: 0.4.1
 ;; Created: Tue Dec  8 21:12:27 2009
 ;; URL: http://www.emacswiki.org/latex-math-preview.el
 ;; Site: http://www.emacswiki.org/LaTeXMathPreview
@@ -227,6 +227,8 @@
 ;;       "cache directory in your system")
 
 ;; ChangeLog:
+;; 2009/12/09 version 0.4.1 yamaguchi
+;;     Add some key binding on latex-math-preview-expression-mode-map.
 ;; 2009/12/08 version 0.4.0 yamaguchi
 ;;     Use image-mode when previewing mathematical expressions.
 ;; 2009/10/18 version 0.3.11 yamaguchi
@@ -670,10 +672,14 @@ If you use YaTeX mode then the recommended value of this variable is YaTeX-in-ma
   "Major mode for latex-math-preview-expression. This mode is derived from image-mode."
   (define-key latex-math-preview-expression-mode-map "n" 'next-line)
   (define-key latex-math-preview-expression-mode-map "p" 'previous-line)
+  (define-key latex-math-preview-expression-mode-map "f" 'forward-char)
+  (define-key latex-math-preview-expression-mode-map "b" 'backward-char)
   (define-key latex-math-preview-expression-mode-map "j" 'next-line)
   (define-key latex-math-preview-expression-mode-map "k" 'previous-line)
   (define-key latex-math-preview-expression-mode-map "l" 'forward-char)
   (define-key latex-math-preview-expression-mode-map "h" 'backward-char)
+  (define-key latex-math-preview-expression-mode-map "o" 'delete-other-windows)
+  (define-key latex-math-preview-expression-mode-map "g" 'latex-math-preview-quit-window)
   (define-key latex-math-preview-expression-mode-map "q" 'latex-math-preview-quit-window)
   (define-key latex-math-preview-expression-mode-map "Q" 'latex-math-preview-delete-buffer))
 
