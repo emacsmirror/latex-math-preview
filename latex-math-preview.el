@@ -3,7 +3,7 @@
 ;; Author: Takayuki YAMAGUCHI <d@ytak.info>
 ;; Keywords: LaTeX TeX
 ;; Version: 0.4.1
-;; Created: Tue Dec  8 21:12:27 2009
+;; Created: Wed Dec  9 09:36:47 2009
 ;; URL: http://www.emacswiki.org/latex-math-preview.el
 ;; Site: http://www.emacswiki.org/LaTeXMathPreview
 
@@ -931,7 +931,9 @@ buffer is left showing the messages and the return is nil."
 (defun latex-math-preview-cut-mathematical-expression (&optional remove-num-expression)
   (let ((str))
     (if (and transient-mark-mode mark-active)
-	(setq str (buffer-substring (region-beginning) (region-end)))
+	(progn
+	  (setq str (buffer-substring (region-beginning) (region-end)))
+	  (setq mark-active nil))
       ;; If you use (region-active-p), then the program can not work on emacs 22.
       (setq str (thing-at-point 'latex-math)))
     (if (and str remove-num-expression)
