@@ -321,9 +321,6 @@
 (defvar latex-math-preview-latex-command
   "latex" "Path to latex.")
 
-(defvar latex-math-preview-command-dvipng
-  "dvipng" "Path to dvipng.")
-
 (defvar latex-math-preview-command-dvips
   "dvips" "Path to dvips.")
 
@@ -343,10 +340,6 @@
   '("\\usepackage{amsmath, amssymb, amsthm}")
   "List of strings which are \\usepackage commands.")
 
-(defvar latex-math-preview-dvipng-option
-  '("-x" "1728" "-T" "tight")
-  "Option of dvipng for previewing.")
-
 (defvar latex-math-preview-latex-make-png-file-template-header
   "\\documentclass{article}\n\\pagestyle{empty}\n"
   "Insert string to beginning of temporary latex file to make image.")
@@ -354,10 +347,6 @@
 (defvar latex-math-preview-latex-make-eps-file-template-header
   "\\documentclass{article}\n\\pagestyle{empty}\n"
   "Insert string to beginning of temporary latex file to make image.")
-
-(defvar latex-math-preview-dvipng-option-make-png-file
-  '("-x" "1728" "-T" "tight")
-  "Option of dvipng when making png file.")
 
 (defvar latex-math-preview-dvips-option-make-eps-file
   '("-E" "-Ppdf" "-x" "3000")
@@ -693,52 +682,226 @@ If you use YaTeX mode then the recommended value of this variable is YaTeX-in-ma
   (define-key latex-math-preview-expression-mode-map "q" 'latex-math-preview-quit-window)
   (define-key latex-math-preview-expression-mode-map "Q" 'latex-math-preview-delete-buffer))
 
-(defvar latex-math-preview-insert-symbol-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "q") 'latex-math-preview-quit-window)
-    (define-key map (kbd "Q") 'latex-math-preview-delete-buffer)
-    (define-key map (kbd "g") 'latex-math-preview-quit-window)
-    (define-key map (kbd "o") 'latex-math-preview-toggle-window-maximization)
-    (define-key map (kbd "c") 'latex-math-preview-symbols-of-other-page)
-    (define-key map (kbd "j") 'latex-math-preview-move-to-downward-item)
-    (define-key map (kbd "k") 'latex-math-preview-move-to-upward-item)
-    (define-key map (kbd "l") 'latex-math-preview-move-to-right-item)
-    (define-key map (kbd "h") 'latex-math-preview-move-to-left-item)
-    (define-key map (kbd "a") 'latex-math-preview-move-to-current-line-first-item)
-    (define-key map (kbd "e") 'latex-math-preview-move-to-current-line-last-item)
-    (define-key map (kbd "C-a") 'latex-math-preview-move-to-current-line-first-item)
-    (define-key map (kbd "C-e") 'latex-math-preview-move-to-current-line-last-item)
-    (define-key map (kbd "n") 'latex-math-preview-move-to-downward-item)
-    (define-key map (kbd "p") 'latex-math-preview-move-to-upward-item)
-    (define-key map (kbd "C-n") 'latex-math-preview-move-to-downward-item)
-    (define-key map (kbd "C-p") 'latex-math-preview-move-to-upward-item)
-    (define-key map (kbd "f") 'latex-math-preview-move-to-right-item)
-    (define-key map (kbd "b") 'latex-math-preview-move-to-left-item)
-    (define-key map (kbd "C-f") 'latex-math-preview-move-to-right-item)
-    (define-key map (kbd "C-b") 'latex-math-preview-move-to-left-item)
-    (define-key map (kbd "<down>") 'latex-math-preview-move-to-downward-item)
-    (define-key map (kbd "<up>") 'latex-math-preview-move-to-upward-item)
-    (define-key map (kbd "<right>") 'latex-math-preview-move-to-right-item)
-    (define-key map (kbd "<left>") 'latex-math-preview-move-to-left-item)
-    (define-key map (kbd "C-v") 'latex-math-preview-scroll-up)
-    (define-key map (kbd "M-v") 'latex-math-preview-scroll-down)
-    (define-key map (kbd "SPC") 'latex-math-preview-scroll-up)
-    (define-key map (kbd "S-SPC") 'latex-math-preview-scroll-down)
-    (define-key map (kbd "s") 'latex-math-preview-insert-isearch-forward)
-    (define-key map (kbd "C-s") 'latex-math-preview-insert-isearch-forward)
-    (define-key map (kbd "r") 'latex-math-preview-insert-isearch-backward)
-    (define-key map (kbd "C-r") 'latex-math-preview-insert-isearch-backward)
-    (define-key map (kbd "i") 'latex-math-preview-next-candidates-for-insertion)
-    (define-key map (kbd "u") 'latex-math-preview-previous-candidates-for-insertion)
-    (define-key map (kbd "C-d") 'latex-math-preview-delete-current-cache)
-    (define-key map (kbd "C-m") 'latex-math-preview-put-selected-candidate)
-    (define-key map (kbd "M-<") 'latex-math-preview-move-to-beginning-of-candidates)
-    (define-key map (kbd "M->") 'latex-math-preview-move-to-end-of-candidates)
-    (define-key map (kbd "<return>") 'latex-math-preview-put-selected-candidate)
-    map)
+(defvar latex-math-preview-insert-symbol-map nil
   "Keymap for insertion mode of latex-math-preview-insert-symbol.")
 
+(or latex-math-preview-insert-symbol-map
+    (let ((map (make-sparse-keymap)))
+      (define-key map (kbd "q") 'latex-math-preview-quit-window)
+      (define-key map (kbd "Q") 'latex-math-preview-delete-buffer)
+      (define-key map (kbd "g") 'latex-math-preview-quit-window)
+      (define-key map (kbd "o") 'latex-math-preview-toggle-window-maximization)
+      (define-key map (kbd "c") 'latex-math-preview-symbols-of-other-page)
+      (define-key map (kbd "j") 'latex-math-preview-move-to-downward-item)
+      (define-key map (kbd "k") 'latex-math-preview-move-to-upward-item)
+      (define-key map (kbd "l") 'latex-math-preview-move-to-right-item)
+      (define-key map (kbd "h") 'latex-math-preview-move-to-left-item)
+      (define-key map (kbd "a") 'latex-math-preview-move-to-current-line-first-item)
+      (define-key map (kbd "e") 'latex-math-preview-move-to-current-line-last-item)
+      (define-key map (kbd "C-a") 'latex-math-preview-move-to-current-line-first-item)
+      (define-key map (kbd "C-e") 'latex-math-preview-move-to-current-line-last-item)
+      (define-key map (kbd "n") 'latex-math-preview-move-to-downward-item)
+      (define-key map (kbd "p") 'latex-math-preview-move-to-upward-item)
+      (define-key map (kbd "C-n") 'latex-math-preview-move-to-downward-item)
+      (define-key map (kbd "C-p") 'latex-math-preview-move-to-upward-item)
+      (define-key map (kbd "f") 'latex-math-preview-move-to-right-item)
+      (define-key map (kbd "b") 'latex-math-preview-move-to-left-item)
+      (define-key map (kbd "C-f") 'latex-math-preview-move-to-right-item)
+      (define-key map (kbd "C-b") 'latex-math-preview-move-to-left-item)
+      (define-key map (kbd "<down>") 'latex-math-preview-move-to-downward-item)
+      (define-key map (kbd "<up>") 'latex-math-preview-move-to-upward-item)
+      (define-key map (kbd "<right>") 'latex-math-preview-move-to-right-item)
+      (define-key map (kbd "<left>") 'latex-math-preview-move-to-left-item)
+      (define-key map (kbd "C-v") 'latex-math-preview-scroll-up)
+      (define-key map (kbd "M-v") 'latex-math-preview-scroll-down)
+      (define-key map (kbd "SPC") 'latex-math-preview-scroll-up)
+      (define-key map (kbd "S-SPC") 'latex-math-preview-scroll-down)
+      (define-key map (kbd "s") 'latex-math-preview-insert-isearch-forward)
+      (define-key map (kbd "C-s") 'latex-math-preview-insert-isearch-forward)
+      (define-key map (kbd "r") 'latex-math-preview-insert-isearch-backward)
+      (define-key map (kbd "C-r") 'latex-math-preview-insert-isearch-backward)
+      (define-key map (kbd "i") 'latex-math-preview-next-candidates-for-insertion)
+      (define-key map (kbd "u") 'latex-math-preview-previous-candidates-for-insertion)
+      (define-key map (kbd "C-d") 'latex-math-preview-delete-current-cache)
+      (define-key map (kbd "C-m") 'latex-math-preview-put-selected-candidate)
+      (define-key map (kbd "M-<") 'latex-math-preview-move-to-beginning-of-candidates)
+      (define-key map (kbd "M->") 'latex-math-preview-move-to-end-of-candidates)
+      (define-key map (kbd "<return>") 'latex-math-preview-put-selected-candidate)
+      (define-key map (kbd "<mouse-1>") 'latex-math-preview-put-candidate-mouse-selecting)
+      (setq latex-math-preview-insert-symbol-map map)))
+
 ;;-----------------------------------------------------------------------------
+;; Convert image
+
+(defvar latex-math-preview-working-directory nil)
+(defvar latex-math-preview-command-buffer "*latex-math-preview-command*")
+(defvar latex-math-preview-trim-image nil)
+
+(defvar latex-math-preview-command-path-alist nil)
+(defvar latex-math-preview-command-option-alist
+  '((pdflatex-to-pdf "-output-format" "pdf") (pdflatex-to-dvi "-output-format" "dvi")
+    (dvipng "-x" "1728") (dvips-to-ps "-Ppdf") (dvips-to-eps "-Ppdf")
+    (gs-to-png
+     "-dSAFER" "-dNOPAUSE" "-sDEVICE=png16m" "-dTextAlphaBits=4" "-dBATCH" "-dGraphicsAlphaBits=4" "-dQUIET")))
+
+(defvar latex-math-preview-command-trim-option-alist
+  '((dvipng "-T" "tight") (dvips-to-ps "-E" "-x" "3000") (dvips-to-eps "-E" "-x" "3000") (convert "-trim")))
+
+(defvar latex-math-preview-command-output-extension-alist
+  '((latex . "dvi") (platex . "dvi") (dvipng . "png") (dvipdf . "pdf") (dvipdfm . "pdf") (dvipdfmx . "pdf")))
+
+(defun latex-math-preview-get-command-path (command-key)
+  (or (cdr (assoc command-key latex-math-preview-command-path-alist)) (symbol-name command-key)))
+
+(defun latex-math-preview-get-command-option (key)
+  (let ((args (cdr (assoc key latex-math-preview-command-option-alist))))
+    (if latex-math-preview-trim-image
+	(append args (cdr (assoc key latex-math-preview-command-trim-option-alist))) args)))
+
+(defun latex-math-preview-get-command-output-extension (key)
+  (or (cdr (assoc key latex-math-preview-command-output-extension-alist))
+      (let ((name (symbol-name key))) (if (string-match "-to-\\(.*\\)$" name) (match-string 1 name) nil))))
+
+(defun latex-math-preview-execute-command (command args)
+  (= 0 (apply 'call-process command nil latex-math-preview-command-buffer nil args)))
+
+(defun latex-math-preview-execute-latex-command (command input opts extension)
+  (let ((dir (or latex-math-preview-working-directory (file-name-directory input) ".")))
+    (if (latex-math-preview-execute-command command `(,@opts ,(concat "-output-directory=" dir) ,input))
+	(concat dir "/" (file-name-sans-extension (file-name-nondirectory input)) "." extension)
+      nil)))
+
+(defmacro latex-math-preview-define-latex-function (command)
+  `(defun ,(intern (concat "latex-math-preview-execute-" (symbol-name command))) (input)
+     (latex-math-preview-execute-latex-command
+      (latex-math-preview-get-command-path (quote ,(intern (car (split-string (symbol-name command) "-"))))) input
+      (latex-math-preview-get-command-option (quote ,command))
+      ,(latex-math-preview-get-command-output-extension command))))
+
+(latex-math-preview-define-latex-function latex)
+(latex-math-preview-define-latex-function platex)
+(latex-math-preview-define-latex-function pdflatex-to-dvi)
+(latex-math-preview-define-latex-function pdflatex-to-pdf)
+
+(defvar latex-math-preview-convert-dvipng-color-mode nil)
+
+(defun latex-math-preview-read-image-color-argument (prompt default-val)
+  (catch :get
+    (while t
+      (let ((val (read-from-minibuffer
+		  (concat prompt " [RGB] (default " (mapconcat 'identity default-val " ") "): "))))
+	(if (= (length val) 0) (setq val default-val) (setq val (split-string val " ")))
+	(catch :invalid-color
+	  (when (= (length val) 3)
+	    (dolist (s val)
+	      (let ((num (string-to-number s))) (when (or (< num 0.0) (> num 1.0)) (throw :invalid-color t))))
+	    (throw :get val)))
+	(message "Invalid color.")
+	(sleep-for 1)))))
+
+(defun latex-math-preview-argument-dvipng (command input)
+  (let* ((output (concat (file-name-sans-extension input) "."
+			 (latex-math-preview-get-command-output-extension command)))
+	 (args (append (latex-math-preview-get-command-option command)
+		       (list "-o" output input))))
+    (cond
+     ((eq 'read latex-math-preview-convert-dvipng-color-mode)
+      (setq args
+	    (append args (list "-bg" (concat "rgb " (mapconcat 'identity
+							       (latex-math-preview-read-image-color-argument
+								"Background" '("1.0" "1.0" "1.0")) " "))
+			       "-fg" (concat "rgb " (mapconcat 'identity
+							       (latex-math-preview-read-image-color-argument
+								"Foreground" '("0.0" "0.0" "0.0")) " "))))))
+     ((eq 'buffer latex-math-preview-convert-dvipng-color-mode)
+      (setq args
+	    (append args
+		    (or latex-math-preview-dvipng-color-option
+			(setq latex-math-preview-dvipng-color-option
+			      (latex-math-preview-get-dvipng-color-option)))))))
+    (cons output args)))
+
+(defun latex-math-preview-change-file-extension (command input)
+  (concat (file-name-sans-extension input) "." (latex-math-preview-get-command-output-extension command)))
+
+(defun latex-math-preview-argument-convert-dvi (command input)
+  (let* ((out (latex-math-preview-change-file-extension command input))
+	 (args (append (latex-math-preview-get-command-option command) (list "-o" out input))))
+    (cons out args)))
+
+(defun latex-math-preview-argument-dvipdf (command input)
+  (let* ((out (latex-math-preview-change-file-extension command input))
+	 (args (append (latex-math-preview-get-command-option command) (list input out))))
+    (cons out args)))
+
+(defun latex-math-preview-argument-gs-to-png (command input)
+  (let* ((out (latex-math-preview-change-file-extension command input))
+	 (args (append (latex-math-preview-get-command-option command)
+		       (list (concat "-r" (number-to-string latex-math-preview-gs-resolution))
+			     (concat "-sOutputFile=" out) input))))
+    (cons out args)))
+
+(defvar latex-math-preview-command-create-argument-alist
+  '((dvipng . latex-math-preview-argument-dvipng)
+    (dvips-to-ps . latex-math-preview-argument-convert-dvi)
+    (dvips-to-eps . latex-math-preview-argument-convert-dvi)
+    (dvipdf . latex-math-preview-argument-dvipdf)
+    (dvipdfm . latex-math-preview-argument-convert-dvi)
+    (dvipdfmx . latex-math-preview-argument-convert-dvi)
+    (gs-to-png . latex-math-preview-argument-gs-to-png)))
+
+(defun latex-math-preview-get-command-argument (command input)
+  (let ((func (cdr (assoc command latex-math-preview-command-create-argument-alist))))
+    (if func (funcall func command input) nil)))
+
+(defun latex-math-preview-execute-convert-command (command-path command input)
+  (let ((tmp (latex-math-preview-get-command-argument command input)))
+    (if (latex-math-preview-execute-command command-path (cdr tmp)) (car tmp) nil)))
+
+(defmacro latex-math-preview-define-convert-function (command)
+  `(defun ,(intern (concat "latex-math-preview-execute-" (symbol-name command))) (input)
+     (latex-math-preview-execute-convert-command
+      (latex-math-preview-get-command-path (quote ,(intern (car (split-string (symbol-name command) "-")))))
+      (quote ,command) input)))
+
+(latex-math-preview-define-convert-function dvipng)
+(latex-math-preview-define-convert-function dvips-to-ps)
+(latex-math-preview-define-convert-function dvips-to-eps)
+(latex-math-preview-define-convert-function dvipdf)
+(latex-math-preview-define-convert-function dvipdfm)
+(latex-math-preview-define-convert-function dvipdfmx)
+(latex-math-preview-define-convert-function gs-to-png)
+
+(defun latex-math-preview-successive-convert (input &rest convert-list)
+  (let ((product input))
+    (catch :no-output
+      (dolist (conv convert-list)
+	(setq product (funcall (intern (concat "latex-math-preview-execute-" (symbol-name conv))) product))
+	(if (not product) (throw :no-output nil))))
+    product))
+
+;; (defun latex-math-preview-convert-imagemagick-trim (input)
+;;   (let ((old (make-temp-name input)))
+;;     (rename-file input old)
+;;     (if (= 0 (apply 'call-process (car latex-math-preview-command-imagemagick-convert) nil
+;; 		    latex-math-preview-command-buffer nil (list "-trim" old input)))
+;; 	(progn
+;; 	  (delete-file old)
+;; 	  input)
+;;       (rename-file old input)
+;;       nil)))
+
+(defvar latex-math-preview-tex-to-png-for-preview
+  '(latex dvipng))
+
+(defvar latex-math-preview-tex-to-png-for-save
+  '(latex dvipng))
+
+(defvar latex-math-preview-tex-to-eps-for-save
+  '(latex dvips-to-eps))
+
+;;-----------------------------------------------------------------------------
+;; Search usepackage
 
 (defvar latex-math-preview-usepackage-cache nil)
 (make-variable-buffer-local 'latex-math-preview-usepackage-cache)
@@ -944,33 +1107,33 @@ This can be used in `latex-math-preview-function', but it requires:
   "Render dvi FILENAME to an Emacs image and return that.
 The \"dvipng\" program is used for drawing.  If it fails a shell
 buffer is left showing the messages and the return is nil."
+  (let ((latex-math-preview-convert-dvipng-color-mode 'buffer)
+	(latex-math-preview-trim-image t))
+    (let ((out (latex-math-preview-execute-dvipng filename)))
+      (if (and output (not (file-exists-p output)))
+	  (progn
+	    (rename-file out output)
+	    output)
+	out))))
 
-  (if (not latex-math-preview-dvipng-color-option)
-      (setq latex-math-preview-dvipng-color-option (latex-math-preview-get-dvipng-color-option)))
-  (let ((dot-png (or output (concat latex-math-dir "/"
-				    latex-math-preview-temporary-file-prefix ".png"))))
-    (if (eq 0 (eval `(call-process latex-math-preview-command-dvipng nil
-				   latex-math-preview-dvipng-log-buffer nil "-o" dot-png
-				   ,@latex-math-preview-dvipng-option
-				   ,@latex-math-preview-dvipng-color-option filename)))
-	dot-png
-      nil)))
+(defun latex-math-preview-convert-to-output-file (func input output)
+  (let ((out (funcall func input)))
+    (if (and out output (not (file-exists-p output)))
+	(progn
+	  (rename-file out output)
+	  output)
+      out)))
 
 (defun latex-math-preview-dvi-to-png-for-save (filename &optional output)
   "Convert dvi FILENAME to png and save as OUTPUT."
-  (let ((abs-path (expand-file-name output)))
-    (if (eq 0 (eval `(call-process latex-math-preview-command-dvipng nil
-				   latex-math-preview-dvipng-log-buffer nil "-o" abs-path
-				   ,@latex-math-preview-dvipng-option-make-png-file filename)))
-	abs-path nil)))
+  (let ((latex-math-preview-convert-dvipng-color-mode 'read)
+	(latex-math-preview-trim-image t))
+    (latex-math-preview-convert-to-output-file 'latex-math-preview-execute-dvipng filename output)))
 
 (defun latex-math-preview-dvi-to-eps-for-save (filename &optional output)
   "Convert dvi FILENAME to eps and save as OUTPUT."
-  (let ((abs-path (expand-file-name output)))
-    (if (eq 0 (eval `(call-process latex-math-preview-command-dvips nil
-				   latex-math-preview-dvipng-log-buffer nil "-o" abs-path
-				   ,@latex-math-preview-dvips-option-make-eps-file filename)))
-	abs-path nil)))
+  (let ((latex-math-preview-trim-image t))
+    (latex-math-preview-convert-to-output-file 'latex-math-preview-execute-dvips-to-eps filename output)))
 
 (defun latex-math-preview-cut-mathematical-expression (&optional remove-num-expression)
   (let ((str))
@@ -1372,6 +1535,13 @@ Return maximum size of images and maximum length of strings and images"
 
     (setcdr (assq latex-math-preview-current-insert-mode
 		  latex-math-preview-inserted-last-symbol) str)))
+
+(defun latex-math-preview-put-candidate-mouse-selecting (event)
+  "Insert mouse selecting candidate."
+  (interactive "e")
+  (mouse-set-point event)
+  (latex-math-preview-set-overlay-for-selected-item)
+  (latex-math-preview-put-selected-candidate))
 
 (defun latex-math-preview-delete-current-cache ()
   "Delete cache and make cache again."
