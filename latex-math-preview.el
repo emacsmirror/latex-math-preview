@@ -352,9 +352,6 @@
   '("-E" "-Ppdf" "-x" "3000")
   "Option of dvips when making eps file.")
 
-(defvar latex-math-preview-outline-eps-func nil
-  "If non-nil, eval this symbol to make eps file outline.")
-
 (defvar latex-math-preview-match-expression-remove-formula-number
   '("equation" "gather" "align" "alignat")
   "List of LaTeX enviroments string to remove number of formula when making image file.")
@@ -737,6 +734,8 @@ If you use YaTeX mode then the recommended value of this variable is YaTeX-in-ma
 (defvar latex-math-preview-command-buffer "*latex-math-preview-command*")
 (defvar latex-math-preview-trim-image nil)
 
+(defvar latex-math-preview-gs-resolution 140)
+
 (defvar latex-math-preview-command-path-alist nil)
 (defvar latex-math-preview-command-option-alist
   '((pdflatex-to-pdf "-output-format" "pdf") (pdflatex-to-dvi "-output-format" "dvi")
@@ -900,6 +899,9 @@ If you use YaTeX mode then the recommended value of this variable is YaTeX-in-ma
 (defvar latex-math-preview-tex-to-eps-for-save
   '(latex dvips-to-eps))
 
+(defvar latex-math-preview-beamer-to-png
+  '(platex dvipdfmx gs-to-png))
+
 ;;-----------------------------------------------------------------------------
 ;; Search usepackage
 
@@ -1004,32 +1006,39 @@ This function may make mistake when there is sequence of '$'.
 If you use YaTeX, then you should use YaTeX-in-math-mode-p alternatively."
   (thing-at-point 'latex-math))
 
-(defun latex-math-preview-make-dvi-file (tmpdir math-exp template-header &optional usepackages)
-  "Make temporary tex file including MATH-EXP in TMPDIR and compile it."
-  (let* ((dot-tex (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".tex"))
-	 (dot-dvi (concat latex-math-dir "/" latex-math-preview-temporary-file-prefix ".dvi"))
-	 (usepck (or usepackages (latex-math-preview-get-header-usepackage)
-		     latex-math-preview-latex-usepackage-for-not-tex-file))
-	 (tempfile-str (concat template-header
-			       (if usepck (mapconcat 'identity usepck "\n") "")
-			       "\n\\begin{document}\n" math-exp "\n\\par\n\\end{document}\n")))
-    (with-temp-file dot-tex (insert tempfile-str))
-    (if (not (eq 0 (call-process latex-math-preview-latex-command nil 
-				 latex-math-preview-tex-processing-error-buffer-name nil
-				 (concat "-output-directory=" latex-math-dir) dot-tex)))
-	(progn
-	  (with-current-buffer (get-buffer-create latex-math-preview-tex-processing-error-buffer-name)
-	    (goto-char (point-min))
-	    (insert "% " (make-string 5 ?-) " Created by latex-math-preview.el at "
-		    (format-time-string "%Y/%m/%d %H:%M:%S") " " (make-string 5 ?-) "\n")
-	    (insert tempfile-str)
-	    (insert "\n% " (make-string 5 ?-) "Error message by \"" 
-		    latex-math-preview-latex-command "\" " (make-string 5 ?-) "\n")
-	    (goto-char (point-min)))
-	  (pop-to-buffer latex-math-preview-tex-processing-error-buffer-name)
-	  (signal 'tex-processing-error '("TeX processing error")))
-      (kill-buffer latex-math-preview-tex-processing-error-buffer-name)
-      dot-dvi)))
+(defun latex-math-preview-create-temporary-tex-filename ()
+  (concat latex-math-preview-working-directory "/" latex-math-preview-temporary-file-prefix ".tex"))
+
+(defun latex-math-preview-make-temporary-tex-file (math-exp template-header usepackages)
+  (let ((dot-tex (latex-math-preview-create-temporary-tex-filename))
+	(usepck (or usepackages (latex-math-preview-get-header-usepackage)
+		    latex-math-preview-latex-usepackage-for-not-tex-file)))
+    (with-temp-file dot-tex
+      (insert (concat template-header
+		      (if usepck (mapconcat 'identity usepck "\n") "")
+		      "\n\\begin{document}\n" math-exp "\n\\par\n\\end{document}\n")))
+    dot-tex))
+
+(defun latex-math-preview-raise-can-not-create-image (dot-tex)
+  (with-current-buffer (get-buffer-create latex-math-preview-command-buffer)
+    (goto-char (point-min))
+    (insert "% " (make-string 5 ?-) " Created by latex-math-preview.el at "
+	    (format-time-string "%Y/%m/%d %H:%M:%S") " " (make-string 5 ?-) "\n")
+    (save-excursion
+      (insert "\n% " (make-string 5 ?-) " Error message " (make-string 5 ?-) "\n"))
+    (insert-file dot-tex)
+    (goto-char (point-min)))
+  (pop-to-buffer latex-math-preview-command-buffer)
+  (rename-buffer latex-math-preview-tex-processing-error-buffer-name)
+  (signal 'tex-processing-error '("TeX processing error")))
+
+(defun latex-math-preview-make-png-file (math-exp template-header &optional usepackages)
+  "Make temporary tex file including MATH-EXP and compile it."
+  (let ((dot-tex (latex-math-preview-make-temporary-tex-file math-exp template-header usepackages))
+	(latex-math-preview-convert-dvipng-color-mode 'buffer)
+	(latex-math-preview-trim-image t))
+    (let ((png (apply 'latex-math-preview-successive-convert dot-tex latex-math-preview-tex-to-png-for-preview)))
+      (or png (latex-math-preview-raise-can-not-create-image dot-tex)))))
 
 (defun latex-math-preview-clear-tmp-directory (dir)
   "Delete temporary directory and files contained in it."
@@ -1052,7 +1061,7 @@ If you use YaTeX, then you should use YaTeX-in-math-mode-p alternatively."
 ;;-----------------------------------------------------------------------------
 ;; view png in a buffer
 
-(defun latex-math-preview-png-image (dvifile)
+(defun latex-math-preview-png-image (image)
   "Display dvi DVIFILE as a png image in a buffer.
 This can be used in `latex-math-preview-function', but it requires:
 
@@ -1060,24 +1069,18 @@ This can be used in `latex-math-preview-function', but it requires:
 * a display which can show images (eg. X, not a tty)
 * Emacs built with the PNG image libraries"
 
-  (or (and (image-type-available-p 'png)
-           (display-images-p))
+  (or (and (image-type-available-p 'png) (display-images-p))
       (error "Cannot display PNG in this Emacs"))
-
-  (let ((image (latex-math-preview-dvi-to-png-for-previewing dvifile)))
-    (if image
-	(progn
-	  (with-current-buffer (get-buffer-create latex-math-preview-expression-buffer-name)
-	    (setq cursor-type nil)
-	    (let ((inhibit-read-only t))
-	      (setq buffer-read-only nil)
-	      (erase-buffer)
-	      (insert-file-contents image)
-	      (goto-char (point-min)))
-	    (latex-math-preview-expression-mode)
-	    (buffer-disable-undo))
-	  (pop-to-buffer latex-math-preview-expression-buffer-name))
-      (message "Can not create a png file."))))
+  (with-current-buffer (get-buffer-create latex-math-preview-expression-buffer-name)
+    (setq cursor-type nil)
+    (let ((inhibit-read-only t))
+      (setq buffer-read-only nil)
+      (erase-buffer)
+      (insert-file-contents image)
+      (goto-char (point-min)))
+    (latex-math-preview-expression-mode)
+    (buffer-disable-undo))
+  (pop-to-buffer latex-math-preview-expression-buffer-name))
 
 (defun latex-math-preview-get-dvipng-color-option ()
   "Get string for dvipng options '-bg' and '-fg'."
@@ -1103,37 +1106,13 @@ This can be used in `latex-math-preview-function', but it requires:
 		   (color-values (or latex-math-preview-image-foreground-color
 				     (face-foreground 'default))) " ")))))
 
-(defun latex-math-preview-dvi-to-png-for-previewing (filename &optional output)
-  "Render dvi FILENAME to an Emacs image and return that.
-The \"dvipng\" program is used for drawing.  If it fails a shell
-buffer is left showing the messages and the return is nil."
-  (let ((latex-math-preview-convert-dvipng-color-mode 'buffer)
-	(latex-math-preview-trim-image t))
-    (let ((out (latex-math-preview-execute-dvipng filename)))
-      (if (and output (not (file-exists-p output)))
-	  (progn
-	    (rename-file out output)
-	    output)
-	out))))
-
-(defun latex-math-preview-convert-to-output-file (func input output)
-  (let ((out (funcall func input)))
+(defun latex-math-preview-convert-to-output-file (func args output)
+  (let ((out (apply func args)))
     (if (and out output (not (file-exists-p output)))
 	(progn
 	  (rename-file out output)
 	  output)
       out)))
-
-(defun latex-math-preview-dvi-to-png-for-save (filename &optional output)
-  "Convert dvi FILENAME to png and save as OUTPUT."
-  (let ((latex-math-preview-convert-dvipng-color-mode 'read)
-	(latex-math-preview-trim-image t))
-    (latex-math-preview-convert-to-output-file 'latex-math-preview-execute-dvipng filename output)))
-
-(defun latex-math-preview-dvi-to-eps-for-save (filename &optional output)
-  "Convert dvi FILENAME to eps and save as OUTPUT."
-  (let ((latex-math-preview-trim-image t))
-    (latex-math-preview-convert-to-output-file 'latex-math-preview-execute-dvips-to-eps filename output)))
 
 (defun latex-math-preview-cut-mathematical-expression (&optional remove-num-expression)
   (let ((str))
@@ -1159,13 +1138,31 @@ the notations which are stored in `latex-math-preview-match-expression'."
     (if str
 	(progn
 	  (setq latex-math-preview-window-configuration (current-window-configuration))
-	  (let ((latex-math-dir (make-temp-file "latex-math-preview-" t)))
+	  (let ((latex-math-preview-working-directory (make-temp-file "latex-math-preview-" t)))
 	    (latex-math-preview-png-image
-	     (latex-math-preview-make-dvi-file
-	      latex-math-dir str latex-math-preview-latex-template-header))
+	     (latex-math-preview-make-png-file str latex-math-preview-latex-template-header))
 	    (if (not latex-math-preview-not-delete-tmpfile)
-		(latex-math-preview-clear-tmp-directory latex-math-dir))))
+		(latex-math-preview-clear-tmp-directory latex-math-preview-working-directory))))
       (message "Not in a TeX mathematical expression."))))
+
+(defun latex-math-preview-make-png-for-save (output math-exp template-header &optional usepackages)
+  "Create png image from MATH-EXP, TEMPLATE-HEADER, and USEPACKAGES and save as OUTPUT."
+  (let ((dot-tex (latex-math-preview-make-temporary-tex-file math-exp template-header usepackages))
+	(latex-math-preview-convert-dvipng-color-mode 'read)
+	(latex-math-preview-trim-image t))
+    (let ((png (latex-math-preview-convert-to-output-file
+		'latex-math-preview-successive-convert (cons dot-tex latex-math-preview-tex-to-png-for-save)
+		output)))
+      (or png (latex-math-preview-raise-can-not-create-image dot-tex)))))
+
+(defun latex-math-preview-make-eps-for-save (output math-exp template-header &optional usepackages)
+  "Create eps image from MATH-EXP, TEMPLATE-HEADER, and USEPACKAGES and save as OUTPUT."
+  (let ((dot-tex (latex-math-preview-make-temporary-tex-file math-exp template-header usepackages))
+	(latex-math-preview-trim-image t))
+    (let ((image (latex-math-preview-convert-to-output-file
+		'latex-math-preview-successive-convert (cons dot-tex latex-math-preview-tex-to-eps-for-save)
+		output)))
+      (or image (latex-math-preview-raise-can-not-create-image dot-tex)))))
 
 (defun latex-math-preview-save-image-file (output)
   (interactive "FSave as \(\"*.png\" or \"*.eps\"\):")
@@ -1173,30 +1170,17 @@ the notations which are stored in `latex-math-preview-match-expression'."
       (let ((str (latex-math-preview-cut-mathematical-expression
 		  latex-math-preview-match-expression-remove-formula-number)))
 	(if str
-	    (let ((latex-math-dir (make-temp-file "latex-math-preview-" t))
+	    (let ((latex-math-preview-working-directory (make-temp-file "latex-math-preview-" t))
 		  (dot-dvi) (result nil))
 	      (cond ((string-match "\\.png$" output)
-		     (setq result (latex-math-preview-dvi-to-png-for-save 
-				   (latex-math-preview-make-dvi-file
-				    latex-math-dir str
-				    latex-math-preview-latex-make-png-file-template-header)
-				   output)))
+		     (setq result (latex-math-preview-make-png-for-save
+				   output str latex-math-preview-latex-make-png-file-template-header)))
 		    ((string-match "\\.eps" output)
-		     (setq result (latex-math-preview-dvi-to-eps-for-save 
-				   (latex-math-preview-make-dvi-file
-				    latex-math-dir str
-				    latex-math-preview-latex-make-eps-file-template-header)
-				   output))
-
-		     (if (and result latex-math-preview-outline-eps-func)
-			 (let ((tmp-file (replace-regexp-in-string
-					  "\.eps$" (concat (format-time-string "%Y%m%d%H%M%S") ".eps") output)))
-			   (rename-file output tmp-file)
-			   (funcall latex-math-preview-outline-eps-func tmp-file output)
-			   (delete-file tmp-file))))
+		     (setq result (latex-math-preview-make-eps-for-save
+				   output str latex-math-preview-latex-make-eps-file-template-header)))
 		    (t (message "Invalid extention of output file.")))
 	      (if (not latex-math-preview-not-delete-tmpfile)
-		  (latex-math-preview-clear-tmp-directory latex-math-dir))
+		  (latex-math-preview-clear-tmp-directory latex-math-preview-working-directory))
 	      (if result (message "Save image as %s" output)
 		(message "Can not create an image file.")))
 	  (message "Not in a TeX mathematical expression.")))
@@ -1240,15 +1224,21 @@ If KEY is nil then all directories saving caches is deleted."
   "Create a cache image from latex file for including LATEX-SYMBOL.
 Image is saved in directory of which path is DIRPATH.
  NUM is used for distingushing other images."
-  (let ((latex-math-dir (make-temp-file "latex-math-preview-" t))
-	(path (concat dirpath "/" (format "%05d" num) "_"
-		      (format-time-string "%Y%m%d%H%M%S") ".png"))
+  (let ((latex-math-preview-working-directory (make-temp-file "latex-math-preview-" t))
+	(output (concat dirpath "/" (format "%05d" num) "_" (format-time-string "%Y%m%d%H%M%S") ".png"))
 	(latex-str (if math-sym-p (concat "$" latex-symbol "$") latex-symbol)))
-    (latex-math-preview-dvi-to-png-for-previewing
-     (latex-math-preview-make-dvi-file
-      latex-math-dir latex-str latex-math-preview-latex-template-header packages) path)
-    (latex-math-preview-clear-tmp-directory latex-math-dir)
-    path))
+    (let ((dot-tex (latex-math-preview-make-temporary-tex-file latex-str
+							       latex-math-preview-latex-template-header packages))
+	  (latex-math-preview-convert-dvipng-color-mode 'buffer)
+	  (latex-math-preview-trim-image t))
+      (let ((png (latex-math-preview-convert-to-output-file
+		  'latex-math-preview-successive-convert (cons dot-tex latex-math-preview-tex-to-png-for-preview)
+		  output)))
+	(if png
+	    (progn
+	      (latex-math-preview-clear-tmp-directory latex-math-preview-working-directory)
+	      png)
+	  (latex-math-preview-raise-can-not-create-image dot-tex))))))
 
 (defun latex-math-preview-make-symbol-caches (key symbol-datasets type)
   "Create cache images which are associated with KEY in directory of which name is KEY.
@@ -1705,6 +1695,46 @@ Return maximum size of images and maximum length of strings and images"
   (interactive)
   (let ((isearch-mode-map latex-math-preview-insert-isearch-map))
     (isearch-backward)))
+
+;;-----------------------------------------------------------------------------
+;; Preview beamer frame
+
+(defun latex-math-preview-search-beamer-frame-region ()
+  (save-excursion
+    (let ((start-point (point)) beg end)
+      (when (search-backward "\\begin{frame}" nil t)
+	(setq beg (point))
+	(if (and (search-forward "\\end{frame}" nil t) (< start-point (point)))
+	    (setq end (point))))
+      (if (and beg end) (buffer-substring-no-properties beg end) nil))))
+
+(defun latex-math-preview-search-beamer-preamble ()
+  (save-excursion
+    (let (preamble)
+      (goto-char (point-min))
+      (when (search-forward "\\begin{document}" nil t)
+	(search-backward "\\begin{document}" nil t)
+	(setq preamble (buffer-substring-no-properties (point-min) (point))))
+      preamble)))
+
+(defun latex-math-preview-make-temporary-beamer-tex-file ()
+  (let ((preamble (latex-math-preview-search-beamer-preamble))
+	(frame (latex-math-preview-search-beamer-frame-region)))
+    (if (and preamble frame)
+	(let ((latex-math-preview-working-directory (make-temp-file "latex-math-preview-" t)))
+	  (let ((dot-tex (latex-math-preview-create-temporary-tex-filename)))
+	    (with-temp-file dot-tex
+	      (insert preamble)
+	      (insert "\\begin{document}\n" frame "\n\\end{document}")
+	      dot-tex)))
+      nil)))
+
+(defun latex-math-preview-beamer-frame ()
+  (interactive)
+  (let ((dot-tex (latex-math-preview-make-temporary-beamer-tex-file)))
+    (if dot-tex
+	(let ((png (apply 'latex-math-preview-successive-convert dot-tex latex-math-preview-beamer-to-png)))
+	  (latex-math-preview-png-image png)))))
 
 (provide 'latex-math-preview)
 
