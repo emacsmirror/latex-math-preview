@@ -2,8 +2,8 @@
 
 ;; Author: Takayuki YAMAGUCHI <d@ytak.info>
 ;; Keywords: LaTeX TeX
-;; Version: 0.4.2
-;; Created: Wed Jan 20 22:17:54 2010
+;; Version: 0.5.0
+;; Created: Sun Aug 29 15:36:22 2010
 ;; URL: http://www.emacswiki.org/latex-math-preview.el
 ;; Site: http://www.emacswiki.org/LaTeXMathPreview
 
@@ -32,7 +32,9 @@
 ;; this program. If not, see <http://www.gnu.org/licenses/>.
 
 ;;; Commentary:
-;; latex-math-preview.el has the following three main commands.
+;; latex-math-preview creates images of particular region in LaTeX file
+;; and display them in emacs.
+;; latex-math-preview has the following main commands.
 ;; 
 ;; M-x `latex-math-preview-expression' previews mathematical expressions pointed
 ;; by cursor in LaTeX files or strings of selected region with transient-mark on.
@@ -42,12 +44,12 @@
 ;; Selecting a LaTeX symbol from it, you can insert it.
 ;; Depending on whether cursor is in mathematical expression or not,
 ;; this commands choose the symbol list.
-;; If you don't want to use the automatic selection,
+;; If you don't want to use the automatic mode selection,
 ;; alternatively you may use M-x `latex-math-preview-insert-mathematical-symbol'
 ;; and M-x `latex-math-preview-insert-text-symbol' for mathematical symbol
 ;; and normal text symbol, respectively.
 ;;
-;; M-x `latex-math-preview-save-image-file' make an image for the same object
+;; M-x `latex-math-preview-save-image-file' makes an image for the same object
 ;; as `latex-math-preview-expression' and save it as a file which is png or eps.
 ;; When making an image, this command may remove number of mathematical formulas.
 ;; 
@@ -55,31 +57,51 @@
 ;; the values of \usepackage for previewing.
 ;; If you want to reload this variable, you use
 ;; M-x `latex-math-preview-reload-usepackage'.
+;; 
+;; M-x `latex-math-preview-beamer-frame' makes an image of one frame of beamer,
+;; which is LaTeX style for presentation.
+;; This feature is experimental for now and it is possible not to work on your environment.
 
 ;; Requirements;
-;; You need to install the following softwares.
+;; Because latex-math-preview displays images in emacs,
+;; it is not work in emacs on terminal.
 ;; 
-;;  - Emacs (version 22 or 23) on Linux or Meadow3 on Windows.
+;; * Version of Emacs *
+;; The version of emacs is 22 or 23 on Linux.
+;; latex-math-preview is tested on Ubuntu 10.04.
+;; But on Meadow 3 on Windows latex-math-preview probably works.
+;; 
+;; * Image Conversion *
+;; latex-math-preview uses some commands to convert tex to png, tex to eps, and so on.
+;; Only for previewing mathematical expressions, latex-math-preview requires
+;; latex and dvipng commands.
+;; According to your environment and settings of latex-math-preview,
+;; latex-math-preview creates preview images by combining the following commands.
+;; 
 ;;  - dvipng
 ;;  - dvips
-;;  - latex (or platex)
-;; 
-;; latex and dvipng is used for making preview image.
-;; dvips is for making eps image and not for previewing.
+;;  - latex
+;;  - platex
+;;  - pdflatex
+;;  - dvipdf
+;;  - dvipdfm
+;;  - dvipdfmx
+;;  - gs
 
-;;; Install:
+;;; Install of Emacs Lisp:
+;; * Load latex-math-preview *
 ;; Put latex-math-preview.el to your load-path of Emacs and
 ;; write the following code in ~/.emacs.el.
 ;; 
 ;;   (autoload 'latex-math-preview-expression "latex-math-preview" nil t)
 ;;   (autoload 'latex-math-preview-insert-symbol "latex-math-preview" nil t)
 ;;   (autoload 'latex-math-preview-save-image-file "latex-math-preview" nil t)
+;;   (autoload 'latex-math-preview-beamer-frame "latex-math-preview" nil t)
 ;; 
+;; * Key Bindings *
 ;; Please set key bindings of TeX mode which you prefer if desired.
-
-;;; Install for YaTeX
-;; For YaTeX mode, in addition to above settings,
-;; you may add the follwing to ~/.emacs.el if desired.
+;; 
+;; For example, for YaTeX mode we add the following settings to ~/.emacs.el.
 ;;
 ;;   (add-hook 'yatex-mode-hook
 ;;            '(lambda ()
@@ -87,6 +109,7 @@
 ;;            (YaTeX-define-key "\C-p" 'latex-math-preview-save-image-file)
 ;;            (YaTeX-define-key "j" 'latex-math-preview-insert-symbol)
 ;;            (YaTeX-define-key "\C-j" 'latex-math-preview-last-symbol-again)))
+;;            (YaTeX-define-key "\C-b" 'latex-math-preview-beamer-frame)))
 ;;   (setq latex-math-preview-in-math-mode-p-func 'YaTeX-in-math-mode-p)
 ;; 
 ;; In particular case latex-math-preview-in-math-mode-p does not work well.
@@ -94,12 +117,24 @@
 ;;
 ;; This setting almost binds latex-math-preview-expression to "C-c p",
 ;; latex-math-preview-save-image-file to "C-c C-p",
-;; latex-math-preview-insert-symbol to "C-c j"
-;; and latex-math-preview-last-symbol-again to "C-c C-j".
+;; latex-math-preview-insert-symbol to "C-c j",
+;; latex-math-preview-last-symbol-again to "C-c C-j",
+;; and latex-math-preview-beamer-frame to "C-c C-b".
+;; 
+;; * Path of Programs *
+;; latex-math-preview.el uses 'latex', 'dvipng' and 'dvips'.
+;; If the programs (dvipng, dvips, latex, and so on) 
+;; are not in the load path of system or
+;; you want to use the different programs from the default,
+;; you need to change the variable `latex-math-preview-command-path-alist'.
+;; For example,
+;;    (setq latex-math-preview-command-path-alist
+;;          '((latex "/usr/bin/latex") (dvipng "/usr/bin/dvipng") (dvips "/usr/bin/dvips")))
+;; 
 
 ;;; Usage:
 ;; * latex-math-preview-expression *
-;; If you type "M-x latex-math-preview-expression" when cursor points to 
+;; If you type M-x `latex-math-preview-expression' when cursor points to 
 ;; a mathematical expression, new buffer including an image is created.
 ;; In this buffer, you check the result of LaTeX mathematical
 ;; expression and type 'q' to exit the window.
@@ -137,21 +172,14 @@
 ;; First, M-x `latex-math-preview-save-image-file' asks you abount path of
 ;; an outputted image. Then, you must input the path of which extention is
 ;; 'png' or 'eps'. The program makes an image and you may get a desired one.
+;; 
+;; * latex-math-preview-beamer-frame *
+;; If we execute M-x `latex-math-preview-beamer-frame'
+;; in \frame{ ... } or \begin{frame} ... \end{frame},
+;; we can preview particular one page of beamer presentation
+;; same as `latex-math-preview-expression'.
 
 ;;; Settings:
-;; * Path of programs *
-;; latex-math-preview.el uses 'latex', 'dvipng' and 'dvips'.
-;; So, if these programs are not in the load path of system or
-;; you want to use the different programs from the default,
-;; you need to change the following variables according to your system.
-;;  latex-math-preview-latex-command
-;;  latex-math-preview-command-dvipng
-;;  latex-math-preview-command-dvips
-;; For example,
-;;  (setq latex-math-preview-latex-command "/usr/bin/platex")
-;;  (setq latex-math-preview-command-dvipng "/usr/bin/dvipng")
-;;  (setq latex-math-preview-command-dvips "/usr/bin/dvips")
-;; 
 ;; * LaTeX template *
 ;; latex-math-preview.el makes a temporary file and gets an image
 ;; by commands 'latex' and 'dvipng'.
@@ -185,20 +213,54 @@
 ;;  - `latex-math-preview-latex-make-png-file-template-header'
 ;;  - `latex-math-preview-latex-make-eps-file-template-header'
 ;; 
-;; * Options of commands *
-;; The options of 'dvipng'  is set by `latex-math-preview-dvipng-option'
-;; for previewing.
-;; In particular, the color options of 'dvipng' is determined by
+;; * Conversion Process *
+;; The default value of `latex-math-preview-tex-to-png-for-preview' is
+;; 
+;;   (defvar latex-math-preview-tex-to-png-for-preview
+;;    '(latex dvipng))
+;; 
+;; This means when creating png images for preview latex-math-preview uses
+;; `latex-math-preview-execute-latex' (tex to dvi) and
+;; `latex-math-preview-execute-dvipng' (dvi to png) in series.
+;; If you use other programs to create png images, please edit this variable.
+;; For example, to use platex (tex to dvi), dvipdfmx (dvi to pdf), and gs (pdf to png),
+;; 
+;;   (defvar latex-math-preview-tex-to-png-for-preview
+;;    '(platex dvipdfmx gs-to-png))
+;; 
+;; The variables `latex-math-preview-tex-to-png-for-save', `latex-math-preview-tex-to-eps-for-save',
+;; and `latex-math-preview-beamer-to-png' is the same.
+;; The default functions we can uses to convert images are
+;;  - `latex-math-preview-execute-latex'
+;;  - `latex-math-preview-execute-platex'
+;;  - `latex-math-preview-execute-pdflatex-to-dvi'
+;;  - `latex-math-preview-execute-pdflatex-to-pdf'
+;;  - `latex-math-preview-execute-dvipdf'
+;;  - `latex-math-preview-execute-dvipdfm'
+;;  - `latex-math-preview-execute-dvipdfmx'
+;;  - `latex-math-preview-execute-dvipng'
+;;  - `latex-math-preview-execute-dvips-to-ps'
+;;  - `latex-math-preview-execute-dvips-to-eps'
+;;  - `latex-math-preview-execute-gs-to-png'
+;; 
+;; For japanese, we recommend the following settings to use platex:
+;;    (setq latex-math-preview-tex-to-png-for-preview '(platex dvipng))
+;;    (setq latex-math-preview-tex-to-png-for-save '(platex dvipng))
+;;    (setq latex-math-preview-tex-to-eps-for-save '(platex dvips-to-eps))
+;;    (setq latex-math-preview-beamer-to-png '(platex dvipdfmx gs-to-png))
+;; 
+;; * Options of Commands *
+;; The options of commands are specified by `latex-math-preview-command-option-alist' and
+;; the options for triming margins of images are specified by `latex-math-preview-command-trim-option-alist'.
+;; If you configure the commands, please modify these variables.
+;; Because this customize is advanced, we want you to refer to source code for details.
+;; 
+;; The color options of 'dvipng' is determined by
 ;; `latex-math-preview-image-foreground-color' and
 ;; `latex-math-preview-image-background-color', which define
 ;; the foreground and background colors of png images respectively.
 ;; If these variables are nil, these colors are the same as it of
-;;  the default face.
-;; 
-;; The following variables of command options is prepared for
-;; making image files.
-;;  - `latex-math-preview-dvipng-option-make-png-file'
-;;  - `latex-math-preview-dvips-option-make-eps-file'
+;; the default face.
 ;; 
 ;; * Matching mathematical expression *
 ;; When you make preview images, 
@@ -234,6 +296,9 @@
 ;;       "cache directory in your system")
 
 ;; ChangeLog:
+;; 2010/08/29 version 0.5.0 yamaguchi
+;;     Support beamer (add new command `latex-math-preview-beamer-frame').
+;;     Remove some functions and variables and add new functions and variables. 
 ;; 2010/01/20 version 0.4.2 yamaguchi
 ;;     Add buffer local variable `latex-math-preview-usepackage-cache'
 ;;     for splitted tex files.
@@ -347,10 +412,6 @@
 (defvar latex-math-preview-latex-make-eps-file-template-header
   "\\documentclass{article}\n\\pagestyle{empty}\n"
   "Insert string to beginning of temporary latex file to make image.")
-
-(defvar latex-math-preview-dvips-option-make-eps-file
-  '("-E" "-Ppdf" "-x" "3000")
-  "Option of dvips when making eps file.")
 
 (defvar latex-math-preview-match-expression-remove-formula-number
   '("equation" "gather" "align" "alignat")
@@ -730,24 +791,52 @@ If you use YaTeX mode then the recommended value of this variable is YaTeX-in-ma
 ;;-----------------------------------------------------------------------------
 ;; Convert image
 
-(defvar latex-math-preview-working-directory nil)
-(defvar latex-math-preview-command-buffer "*latex-math-preview-command*")
-(defvar latex-math-preview-trim-image nil)
+(defvar latex-math-preview-working-directory nil
+  "Working directory. This variable must not be set.")
 
-(defvar latex-math-preview-gs-resolution 140)
+(defvar latex-math-preview-command-buffer "*latex-math-preview-command*"
+  "Buffer name of command process.")
 
-(defvar latex-math-preview-command-path-alist nil)
+(defvar latex-math-preview-trim-image nil
+  "If this variable is t, trim margin when creating images.
+This variable must not be set.")
+
+(defvar latex-math-preview-gs-resolution 100
+  "Resolution for `latex-math-preview-execute-gs-to-png'.")
+
+(defvar latex-math-preview-command-path-alist nil
+  "List of pair of command and path.")
+
 (defvar latex-math-preview-command-option-alist
   '((pdflatex-to-pdf "-output-format" "pdf") (pdflatex-to-dvi "-output-format" "dvi")
     (dvipng "-x" "1728") (dvips-to-ps "-Ppdf") (dvips-to-eps "-Ppdf")
     (gs-to-png
-     "-dSAFER" "-dNOPAUSE" "-sDEVICE=png16m" "-dTextAlphaBits=4" "-dBATCH" "-dGraphicsAlphaBits=4" "-dQUIET")))
+     "-dSAFER" "-dNOPAUSE" "-sDEVICE=png16m" "-dTextAlphaBits=4" "-dBATCH" "-dGraphicsAlphaBits=4" "-dQUIET"))
+  "Options of commands.")
 
 (defvar latex-math-preview-command-trim-option-alist
-  '((dvipng "-T" "tight") (dvips-to-ps "-E" "-x" "3000") (dvips-to-eps "-E" "-x" "3000") (convert "-trim")))
+  '((dvipng "-T" "tight") (dvips-to-ps "-E" "-x" "3000") (dvips-to-eps "-E" "-x" "3000") (convert "-trim"))
+  "Options of commands to trim margin.")
 
 (defvar latex-math-preview-command-output-extension-alist
-  '((latex . "dvi") (platex . "dvi") (dvipng . "png") (dvipdf . "pdf") (dvipdfm . "pdf") (dvipdfmx . "pdf")))
+  '((latex . "dvi") (platex . "dvi") (dvipng . "png") (dvipdf . "pdf") (dvipdfm . "pdf") (dvipdfmx . "pdf"))
+  "List of command and extension of output file.")
+
+(defvar latex-math-preview-tex-to-png-for-preview
+  '(latex dvipng)
+  "Sequence of end of function names to create png image for preview.")
+
+(defvar latex-math-preview-tex-to-png-for-save
+  '(latex dvipng)
+  "Sequence of end of function names to create png image for save.")
+
+(defvar latex-math-preview-tex-to-eps-for-save
+  '(latex dvips-to-eps)
+  "Sequence of end of function names to create eps image for save.")
+
+(defvar latex-math-preview-beamer-to-png
+  '(pdflatex-to-pdf gs-to-png)
+  "Sequence of end of function names to create png image for previewing beamer page.")
 
 (defun latex-math-preview-get-command-path (command-key)
   (or (cdr (assoc command-key latex-math-preview-command-path-alist)) (symbol-name command-key)))
@@ -847,7 +936,8 @@ If you use YaTeX mode then the recommended value of this variable is YaTeX-in-ma
     (dvipdf . latex-math-preview-argument-dvipdf)
     (dvipdfm . latex-math-preview-argument-convert-dvi)
     (dvipdfmx . latex-math-preview-argument-convert-dvi)
-    (gs-to-png . latex-math-preview-argument-gs-to-png)))
+    (gs-to-png . latex-math-preview-argument-gs-to-png))
+  "List of command and function name to create arguments.")
 
 (defun latex-math-preview-get-command-argument (command input)
   (let ((func (cdr (assoc command latex-math-preview-command-create-argument-alist))))
@@ -889,18 +979,6 @@ If you use YaTeX mode then the recommended value of this variable is YaTeX-in-ma
 ;; 	  input)
 ;;       (rename-file old input)
 ;;       nil)))
-
-(defvar latex-math-preview-tex-to-png-for-preview
-  '(latex dvipng))
-
-(defvar latex-math-preview-tex-to-png-for-save
-  '(latex dvipng))
-
-(defvar latex-math-preview-tex-to-eps-for-save
-  '(latex dvips-to-eps))
-
-(defvar latex-math-preview-beamer-to-png
-  '(platex dvipdfmx gs-to-png))
 
 ;;-----------------------------------------------------------------------------
 ;; Search usepackage
@@ -1012,11 +1090,13 @@ If you use YaTeX, then you should use YaTeX-in-math-mode-p alternatively."
 (defun latex-math-preview-make-temporary-tex-file (math-exp template-header usepackages)
   (let ((dot-tex (latex-math-preview-create-temporary-tex-filename))
 	(usepck (or usepackages (latex-math-preview-get-header-usepackage)
-		    latex-math-preview-latex-usepackage-for-not-tex-file)))
+		    latex-math-preview-latex-usepackage-for-not-tex-file))
+	(coding-system buffer-file-coding-system))
     (with-temp-file dot-tex
       (insert (concat template-header
 		      (if usepck (mapconcat 'identity usepck "\n") "")
-		      "\n\\begin{document}\n" math-exp "\n\\par\n\\end{document}\n")))
+		      "\n\\begin{document}\n" math-exp "\n\\par\n\\end{document}\n"))
+      (set-buffer-file-coding-system coding-system))
     dot-tex))
 
 (defun latex-math-preview-raise-can-not-create-image (dot-tex)
@@ -1700,13 +1780,43 @@ Return maximum size of images and maximum length of strings and images"
 ;; Preview beamer frame
 
 (defun latex-math-preview-search-beamer-frame-region ()
-  (save-excursion
-    (let ((start-point (point)) beg end)
-      (when (search-backward "\\begin{frame}" nil t)
-	(setq beg (point))
-	(if (and (search-forward "\\end{frame}" nil t) (< start-point (point)))
-	    (setq end (point))))
-      (if (and beg end) (buffer-substring-no-properties beg end) nil))))
+  (let (beg end)
+    (if (and transient-mark-mode mark-active)
+	(progn
+	  (setq beg (region-beginning))
+	  (setq end (region-end))
+	  (setq mark-active nil))
+      (save-excursion
+	(let ((start-point (point)))
+	  (when (search-backward "\\begin{frame}" nil t)
+	    (setq beg (point))
+	    (if (and (search-forward "\\end{frame}" nil t) (< start-point (point)))
+		(setq end (point))))
+	  (if (not (and beg end))
+	      (progn
+		(goto-char start-point)
+		(when (search-backward-regexp "\\frame[^a-z]" nil t)
+		  (search-backward "\\" nil t)
+		  (setq beg (point))
+		  (catch :finish-search
+		    (let ((count 0))
+		      (when (search-forward "{" nil t)
+			(forward-char)
+			(while (not (eobp))
+			  (skip-chars-forward "^{}")
+			  (cond
+			   ((looking-at "{")
+			    (forward-char)
+			    (setq count (1+ count)))
+			   ((looking-at "}")
+			    (forward-char)
+			    (if (= 0 count)
+				(progn
+				  (setq end (point))
+				  (throw :finish-search t))
+			      (setq count (1- count))))
+			   (t (throw :finish-search t)))))))))))))
+    (if (and beg end) (buffer-substring-no-properties beg end) nil)))
 
 (defun latex-math-preview-search-beamer-preamble ()
   (save-excursion
@@ -1721,20 +1831,30 @@ Return maximum size of images and maximum length of strings and images"
   (let ((preamble (latex-math-preview-search-beamer-preamble))
 	(frame (latex-math-preview-search-beamer-frame-region)))
     (if (and preamble frame)
-	(let ((latex-math-preview-working-directory (make-temp-file "latex-math-preview-" t)))
-	  (let ((dot-tex (latex-math-preview-create-temporary-tex-filename)))
-	    (with-temp-file dot-tex
-	      (insert preamble)
-	      (insert "\\begin{document}\n" frame "\n\\end{document}")
-	      dot-tex)))
+	(let ((dot-tex (latex-math-preview-create-temporary-tex-filename))
+	      (coding-system buffer-file-coding-system))
+	  (with-temp-file dot-tex
+	    (insert preamble)
+	    (insert "\\begin{document}\n" frame "\n\\end{document}")
+	    (set-buffer-file-coding-system coding-system)
+	    dot-tex))
       nil)))
 
 (defun latex-math-preview-beamer-frame ()
+  "Display beamer frame at current position."
   (interactive)
-  (let ((dot-tex (latex-math-preview-make-temporary-beamer-tex-file)))
-    (if dot-tex
-	(let ((png (apply 'latex-math-preview-successive-convert dot-tex latex-math-preview-beamer-to-png)))
-	  (latex-math-preview-png-image png)))))
+  (let ((latex-math-preview-working-directory (make-temp-file "latex-math-preview-" t)))
+    (let ((dot-tex (latex-math-preview-make-temporary-beamer-tex-file)))
+      (if dot-tex
+	  (let ((png (apply 'latex-math-preview-successive-convert dot-tex latex-math-preview-beamer-to-png)))
+	    (if png
+		(progn
+		  (setq latex-math-preview-window-configuration (current-window-configuration))
+		  (latex-math-preview-png-image png))
+	      (latex-math-preview-raise-can-not-create-image dot-tex))
+	    (if (not latex-math-preview-not-delete-tmpfile)
+		(latex-math-preview-clear-tmp-directory latex-math-preview-working-directory)))
+	(message "Here is no beamer frame.")))))
 
 (provide 'latex-math-preview)
 
