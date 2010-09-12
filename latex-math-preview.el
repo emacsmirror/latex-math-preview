@@ -1165,6 +1165,8 @@ If you use YaTeX, then you should use YaTeX-in-math-mode-p alternatively."
 ;;-----------------------------------------------------------------------------
 ;; view png in a buffer
 
+(defvar latex-math-preview-display-whole-image nil)
+
 (defun latex-math-preview-png-image (image)
   "Display png image IMAGE in a buffer."
   (or (and (image-type-available-p 'png) (display-images-p)) (error "Cannot display PNG in this Emacs"))
@@ -1177,7 +1179,9 @@ If you use YaTeX, then you should use YaTeX-in-math-mode-p alternatively."
       (goto-char (point-min)))
     (latex-math-preview-expression-mode)
     (buffer-disable-undo))
-  (pop-to-buffer latex-math-preview-expression-buffer-name))
+  (pop-to-buffer latex-math-preview-expression-buffer-name)
+  (if (and latex-math-preview-display-whole-image (not (pos-visible-in-window-p (point-max))))
+      (with-current-buffer latex-math-preview-expression-buffer-name (delete-other-windows))))
 
 (defun latex-math-preview-get-dvipng-color-option ()
   "Get string for dvipng options '-bg' and '-fg'."
@@ -1250,28 +1254,37 @@ the notations which are stored in `latex-math-preview-match-expression'."
 	 'latex-math-preview-successive-convert (cons dot-tex func-sequence) output)
 	(latex-math-preview-raise-can-not-create-image dot-tex))))
 
-(defun latex-math-preview-save-image-file (output)
-  (interactive "GSave as \(*.png, *.eps, or *.ps\): ")
-  (while (file-directory-p (expand-file-name output))
-    (message "Please specify filename not directory.")
-    (sleep-for 1)
-    (setq output (read-file-name "Save as \(*.png, *.eps, or *.ps\): " nil default-directory)))
+(defun latex-math-preview-prompt-for-save-image-file (use-custom-conversion)
+  (if use-custom-conversion
+      (let ((extension (latex-math-preview-get-command-output-extension
+			(nth (1- (length latex-math-preview-custom-convert)) latex-math-preview-custom-convert))))
+	(concat "Save as" (if extension (concat " (*." extension ")") "")": "))
+    "Save as (*.png, *.eps, or *.ps): "))
+
+(defun latex-math-preview-save-image-file (use-custom-conversion &optional output)
+  (interactive "P")
+  (let ((prompt (latex-math-preview-prompt-for-save-image-file use-custom-conversion)))
+    (if (not output) (setq output (read-file-name prompt nil default-directory)))
+    (while (file-directory-p (expand-file-name output))
+      (message "Please specify filename not directory.")
+      (sleep-for 1)
+      (setq output (read-file-name prompt nil default-directory))))
   (if (or (not (file-exists-p output)) (y-or-n-p "File exists. Overwrite? "))
       (let ((str (latex-math-preview-cut-mathematical-expression
 		  latex-math-preview-match-expression-remove-formula-number)))
 	(if str
-	    (let ((latex-math-preview-working-directory (make-temp-file "latex-math-preview-" t)) func-series)
-	      (cond
-	       ((string-match "\\.png$" output)
-		(setq func-series latex-math-preview-tex-to-png-for-save))
-	       ((string-match "\\.eps$" output)
-		(setq func-series latex-math-preview-tex-to-eps-for-save))
-	       ((string-match "\\.ps$" output)
-		(setq func-series latex-math-preview-tex-to-ps-for-save))
-	       (t (message "Invalid extention of output file.")))
-	      (if (latex-math-preview-make-image-for-save func-series output str
-							  latex-math-preview-template-header-for-save-image)
-		  (message "Save image as %s" output) (message "Can not create an image file."))
+	    (let ((latex-math-preview-working-directory (make-temp-file "latex-math-preview-" t))
+		  (func-series
+		   (cond
+		    (use-custom-conversion latex-math-preview-custom-convert)
+		    ((string-match "\\.png$" output) latex-math-preview-tex-to-png-for-save)
+		    ((string-match "\\.eps$" output) latex-math-preview-tex-to-eps-for-save)
+		    ((string-match "\\.ps$" output) latex-math-preview-tex-to-ps-for-save)
+		    (t nil))))
+	      (if (not func-series) (message "Can not specify conversion.")
+		(if (latex-math-preview-make-image-for-save func-series output str
+							    latex-math-preview-template-header-for-save-image)
+		    (message "Save image as %s" output) (message "Can not create an image file.")))
 	      (if (not latex-math-preview-not-delete-tmpfile)
 		  (latex-math-preview-clear-tmp-directory latex-math-preview-working-directory)))
 	  (message "Not in a TeX mathematical expression.")))
@@ -1807,7 +1820,6 @@ Return maximum size of images and maximum length of strings and images"
 	      (progn
 		(goto-char start-point)
 		(when (search-backward-regexp "\\\\frame[^a-z]" nil t)
-		  (search-backward "\\" nil t)
 		  (setq beg (point))
 		  (catch :finish-search
 		    (let ((count 0))
