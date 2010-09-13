@@ -2,8 +2,8 @@
 
 ;; Author: Takayuki YAMAGUCHI <d@ytak.info>
 ;; Keywords: LaTeX TeX
-;; Version: 0.5.1
-;; Created: Mon Sep 13 08:33:38 2010
+;; Version: 0.5.2
+;; Created: Mon Sep 13 09:13:48 2010
 ;; URL: http://www.emacswiki.org/latex-math-preview.el
 ;; Site: http://www.emacswiki.org/LaTeXMathPreview
 
