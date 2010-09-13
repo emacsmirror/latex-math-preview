@@ -812,9 +812,10 @@ This variable must not be set.")
   '((dvipng "-T" "tight") (dvips-to-ps "-E" "-x" "3000") (dvips-to-eps "-E" "-x" "3000") (convert "-trim"))
   "Options of commands to trim margin.")
 
-(defvar latex-math-preview-command-output-extension-alist
-  '((latex . "dvi") (platex . "dvi") (dvipng . "png") (dvipdf . "pdf") (dvipdfm . "pdf") (dvipdfmx . "pdf"))
-  "List of command and extension of output file.")
+(eval-and-compile
+  (defvar latex-math-preview-command-output-extension-alist
+    '((latex . "dvi") (platex . "dvi") (dvipng . "png") (dvipdf . "pdf") (dvipdfm . "pdf") (dvipdfmx . "pdf"))
+    "List of command and extension of output file."))
 
 (defvar latex-math-preview-tex-to-png-for-preview
   '(latex dvipng)
@@ -844,10 +845,6 @@ This variable must not be set.")
     (if latex-math-preview-trim-image
 	(append args (cdr (assoc key latex-math-preview-command-trim-option-alist))) args)))
 
-(defun latex-math-preview-get-command-output-extension (key)
-  (or (cdr (assoc key latex-math-preview-command-output-extension-alist))
-      (let ((name (symbol-name key))) (if (string-match "-to-\\(.*\\)$" name) (match-string 1 name) nil))))
-
 (defun latex-math-preview-call-command-process (command args)
   (= 0 (apply 'call-process command nil latex-math-preview-command-buffer nil args)))
 
@@ -857,12 +854,17 @@ This variable must not be set.")
 	(concat dir "/" (file-name-sans-extension (file-name-nondirectory input)) "." extension)
       nil)))
 
-(defmacro latex-math-preview-define-latex-function (command)
-  `(defun ,(intern (concat "latex-math-preview-execute-" (symbol-name command))) (input)
-     (latex-math-preview-execute-latex-command
-      (latex-math-preview-get-command-path (quote ,(intern (car (split-string (symbol-name command) "-"))))) input
-      (latex-math-preview-get-command-option (quote ,command))
-      ,(latex-math-preview-get-command-output-extension command))))
+(eval-and-compile
+  (defun latex-math-preview-get-command-output-extension (key)
+    (or (cdr (assoc key latex-math-preview-command-output-extension-alist))
+	(let ((name (symbol-name key))) (if (string-match "-to-\\(.*\\)$" name) (match-string 1 name) nil))))
+
+  (defmacro latex-math-preview-define-latex-function (command)
+    `(defun ,(intern (concat "latex-math-preview-execute-" (symbol-name command))) (input)
+       (latex-math-preview-execute-latex-command
+	(latex-math-preview-get-command-path (quote ,(intern (car (split-string (symbol-name command) "-"))))) input
+	(latex-math-preview-get-command-option (quote ,command))
+	,(latex-math-preview-get-command-output-extension command)))))
 
 (latex-math-preview-define-latex-function latex)
 (latex-math-preview-define-latex-function platex)
@@ -1130,7 +1132,7 @@ If you use YaTeX, then you should use YaTeX-in-math-mode-p alternatively."
 	    (format-time-string "%Y/%m/%d %H:%M:%S") " " (make-string 5 ?-) "\n")
     (save-excursion
       (insert "\n% " (make-string 5 ?-) " Error message " (make-string 5 ?-) "\n"))
-    (insert-file dot-tex)
+    (insert-file-contents dot-tex)
     (goto-char (point-min)))
   (pop-to-buffer latex-math-preview-command-buffer)
   (rename-buffer latex-math-preview-tex-processing-error-buffer-name)
