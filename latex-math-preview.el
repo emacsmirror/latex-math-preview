@@ -294,6 +294,10 @@
 ;;       "cache directory in your system")
 
 ;; ChangeLog:
+;; 2010/09/13 version 0.5.2 yamaguchi
+;;     Modify to pass byte-compile.
+;; 2010/09/13 version 0.5.1 yamaguchi
+;;     Some bug fixes.
 ;; 2010/08/29 version 0.5.0 yamaguchi
 ;;     Support beamer (add new command `latex-math-preview-beamer-frame').
 ;;     Remove some functions and variables and add new functions and variables. 
