@@ -1,0 +1,46 @@
+\documentclass[14pt,dvipdfm]{beamer}
+% \AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+
+\usetheme[height=0cm]{Rochester}
+
+\setbeamertemplate{navigation symbols}{} 
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\def\newblock{}
+\bibliographystyle{plainnat}
+
+\usepackage{txfonts}
+\mathversion{bold}
+\renewcommand{\familydefault}{\sfdefault}
+\renewcommand{\kanjifamilydefault}{\gtdefault}
+\setbeamerfont{title}{size=\large,series=\bfseries}
+\setbeamerfont{frametitle}{size=\large,series=\bfseries}
+% \setbeamertemplate{frametitle}[default][center]
+% \usefonttheme{professionalfonts} 
+
+\newtheorem{thm}{Theorem}[section]
+\newtheorem{lem}[thm]{Lemma}
+\newtheorem{prop}[thm]{Proposition}
+\newtheorem{cor}[thm]{Corollary}
+\newtheorem{rem}[thm]{Remark}
+\newtheorem{dfn}[thm]{Definition}
+\newtheorem{ex}[thm]{Example}
+
+\title{Beamer Sample}
+\author{Name}
+\begin{document}
+
+\begin{frame}{インストール}
+Ubuntu 10.04 で動作を確認してあります。Windows の Meadow でも動作すると思います。latex-math-preview.el は TeX 関係のいくつかのコマンドを使用して画像を作成します。少なくても、プレビュするには 
+
+\begin{itemize}
+  \item dvipng
+  \item latex (or platex)
+\end{itemize}
+
+が必要です。
+\end{frame}
+
+\end{document}
