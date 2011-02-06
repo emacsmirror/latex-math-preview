@@ -1045,17 +1045,16 @@ This variable must not be set.")
 
 (defun latex-math-preview-get-header-usepackage ()
   "Return cache of usepackage and create cache data if needed"
-  (if (and (not latex-math-preview-usepackage-cache) (string-match-p "\\.tex$" (buffer-file-name)))
-      (let (cache)
-	(setq cache (latex-math-preview-search-header-usepackage))
-	(if (and (not cache)
-		 (let ((filename (buffer-file-name (current-buffer))))
-		   (and filename (string-match "\\.tex" (buffer-file-name (current-buffer))))))
-	    (setq cache (latex-math-preview-search-header-usepackage-other-file
-			 (read-file-name "Main TeX file: " nil default-directory))))
-	(setq latex-math-preview-usepackage-cache (or cache t))))
-  (if (listp latex-math-preview-usepackage-cache)
-      latex-math-preview-usepackage-cache nil))
+  (when (and (not latex-math-preview-usepackage-cache) (string-match "\\.tex$" (buffer-file-name)))
+    (let (cache)
+      (setq cache (latex-math-preview-search-header-usepackage))
+      (if (and (not cache)
+	       (let ((filename (buffer-file-name (current-buffer))))
+		 (and filename (string-match "\\.tex" (buffer-file-name (current-buffer))))))
+	  (setq cache (latex-math-preview-search-header-usepackage-other-file
+		       (read-file-name "Main TeX file: " nil default-directory))))
+      (setq latex-math-preview-usepackage-cache (or cache t))))
+  (if (listp latex-math-preview-usepackage-cache) latex-math-preview-usepackage-cache nil))
 
 (defun latex-math-preview-reload-usepackage (&optional other-file)
   "Reload usepackage cache from current buffer. If you want to get the cache
