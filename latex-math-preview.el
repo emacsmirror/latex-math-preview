@@ -2,8 +2,8 @@
 
 ;; Author: Takayuki YAMAGUCHI <d@ytak.info>
 ;; Keywords: LaTeX TeX
-;; Version: 0.5.3
-;; Created: Sun Sep 19 13:44:20 2010
+;; Version: 0.5.4
+;; Created: Mon Feb  7 11:08:36 2011
 ;; URL: http://www.emacswiki.org/latex-math-preview.el
 ;; Site: http://www.emacswiki.org/LaTeXMathPreview
 
@@ -17,7 +17,7 @@
 ;; for details of tex-math-preview.el.
 
 ;; Copyright 2006, 2007, 2008, 2009 Kevin Ryde
-;; Copyright 2009, 2010 Takayuki YAMAGUCHI
+;; Copyright 2009, 2010, 2011 Takayuki YAMAGUCHI
 ;;
 ;; This program is free software; you can redistribute it and/or modify it under
 ;; the terms of the GNU General Public License as published by the Free Software
@@ -295,6 +295,8 @@
 ;;       "cache directory in your system")
 
 ;; ChangeLog:
+;; 2011/02/07 version 0.5.4 yamaguchi
+;;     Support gswin32c.exe for meadow.
 ;; 2010/09/19 version 0.5.3 yamaguchi
 ;;     Refactoring.
 ;; 2010/09/13 version 0.5.2 yamaguchi
