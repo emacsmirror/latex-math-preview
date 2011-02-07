@@ -812,6 +812,8 @@ This variable must not be set.")
   '((pdflatex-to-pdf "-output-format" "pdf") (pdflatex-to-dvi "-output-format" "dvi")
     (dvipng "-x" "1728") (dvips-to-ps "-Ppdf") (dvips-to-eps "-Ppdf")
     (gs-to-png
+     "-dSAFER" "-dNOPAUSE" "-sDEVICE=png16m" "-dTextAlphaBits=4" "-dBATCH" "-dGraphicsAlphaBits=4" "-dQUIET")
+    (gswin32c-to-png
      "-dSAFER" "-dNOPAUSE" "-sDEVICE=png16m" "-dTextAlphaBits=4" "-dBATCH" "-dGraphicsAlphaBits=4" "-dQUIET"))
   "Options of commands.")
 
@@ -943,7 +945,8 @@ This variable must not be set.")
     (dvipdf . latex-math-preview-argument-dvipdf)
     (dvipdfm . latex-math-preview-argument-convert-dvi)
     (dvipdfmx . latex-math-preview-argument-convert-dvi)
-    (gs-to-png . latex-math-preview-argument-gs-to-png))
+    (gs-to-png . latex-math-preview-argument-gs-to-png)
+    (gswin32c-to-png . latex-math-preview-argument-gs-to-png))
   "List of command and function name to create arguments.")
 
 (defun latex-math-preview-get-command-argument (command input)
@@ -955,6 +958,8 @@ This variable must not be set.")
     (if (latex-math-preview-call-command-process command-path (cdr tmp)) (car tmp) nil)))
 
 (defmacro latex-math-preview-define-convert-function (command)
+  "Define function to convert images. Use first element of
+a list created by splitting COMMAND by \"-\" as a command name."
   `(defun ,(intern (concat "latex-math-preview-execute-" (symbol-name command))) (input)
      (latex-math-preview-call-latex-command
       (latex-math-preview-get-command-path (quote ,(intern (car (split-string (symbol-name command) "-")))))
@@ -967,6 +972,7 @@ This variable must not be set.")
 (latex-math-preview-define-convert-function dvipdfm)
 (latex-math-preview-define-convert-function dvipdfmx)
 (latex-math-preview-define-convert-function gs-to-png)
+(latex-math-preview-define-convert-function gswin32c-to-png)
 
 (defun latex-math-preview-successive-convert (input &rest convert-list)
   (let ((product input))
