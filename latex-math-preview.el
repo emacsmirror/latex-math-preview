@@ -390,12 +390,6 @@
   "*latex-math-preview-candidates*"
   "Name of buffer which displays candidates of LaTeX mathematical symbols.")
 
-(defvar latex-math-preview-latex-command
-  "latex" "Path to latex.")
-
-(defvar latex-math-preview-command-dvips
-  "dvips" "Path to dvips.")
-
 (defvar latex-math-preview-temporary-file-prefix
   "temp_latex_math"
   "The prefix name of some temporary files which is produced in making an image.")
