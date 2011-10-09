@@ -57,6 +57,10 @@
 ;; the values of \usepackage for previewing.
 ;; If you want to reload this variable, you use
 ;; M-x `latex-math-preview-reload-usepackage'.
+;; Also, to use usepackages in other latex file,
+;; you may execute C-u M-x `latex-math-preview-reload-usepackage'.
+;; If automatic search of usepackages does not work,
+;; you may execute M-x `latex-math-preview-edit-usepackage' to edit usepackages for previewing.
 ;; 
 ;; M-x `latex-math-preview-beamer-frame' makes an image of one frame of beamer,
 ;; which is LaTeX style for presentation.
@@ -1058,10 +1062,48 @@ a list created by splitting COMMAND by \"-\" as a command name."
       (setq latex-math-preview-usepackage-cache (or cache t))))
   (if (listp latex-math-preview-usepackage-cache) latex-math-preview-usepackage-cache nil))
 
+(defvar latex-math-preview-edit-usepackage-buffer "*latex-math-preview: usepackage cache*")
+(defvar latex-math-preview-edit-usepackage-parent-buffer nil)
+(defvar latex-math-preview-edit-usepackage-map nil
+  "Keymap for editing usepackage of latex-math-preview-insert-symbol.")
+
+(or latex-math-preview-edit-usepackage-map
+    (let ((map (make-sparse-keymap)))
+      (define-key map "\C-c\C-c" 'latex-math-preview-edit-usepackage-finish)
+      (setq latex-math-preview-edit-usepackage-map map)))
+
+(defun latex-math-preview-edit-usepackage ()
+  "Edit header of usepackages, which are used in LaTeX files to create previews.
+Press C-c C-c to finish editing."
+  (interactive)
+  (if latex-math-preview-usepackage-cache
+      (let ((parent-buffer (buffer-name (current-buffer)))
+	    (tmp-buffer (get-buffer-create latex-math-preview-edit-usepackage-buffer)))
+	(dolist (line latex-math-preview-usepackage-cache)
+	  (with-current-buffer tmp-buffer (insert line "\n")))
+	(pop-to-buffer tmp-buffer)
+	(goto-char (point-min))
+	(make-variable-buffer-local 'latex-math-preview-edit-usepackage-parent-buffer)
+	(setq latex-math-preview-edit-usepackage-parent-buffer parent-buffer)
+	(use-local-map latex-math-preview-edit-usepackage-map))
+    (message "No usepackage cache.")))
+
+(defun latex-math-preview-edit-usepackage-finish ()
+  "Finish editing usepackages."
+  (interactive)
+  (when latex-math-preview-edit-usepackage-parent-buffer
+    (let ((buffer-to-kill (current-buffer))
+	  (packages (latex-math-preview-search-header-usepackage)))
+      (with-current-buffer latex-math-preview-edit-usepackage-parent-buffer
+	(setq latex-math-preview-usepackage-cache packages))
+      (pop-to-buffer latex-math-preview-edit-usepackage-parent-buffer)
+      (kill-buffer buffer-to-kill))))
+
 (defun latex-math-preview-reload-usepackage (&optional other-file)
   "Reload usepackage cache from current buffer. If you want to get the cache
 from other file, you use C-u M-x `latex-math-preview-reload-usepackage'."
   (interactive "P")
+  (setq latex-math-preview-usepackage-cache nil)
   (setq latex-math-preview-usepackage-cache
 	(if other-file
 	    (or (latex-math-preview-search-header-usepackage-other-file
