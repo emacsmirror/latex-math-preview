@@ -59,6 +59,10 @@
 ;; M-x `latex-math-preview-reload-usepackage'.
 ;; Also, to use usepackages in other latex file,
 ;; you may execute C-u M-x `latex-math-preview-reload-usepackage'.
+;; We can also filter usepackage lines.
+;; If we add (REGEXP . nil) or (REGEXP . (lambda (line) SOME PROCESSES))
+;; to `latex-math-preview-usepackage-filter-alist', then matched usepackage lines are ignored for nil
+;; or are filterd for function.
 ;; If automatic search of usepackages does not work,
 ;; you may execute M-x `latex-math-preview-edit-usepackage' to edit usepackages for previewing.
 ;; 
@@ -1059,13 +1063,32 @@ a list created by splitting COMMAND by \"-\" as a command name."
 		 (and filename (string-match "\\.tex" (buffer-file-name (current-buffer))))))
 	  (setq cache (latex-math-preview-search-header-usepackage-other-file
 		       (read-file-name "Main TeX file: " nil default-directory))))
-      (setq latex-math-preview-usepackage-cache (or cache t))))
+      (if (listp latex-math-preview-usepackage-cache)
+	  (progn
+	    (setq latex-math-preview-usepackage-cache nil)
+	    (dolist (line cache)
+	      (let ((filtered-line
+		     (catch :match
+		       (dolist (filter latex-math-preview-usepackage-filter-alist)
+			 (when (string-match-p (car filter) line)
+			   (let ((func (cdr filter)))
+			     (throw :match (if func (funcall func line) nil)))))
+		       line)))
+		(when filtered-line
+		  (setq latex-math-preview-usepackage-cache
+			(append latex-math-preview-usepackage-cache (list filtered-line)))))))
+	(setq latex-math-preview-usepackage-cachet t))))
   (if (listp latex-math-preview-usepackage-cache) latex-math-preview-usepackage-cache nil))
 
 (defvar latex-math-preview-edit-usepackage-buffer "*latex-math-preview: usepackage cache*")
 (defvar latex-math-preview-edit-usepackage-parent-buffer nil)
 (defvar latex-math-preview-edit-usepackage-map nil
   "Keymap for editing usepackage of latex-math-preview-insert-symbol.")
+(defvar latex-math-preview-usepackage-filter-alist nil
+  "List of filter for lines of usepackage.
+The value is a list of (REGEXP . nil) or (REGEXP . (lambda (line) ... )).
+If you want to ignore some usepackages, then you add filters to this variable.
+For example, to ignore \\usepackage{txfonts}, we add '(\"txfonts\") to this list.")
 
 (or latex-math-preview-edit-usepackage-map
     (let ((map (make-sparse-keymap)))
