@@ -2,8 +2,8 @@
 
 ;; Author: Takayuki YAMAGUCHI <d@ytak.info>
 ;; Keywords: LaTeX TeX
-;; Version: 0.5.4
-;; Created: Mon Feb  7 11:08:36 2011
+;; Version: 0.5.5
+;; Created: Sun Oct  9 10:55:48 2011
 ;; URL: http://www.emacswiki.org/latex-math-preview.el
 ;; Site: http://www.emacswiki.org/LaTeXMathPreview
 
@@ -303,6 +303,8 @@
 ;;       "cache directory in your system")
 
 ;; ChangeLog:
+;; 2011/10/09 version 0.5.5 yamaguchi
+;;     Support editing and filtering usepackage lines for previewing.
 ;; 2011/02/07 version 0.5.4 yamaguchi
 ;;     Support gswin32c.exe for meadow.
 ;; 2010/09/19 version 0.5.3 yamaguchi
