@@ -1078,11 +1078,15 @@ Press C-c C-c to finish editing."
   (interactive)
   (if latex-math-preview-usepackage-cache
       (let ((parent-buffer (buffer-name (current-buffer)))
-	    (tmp-buffer (get-buffer-create latex-math-preview-edit-usepackage-buffer)))
-	(dolist (line latex-math-preview-usepackage-cache)
-	  (with-current-buffer tmp-buffer (insert line "\n")))
+	    (tmp-buffer (get-buffer-create latex-math-preview-edit-usepackage-buffer))
+	    (usepackages latex-math-preview-usepackage-cache))
+	(with-current-buffer tmp-buffer
+	  (insert "% C-c C-c : Finish editing\n\n")
+	  (dolist (line usepackages)
+	    (insert line "\n")))
 	(pop-to-buffer tmp-buffer)
 	(goto-char (point-min))
+	(forward-line 2)
 	(make-variable-buffer-local 'latex-math-preview-edit-usepackage-parent-buffer)
 	(setq latex-math-preview-edit-usepackage-parent-buffer parent-buffer)
 	(use-local-map latex-math-preview-edit-usepackage-map))
