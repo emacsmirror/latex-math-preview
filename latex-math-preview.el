@@ -433,8 +433,10 @@
 (defvar latex-math-preview-dvipng-color-option nil
   "Temporary variable. You must not set this variable.")
 
-(defvar latex-math-preview-window-configuration nil
-  "Temporary variable in which window configuration is saved.")
+(defvar latex-math-preview-previous-window-configuration nil
+  "Window configuration before latex-math-preview window is created.
+ If the value is not nil then commands of `latex-math-preview-quit-window' etc have effects.")
+(make-variable-buffer-local 'latex-math-preview-previous-window-configuration)
 
 (defvar latex-math-preview-current-insert-mode nil
   "Temporary variable of which value is 'math or 'text.")
@@ -1253,19 +1255,26 @@ If you use YaTeX, then you should use YaTeX-in-math-mode-p alternatively."
 
 (defvar latex-math-preview-display-whole-image nil)
 
-(defun latex-math-preview-png-image (image)
+(defun latex-math-preview-get-expression-buffer ()
+  (or (get-buffer latex-math-preview-expression-buffer-name)
+      (let ((buf (get-buffer-create latex-math-preview-expression-buffer-name)))
+	(with-current-buffer buf
+	  (latex-math-preview-expression-mode)
+	  (buffer-disable-undo))
+	buf)))
+
+(defun latex-math-preview-png-image (image &optional win-conf)
   "Display png image IMAGE in a buffer."
   (or (and (image-type-available-p 'png) (display-images-p)) (error "Cannot display PNG in this Emacs"))
-  (with-current-buffer (get-buffer-create latex-math-preview-expression-buffer-name)
+  (with-current-buffer (latex-math-preview-get-expression-buffer)
+    (when win-conf (setq latex-math-preview-previous-window-configuration win-conf))
     (setq cursor-type nil)
     (let ((inhibit-read-only t))
       (setq buffer-read-only nil)
       (erase-buffer)
-      (insert-file-contents image)
+      (insert-image-file image)
       (goto-char (point-min))
-      (setq buffer-read-only t))
-    (latex-math-preview-expression-mode)
-    (buffer-disable-undo))
+      (setq buffer-read-only t)))
   (pop-to-buffer latex-math-preview-expression-buffer-name)
   (if (and latex-math-preview-display-whole-image (not (pos-visible-in-window-p (point-max))))
       (with-current-buffer latex-math-preview-expression-buffer-name (delete-other-windows))))
@@ -1324,8 +1333,7 @@ the notations which are stored in `latex-math-preview-match-expression'."
   (let ((str (latex-math-preview-cut-mathematical-expression)))
     (if str
 	(let ((dot-tex (latex-math-preview-make-temporary-tex-file str latex-math-preview-latex-template-header)))
-	  (setq latex-math-preview-window-configuration (current-window-configuration))
-	  (latex-math-preview-png-image (latex-math-preview-make-png-file dot-tex))
+	  (latex-math-preview-png-image (latex-math-preview-make-png-file dot-tex) (current-window-configuration))
 	  (latex-math-preview-clear-working-directory))
       (message "Not in a TeX mathematical expression."))))
 
@@ -1378,15 +1386,18 @@ the notations which are stored in `latex-math-preview-match-expression'."
 (defun latex-math-preview-quit-window ()
   "Quit preview window."
   (interactive)
-  (set-window-configuration latex-math-preview-window-configuration))
+  (when latex-math-preview-previous-window-configuration
+    (set-window-configuration latex-math-preview-previous-window-configuration)
+    (setq latex-math-preview-previous-window-configuration nil)))
 
 (defun latex-math-preview-delete-buffer ()
   "Delete buffer which is created for preview."
   (interactive)
-  (kill-buffer (buffer-name))
-  (set-window-configuration latex-math-preview-window-configuration))
+  (let ((buf (current-buffer)))
+    (latex-math-preview-quit-window)
+    (kill-buffer buf)))
 
-					; Clear dvipng option for coloring.
+; Clear dvipng option for coloring.
 (setq latex-math-preview-dvipng-color-option nil)
 
 ;;-----------------------------------------------------------------------------
@@ -1568,6 +1579,18 @@ Return maximum size of images and maximum length of strings and images"
 	      (progn (insert "\n") (setq current-col 0)))
 	  )))))
 
+(defun latex-math-preview-get-insertion-buffer ()
+  (or (get-buffer latex-math-preview-insert-symbol-buffer-name)
+      (let ((buf (get-buffer-create latex-math-preview-insert-symbol-buffer-name)))
+	(with-current-buffer buf
+	  (setq cursor-type nil)
+	  (setq truncate-lines t)
+	  (setq line-spacing 8)
+	  (buffer-disable-undo)
+	  (use-local-map latex-math-preview-insert-symbol-map)
+	  (setq mode-name "LaTeXPreview"))
+	buf)))
+
 (defun latex-math-preview-create-buffer-for-insertion (key)
   "Create buffer displaying cache images in KEY."
   (or (and (image-type-available-p 'png)
@@ -1578,30 +1601,23 @@ Return maximum size of images and maximum length of strings and images"
 		latex-math-preview-current-page-of-symbol-list) key)
   
   (let ((symbol-datasets (eval `,(cdr (assq latex-math-preview-current-insert-mode 
-					    latex-math-preview-list-name-symbol-datasets)))))
+					    latex-math-preview-list-name-symbol-datasets))))
+	(win-conf (current-window-configuration))
+	buf)
     (latex-math-preview-make-symbol-caches key symbol-datasets latex-math-preview-current-insert-mode)
-    (setq latex-math-preview-window-configuration (current-window-configuration))
-
-    (pop-to-buffer latex-math-preview-insert-symbol-buffer-name)
+    (setq buf (latex-math-preview-get-insertion-buffer))
+    (pop-to-buffer buf)
+    (setq latex-math-preview-previous-window-configuration win-conf)
     (if latex-math-preview-always-maximize-window (delete-other-windows))
-
-    (with-current-buffer (get-buffer-create latex-math-preview-insert-symbol-buffer-name)
-      (setq cursor-type nil)
-      (setq truncate-lines t)
-      (setq line-spacing 8)
+    (with-current-buffer buf
       (setq buffer-read-only nil)
       (erase-buffer)
-
       (latex-math-preview-insert-key-explanations)
       (latex-math-preview-insert-candidate-images key symbol-datasets)
-
       (goto-line (nth (1- (length latex-math-preview-information-line-number))
 		      latex-math-preview-information-line-number))
       (latex-math-preview-move-to-right-item)
-      (buffer-disable-undo)
-      (setq buffer-read-only t)
-      (use-local-map latex-math-preview-insert-symbol-map)
-      (setq mode-name "LaTeXPreview"))))
+      (setq buffer-read-only t))))
 
 (defun latex-math-preview-insert-symbol-base (num)
   (if (or (not num) (= num 1))
@@ -1950,9 +1966,7 @@ Return maximum size of images and maximum length of strings and images"
     (if dot-tex
 	(let ((png (apply 'latex-math-preview-successive-convert dot-tex latex-math-preview-beamer-to-png)))
 	  (if png
-	      (progn
-		(setq latex-math-preview-window-configuration (current-window-configuration))
-		(latex-math-preview-png-image png))
+	      (latex-math-preview-png-image png (current-window-configuration))
 	    (latex-math-preview-raise-can-not-create-image dot-tex)))
       (message "Here is no beamer frame.")))
   (latex-math-preview-clear-working-directory))
