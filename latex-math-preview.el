@@ -1626,6 +1626,10 @@ Return maximum size of images and maximum length of strings and images"
 	  (setq mode-name "LaTeXPreview"))
 	buf)))
 
+(defun latex-math-preview-insertion-get-current-page-key ()
+  (cdr (assq latex-math-preview-current-insert-mode
+	     latex-math-preview-current-page-of-symbol-list)))
+
 (defun latex-math-preview-insertion-set-current-page-key (key)
   (setcdr (assq latex-math-preview-current-insert-mode
 		latex-math-preview-current-page-of-symbol-list) key))
@@ -1645,7 +1649,7 @@ Return maximum size of images and maximum length of strings and images"
 	(throw :has-item t)))
     nil))
 
-(defun latex-math-preview-create-buffer-for-insertion (key)
+(defun latex-math-preview-create-buffer-for-insertion (key &optional next-page)
   "Create buffer displaying cache images in KEY."
   (unless (and (image-type-available-p 'png) (display-images-p))
     (error "Cannot display PNG in this Emacs"))
@@ -1668,22 +1672,15 @@ Return maximum size of images and maximum length of strings and images"
 	    (goto-char (point-min))
 	    (latex-math-preview-move-to-right-item)
 	    (setq buffer-read-only t)))
-      (latex-math-preview-next-candidates-for-insertion 1))))
+      (latex-math-preview-next-candidates-for-insertion (or next-page 1)))))
 
 (defun latex-math-preview-insert-symbol-read-page-number ()
   (completing-read "page: " (latex-math-preview-insertion-current-symbol-datasets) nil t))
 
 (defun latex-math-preview-insert-symbol-base (num)
-  (let ((key))
-    (if (or (not num) (= num 1))
-	(progn
-	  (when latex-math-preview-restore-last-page-of-symbol-list
-	    (setq key (cdr (assq latex-math-preview-current-insert-mode
-				 latex-math-preview-current-page-of-symbol-list))))
-	  (unless key
-	    (setq key (cdr (assq latex-math-preview-current-insert-mode
-				 latex-math-preview-initial-page-of-symbol-list)))))
-      (setq key (latex-math-preview-insert-symbol-read-page-number)))
+  (let ((key (if (or (not num) (= num 1))
+		 (latex-math-preview-insertion-get-current-page-key)
+	       (latex-math-preview-insert-symbol-read-page-number))))
     (latex-math-preview-create-buffer-for-insertion key)))
 
 (defun latex-math-preview-insert-mathematical-symbol (&optional num)
@@ -1714,29 +1711,27 @@ Return maximum size of images and maximum length of strings and images"
   (latex-math-preview-quit-window)
   (latex-math-preview-insert-symbol -1))
 
-(defun latex-math-preview-get-page-number (dataset)
+(defun latex-math-preview-get-current-page-number (key)
   "Get number of page for DATASET."
-  (let* ((num 0) (cont t)
-	 (symbol-datasets (latex-math-preview-insertion-current-symbol-datasets))
-	 (max-num (length symbol-datasets)))
-    (while (and cont (< num max-num))
-      (if (string= dataset (car (nth num symbol-datasets))) (setq cont nil))
-      (setq num (1+ num)))
-    (if (not cont) (- num 1) nil)))
+  (let* ((symbol-datasets (latex-math-preview-insertion-current-symbol-datasets)))
+    (catch :find-key
+      (dotimes (n (length symbol-datasets))
+	(when (string= key (car (nth n symbol-datasets))) (throw :find-key n)))
+      nil)))
 
 (defun latex-math-preview-next-candidates-for-insertion (num)
   "Next page of candidates buffer for insertion."
   (interactive "p")
-  (let* ((page (latex-math-preview-get-page-number
-		(cdr (assq latex-math-preview-current-insert-mode
-			   latex-math-preview-current-page-of-symbol-list))))
+  (let* ((page (latex-math-preview-get-current-page-number
+		(latex-math-preview-insertion-get-current-page-key)))
 	 (symbol-datasets (latex-math-preview-insertion-current-symbol-datasets))
-	 (len (length symbol-datasets)))
+	 (len (length symbol-datasets))
+	 (sign (if (< num 0) -1 1)))
     (while (< num 0) (setq num (+ num len)))
     (if page
 	(let ((dataset (car (nth (% (+ page num) len) symbol-datasets))))
 	  (latex-math-preview-quit-window)
-	  (latex-math-preview-create-buffer-for-insertion dataset)))))
+	  (latex-math-preview-create-buffer-for-insertion dataset sign)))))
 
 (defun latex-math-preview-previous-candidates-for-insertion (num)
   "Previous page of candidates buffer for insertion."
@@ -1749,8 +1744,7 @@ Return maximum size of images and maximum length of strings and images"
   (setq latex-math-preview-always-maximize-window (not latex-math-preview-always-maximize-window))
   (latex-math-preview-quit-window)
   (latex-math-preview-create-buffer-for-insertion
-   (cdr (assq latex-math-preview-current-insert-mode
-	      latex-math-preview-current-page-of-symbol-list))))
+   (latex-math-preview-insertion-get-current-page-key)))
 
 (defun latex-math-preview-put-selected-candidate ()
   "Insert selected LaTeX mathematical symboled to original buffer."
@@ -1775,13 +1769,10 @@ Return maximum size of images and maximum length of strings and images"
 (defun latex-math-preview-delete-current-cache ()
   "Delete cache and make cache again."
   (interactive)
-  (latex-math-preview-quit-window)
-  (latex-math-preview-clear-cache-for-insertion
-   (cdr (assq latex-math-preview-current-insert-mode
-	      latex-math-preview-current-page-of-symbol-list)))
-  (latex-math-preview-create-buffer-for-insertion
-   (cdr (assq latex-math-preview-current-insert-mode
-	      latex-math-preview-current-page-of-symbol-list))))
+  (let ((key (latex-math-preview-insertion-get-current-page-key)))
+    (latex-math-preview-quit-window)
+    (latex-math-preview-clear-cache-for-insertion key)
+    (latex-math-preview-create-buffer-for-insertion key))) 
 
 (defun latex-math-preview-last-symbol-again ()
   "Insert last symbol which is inserted by `latex-math-preview-insert-symbol'"
