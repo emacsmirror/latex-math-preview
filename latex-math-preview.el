@@ -399,6 +399,9 @@
   "*latex-math-preview-tex-processing-error*"
   "Name of buffer displaying TeX temporary file which raises error")
 
+(defvar latex-math-preview-error-buffer-major-mode 'latex-mode
+  "Major mode for error latex buffer")
+
 (defvar latex-math-preview-insert-symbol-buffer-name
   "*latex-math-preview-candidates*"
   "Name of buffer which displays candidates of LaTeX mathematical symbols.")
@@ -1269,14 +1272,19 @@ If you use YaTeX, then you should use YaTeX-in-math-mode-p alternatively."
 (defun latex-math-preview-raise-can-not-create-image (dot-tex)
   (with-current-buffer (get-buffer-create latex-math-preview-command-buffer)
     (goto-char (point-min))
+    (while (not (eobp))
+      (insert "% ")
+      (forward-line 1))
+    (goto-char (point-min))
     (insert "% " (make-string 5 ?-) " Created by latex-math-preview.el at "
 	    (format-time-string "%Y/%m/%d %H:%M:%S") " " (make-string 5 ?-) "\n")
     (save-excursion
-      (insert "\n% " (make-string 5 ?-) " Error message " (make-string 5 ?-) "\n"))
+      (insert "\n\n% " (make-string 5 ?-) " Error message " (make-string 5 ?-) "\n"))
     (insert-file-contents dot-tex)
     (goto-char (point-min)))
   (pop-to-buffer latex-math-preview-command-buffer)
-  (rename-buffer latex-math-preview-tex-processing-error-buffer-name)
+  (funcall latex-math-preview-error-buffer-major-mode)
+  (rename-buffer (generate-new-buffer-name latex-math-preview-tex-processing-error-buffer-name))
   (signal 'tex-processing-error '("TeX processing error")))
 
 (defun latex-math-preview-make-png-file (dot-tex)
