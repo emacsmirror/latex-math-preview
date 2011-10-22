@@ -484,7 +484,7 @@ The integer is the number to access needed string from regular-expressin.")
   (insert (car list))
   (save-excursion (insert (nth 2 list))))
 
-(defun latex-math-preview-symbol-make (obj &optional math)
+(defun latex-math-preview-symbol-make (obj dir &optional math)
   (let ((sym))
     (cond
      ((stringp obj)
@@ -498,18 +498,15 @@ The integer is the number to access needed string from regular-expressin.")
      ((latex-math-preview-symbol-p obj) (setq sym obj))
      (t (error "Invalid type object")))
     (setf (latex-math-preview-symbol-image sym)
-	  (concat (md5 (latex-math-preview-symbol-source sym)) ".png"))
+	  (concat dir "/" (md5 (latex-math-preview-symbol-source sym)) ".png"))
     (when math (setf (latex-math-preview-symbol-math sym) t))
     sym))
-
-(defun latex-math-preview-symbol-math-make (obj)
-  (latex-math-preview-symbol-make obj t))
 
 (defun latex-math-preview-symbol-string (sym)
   (or (latex-math-preview-symbol-display sym) (latex-math-preview-symbol-source sym)))
 
-(defun latex-math-preview-symbol-insert-candidate (sym format-str image-dir)
-  (let ((image-file (concat image-dir "/" (latex-math-preview-symbol-image sym))))
+(defun latex-math-preview-symbol-insert-candidate (sym format-str col line)
+  (let ((image-file (latex-math-preview-symbol-image sym)))
     (when (file-exists-p image-file)
       (insert-image-file image-file)
       (goto-char (line-end-position))))
@@ -520,7 +517,9 @@ The integer is the number to access needed string from regular-expressin.")
     (add-text-properties
      start-pt (point)
      (list 'face 'latex-math-preview-candidate-for-insertion-face
-	   'latex-math-preview-symbol sym)))
+	   'latex-math-preview-symbol sym
+	   'latex-math-preview-symbol-column col
+	   'latex-math-preview-symbol-line line)))
   (goto-char (line-end-position)))
 
 (defun latex-math-preview-symbol-insert-item (sym)
@@ -1450,6 +1449,9 @@ the notations which are stored in `latex-math-preview-match-expression'."
 ;;-----------------------------------------------------------------------------
 ;; Insert Mathematical expression 
 
+(defvar latex-math-preview-insert-symbol-column-size nil)
+(make-variable-buffer-local 'latex-math-preview-insert-symbol-column-size)
+
 (defun latex-math-preview-cache-directory (key)
   (concat latex-math-preview-cache-directory-for-insertion "/" key))
 
@@ -1465,16 +1467,14 @@ If KEY is nil then all directories saving caches is deleted."
     (latex-math-preview-clear-tmp-directory latex-math-preview-cache-directory-for-insertion)
     (message "Finish deleting all image caches.")))
 
-(defun latex-math-preview-make-symbol-candidate-image (dirpath latex-symbol package)
-  "Create a cache image from latex file for including LATEX-SYMBOL.
-Image is saved in directory of which path is DIRPATH.
- NUM is used for distingushing other images."
+(defun latex-math-preview-make-symbol-candidate-image (latex-symbol package)
+  "Create a cache image from latex file including LATEX-SYMBOL."
   (let* ((latex-math-preview-convert-dvipng-color-mode 'buffer)
 	 (latex-math-preview-trim-image t)
 	 (dot-tex (latex-math-preview-symbol-tex-source latex-symbol packages))
 	 (png (latex-math-preview-convert-to-output-file
 	       'latex-math-preview-successive-convert (cons dot-tex latex-math-preview-tex-to-png-for-preview)
-	       (concat dirpath "/" (latex-math-preview-symbol-image latex-symbol)))))
+	       (latex-math-preview-symbol-image latex-symbol))))
     (unless png (latex-math-preview-raise-can-not-create-image dot-tex))
     (latex-math-preview-clear-working-directory)
     png))
@@ -1494,8 +1494,8 @@ TYPE is 'math or 'text."
 		(sym-set (nth 2 subcat)))
 	    (dolist (sym sym-set)
 	      (latex-math-preview-make-symbol-candidate-image
-	       dirpath (latex-math-preview-symbol-make
-			sym (eq latex-math-preview-current-insert-mode 'math)) packages))))
+	       (latex-math-preview-symbol-make
+		sym dirpath (eq latex-math-preview-current-insert-mode 'math)) packages))))
 	(message "Finish making cache images of \"%s\"." key)))))
 
 (defun latex-math-preview-make-all-cache-images ()
@@ -1563,32 +1563,42 @@ Return maximum size of images and maximum length of strings and images"
 (defun latex-math-preview-insert-candidate-images (key symbol-datasets)
   "Insert images and expressions."
   (setq latex-math-preview-information-line-number nil)
-  (let ((dataset (cdr (assoc key symbol-datasets)))
-	(dirpath (latex-math-preview-cache-directory key)))
+  (let* ((dataset (cdr (assoc key symbol-datasets)))
+	 (dirpath (latex-math-preview-cache-directory key))
+	 (symset (mapcar (lambda (subcat)
+			   (mapcar (lambda (obj)
+				     (latex-math-preview-symbol-make
+				      obj dirpath (eq latex-math-preview-current-insert-mode 'math)))
+				   (nth 2 subcat))) dataset))
+	 (imgdata (latex-math-preview-strings-and-images-sizes (apply 'append symset)))
+	 (new-tab-width (+ 4 (ceiling (/ (float (car imgdata)) (float (frame-char-width))))))
+	 (str-size (* new-tab-width (ceiling (/ (float (+ 6 (car (cdr imgdata)))) (float new-tab-width)))))
+	 ;; You must not remove (+ 6 ...).
+	 ;; Implementation of latex-math-preview-set-overlay-for-selected-item needs redundant space.
+	 (str-format (format "%%-%ds" str-size))
+	 (col (floor (/ (window-width)
+			(+ str-size (* (ceiling (/ (float (car imgdata))
+						   (float (* (frame-char-width) new-tab-width))))
+				       new-tab-width)))))
+	 (subcat-num 0)
+	 (current-col 0)
+	 (current-line 1))
+    (setq tab-width new-tab-width)
+    (setq latex-math-preview-insert-symbol-column-size col)
     (dolist (subcat dataset)
       (latex-math-preview-insert-subcategory-infomation (car subcat) (cadr subcat))
-      (let* ((sym-list
-	      (mapcar (if (eq latex-math-preview-current-insert-mode 'math)
-			  'latex-math-preview-symbol-math-make 'latex-math-preview-symbol-make)
-		      (nth 2 subcat)))
-	     (imgdata (latex-math-preview-strings-and-images-sizes sym-list))
-	     (new-tab-width (+ 4 (ceiling (/ (float (car imgdata)) (float (frame-char-width))))))
-	     (str-size (* new-tab-width (ceiling (/ (float (+ 6 (car (cdr imgdata)))) (float new-tab-width)))))
-	     ;; You must not remove (+ 6 ...).
-	     ;; Implementation of latex-math-preview-set-overlay-for-selected-item needs redundant space.
-	     (str-format (format "%%-%ds" str-size))
-	     (col (floor (/ (window-width)
-			    (+ str-size (* (ceiling (/ (float (car imgdata))
-						       (float (* (frame-char-width) new-tab-width))))
-					   new-tab-width)))))
-	     (current-col 0))
-	(dolist (sym sym-list)
-	  (latex-math-preview-symbol-insert-candidate sym str-format dirpath)
-	  (setq current-col (1+ current-col))
-	  (when (>= current-col col)
-	    (setq current-col 0)
-	    (insert "\n")))
-	(when (> current-col 0) (insert "\n"))))))
+      (dolist (sym (nth subcat-num symset))
+	(setq current-col (1+ current-col))
+	(latex-math-preview-symbol-insert-candidate sym str-format current-col current-line)
+	(when (>= current-col col)
+	  (setq current-col 0)
+	  (insert "\n")
+	  (setq current-line (1+ current-line))))
+      (when (> current-col 0)
+	(insert "\n")
+	(setq current-line (1+ current-line))
+	(setq current-col 0))
+      (setq subcat-num (1+ subcat-num)))))
 
 (defun latex-math-preview-get-insertion-buffer ()
   (or (get-buffer latex-math-preview-insert-symbol-buffer-name)
@@ -1771,13 +1781,22 @@ Return maximum size of images and maximum length of strings and images"
 (defun latex-math-preview-candidate-for-insertion-point-p ()
   (eq (get-text-property (point) 'face) 'latex-math-preview-candidate-for-insertion-face))
 
-(defun latex-math-preview-move-to-right-item ()
-  "Move to right item."
-  (interactive)
+(defun latex-math-preview-goto-right-of-item ()
   (while (and (not (eobp)) (latex-math-preview-candidate-for-insertion-point-p))
     (forward-char 1))
   (while (and (not (eobp)) (not (latex-math-preview-candidate-for-insertion-point-p)))
-    (forward-char 1))
+    (forward-char 1)))
+
+(defun latex-math-preview-goto-left-of-item ()
+  (while (and (not (bobp)) (latex-math-preview-candidate-for-insertion-point-p))
+    (backward-char 1))
+  (while (and (not (bobp)) (not (latex-math-preview-candidate-for-insertion-point-p)))
+    (backward-char 1)))
+
+(defun latex-math-preview-move-to-right-item ()
+  "Move to right item."
+  (interactive)
+  (latex-math-preview-goto-right-of-item)
   (if (latex-math-preview-candidate-for-insertion-point-p)
       (latex-math-preview-set-overlay-for-selected-item)
     (latex-math-preview-move-to-left-item)))
@@ -1785,59 +1804,66 @@ Return maximum size of images and maximum length of strings and images"
 (defun latex-math-preview-move-to-left-item ()
   "Move to left item."
   (interactive)
-  (while (and (not (bobp)) (latex-math-preview-candidate-for-insertion-point-p))
-    (backward-char 1))
-  (while (and (not (bobp)) (not (latex-math-preview-candidate-for-insertion-point-p)))
-    (backward-char 1))
+  (latex-math-preview-goto-left-of-item)
   (if (latex-math-preview-candidate-for-insertion-point-p)
       (latex-math-preview-set-overlay-for-selected-item)
     (latex-math-preview-move-to-right-item)))
 
-;; (defun latex-math-preview-move-to-upward-item ()
-;;   "Move to upward item."
-;;   (interactive)
-;;   (let ((start-pt (point)))
-;;     (while (and (not (= (point) (line-beginning-position))) (latex-math-preview-candidate-for-insertion-point-p))
-;;       (backward-char 1))
-;;     (let ((col (current-column)))
-;;       (catch :find-item
-;; 	(while (not (= (line-number-at-pos) 1))
-;; 	  (forward-line -1)
-;; 	  (goto-char col)
-;; 	  (while (and (not (= (point) (line-end-position)))
-;; 		      (not (latex-math-preview-candidate-for-insertion-point-p)))
-;; 	    (forward-char 1))
-;; 	  (when (latex-math-preview-candidate-for-insertion-point-p)
-;; 	    (latex-math-preview-set-overlay-for-selected-item)
-;; 	    (throw :find-item t)))
-;; 	(goto-char start-pt)
-;; 	(latex-math-preview-set-overlay-for-selected-item)))))
+(defun latex-math-preview-move-to-upward-item ()
+  "Move to upward item."
+  (interactive)
+  (let ((item-col (get-text-property (point) 'latex-math-preview-symbol-column))
+	(item-line-new (1- (get-text-property (point) 'latex-math-preview-symbol-line)))
+	(start-pt (point)))
+    (when (>= item-line-new 1)
+      (while (and (not (bobp)) (not (= item-line-new (get-text-property (point) 'latex-math-preview-symbol-line))))
+	(latex-math-preview-goto-left-of-item))
+      (while (and (not (bobp)) (< item-col (get-text-property (point) 'latex-math-preview-symbol-column)))
+	(latex-math-preview-goto-left-of-item))
+      (latex-math-preview-set-overlay-for-selected-item))))
 
-;; (defun latex-math-preview-move-to-downward-item ()
-;;   "Move to downward item."
-;;   (interactive)
-;;   (let ((lnum (1+ (line-number-at-pos)))
-;; 	(col (current-column)))
-;;     (if (< lnum (line-number-at-pos (point-max)))
-;; 	(progn
-;; 	  (if (not (member lnum latex-math-preview-information-line-number))
-;; 	      (forward-line 1) (forward-line 2))
-;; 	  (move-to-column col)
-;; 	  (skip-chars-backward "^\t")
-;; 	  (backward-char)
-;; 	  (latex-math-preview-move-to-right-item)))))
+(defun latex-math-preview-move-to-downward-item ()
+  "Move to downward item."
+  (interactive)
+  (let ((item-col (get-text-property (point) 'latex-math-preview-symbol-column))
+	(item-line-new (1+ (get-text-property (point) 'latex-math-preview-symbol-line)))
+	(start-pt (point)))
+    (when (>= item-line-new 1)
+      (catch 'nonexistent
+	(while (and (not (eobp)) (not (= item-line-new (get-text-property (point) 'latex-math-preview-symbol-line))))
+	  (latex-math-preview-goto-right-of-item)
+	  (unless (latex-math-preview-candidate-for-insertion-point-p)
+	    (goto-char start-pt)
+	    (latex-math-preview-set-overlay-for-selected-item)
+	    (throw 'nonexistent t)))
+	(dotimes (n (1- item-col))
+	  (latex-math-preview-goto-right-of-item))
+	(when (or (not (latex-math-preview-candidate-for-insertion-point-p))
+		  (not (= item-line-new (get-text-property (point) 'latex-math-preview-symbol-line))))
+	  (while (and (not (bobp)) (not (= item-line-new (get-text-property (point) 'latex-math-preview-symbol-line))))
+	    (latex-math-preview-goto-left-of-item))))
+      (latex-math-preview-set-overlay-for-selected-item))))
 
 (defun latex-math-preview-move-to-current-line-first-item ()
   "Move to first item in current line."
   (interactive)
-  (beginning-of-line)
-  (latex-math-preview-move-to-right-item))
+  (dotimes (n (1- (get-text-property (point) 'latex-math-preview-symbol-column)))
+    (latex-math-preview-goto-left-of-item))
+  (latex-math-preview-set-overlay-for-selected-item))
 
 (defun latex-math-preview-move-to-current-line-last-item ()
   "Move to last item in current line."
   (interactive)
-  (end-of-line)
-  (latex-math-preview-move-to-left-item))
+  (let ((item-line (get-text-property (point) 'latex-math-preview-symbol-line)))
+    (catch :next-line
+      (dotimes (n (- latex-math-preview-insert-symbol-column-size
+		     (get-text-property (point) 'latex-math-preview-symbol-column)))
+	(latex-math-preview-goto-right-of-item)
+	(when (or (not (latex-math-preview-candidate-for-insertion-point-p))
+		  (not (= item-line (get-text-property (point) 'latex-math-preview-symbol-line))))
+	  (latex-math-preview-goto-left-of-item)
+	  (throw :next-line t))))
+    (latex-math-preview-set-overlay-for-selected-item)))
 
 (defun latex-math-preview-move-to-beginning-of-candidates ()
   "Move to first candidate item in current buffer."
@@ -1851,43 +1877,23 @@ Return maximum size of images and maximum length of strings and images"
   (goto-char (point-max))
   (latex-math-preview-move-to-left-item))
 
-;; (defun latex-math-preview-scroll-up ()
-;;   "Scroll up and move to nearestd item."
-;;   (interactive)
-;;   (let ((lnum (1+ (line-number-at-pos)))
-;; 	(col (current-column)))
-;;     (if (< lnum (line-number-at-pos (point-max)))
-;; 	(progn
-;; 	  (scroll-up)
-;; 	  ;; (if (member (line-number-at-pos) latex-math-preview-information-line-number)
-;; 	  ;;     (forward-line -1))
-;; 	  ;; (move-to-column col)
-;; 	  ;; (skip-chars-backward "^\t")
-;; 	  ;; (backward-char)
-;; 	  (latex-math-preview-move-to-right-item)))))
+(defun latex-math-preview-scroll-up ()
+  "Scroll up and move to nearestd item."
+  (interactive)
+  (let ((item-col (get-text-property (point) 'latex-math-preview-symbol-column))
+	(item-line (get-text-property (point) 'latex-math-preview-symbol-line)))
+    (scroll-up)
+    (unless (latex-math-preview-candidate-for-insertion-point-p)
+      (latex-math-preview-goto-right-of-item))
+    (latex-math-preview-set-overlay-for-selected-item)))
 
-;; (defun latex-math-preview-scroll-down ()
-;;   "Scroll down and move to nearestd item."
-;;   (interactive)
-;;   (scroll-down)
-;;   (latex-math-preview-move-to-right-item)
-;;   ;; (let ((start-num (nth (1- (length latex-math-preview-information-line-number))
-;;   ;; 			latex-math-preview-information-line-number))
-;;   ;; 	(lnum (1+ (line-number-at-pos)))
-;;   ;; 	(col (current-column)))
-;;   ;;   (if (< start-num lnum)
-;;   ;; 	(progn
-;;   ;; 	  (scroll-down)
-;;   ;; 	  ;; (cond
-;;   ;; 	  ;;  ((< (line-number-at-pos) start-num)
-;;   ;; 	  ;;   (goto-char start-num))
-;;   ;; 	  ;;  ((member (line-number-at-pos) latex-math-preview-information-line-number)
-;;   ;; 	  ;;   (forward-line 1)))
-;;   ;; 	  ;; (move-to-column col)
-;;   ;; 	  ;; (skip-chars-backward "^\t")
-;;   ;; 	  ;; (backward-char)
-;;   ;; 	  (latex-math-preview-move-to-right-item))))
-;;   )
+(defun latex-math-preview-scroll-down ()
+  "Scroll down and move to nearestd item."
+  (interactive)
+  (scroll-down)
+  (unless (latex-math-preview-candidate-for-insertion-point-p)
+    (latex-math-preview-move-to-right-item))
+  (latex-math-preview-set-overlay-for-selected-item))
 
 (defvar latex-math-preview-insert-isearch-map
   (let ((map (copy-keymap isearch-mode-map)))
