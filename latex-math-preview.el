@@ -480,7 +480,7 @@ The integer is the number to access needed string from regular-expressin.")
 
 (defstruct latex-math-preview-symbol source display func args image math)
 
-(defun latex-math-preview-insert-enclosed-symbol (list)
+(defun latex-math-preview-insert-enclosed-symbol (&rest list)
   (insert (car list))
   (save-excursion (insert (nth 2 list))))
 
@@ -497,9 +497,11 @@ The integer is the number to access needed string from regular-expressin.")
 		   :func 'latex-math-preview-insert-enclosed-symbol :args obj))))
      ((latex-math-preview-symbol-p obj) (setq sym obj))
      (t (error "Invalid type object")))
-    (setf (latex-math-preview-symbol-image sym)
-	  (concat dir "/" (md5 (latex-math-preview-symbol-source sym)) ".png"))
-    (when math (setf (latex-math-preview-symbol-math sym) t))
+    (unless (latex-math-preview-symbol-image sym)
+      (setf (latex-math-preview-symbol-image sym)
+	    (concat dir "/" (md5 (latex-math-preview-symbol-source sym)) ".png")))
+    (unless (latex-math-preview-symbol-math sym)
+      (when math (setf (latex-math-preview-symbol-math sym) t)))
     sym))
 
 (defun latex-math-preview-symbol-string (sym)
@@ -532,7 +534,8 @@ The integer is the number to access needed string from regular-expressin.")
      latex-math-preview-latex-template-header packages)))
 
 (defvar latex-math-preview-text-symbol-datasets
-  '(("SpecialCharacter"l
+  '(("RecentUsed" . latex-math-preview-symbol-recent-used-text)
+    ("SpecialCharacter"
      ("special character" nil
       ("\\#" "\\$" "\\%" "\\&" "\\_" "\\{" "\\}" "\\S" "\\P" "\\dag" "\\ddag"
        "\\copyright" "\\pounds" "\\oe" "\\OE" "\\ae" "\\AE" "\\aa" "\\AA"
@@ -572,7 +575,8 @@ that is \(StringA, StringB StringC\). Then, insert the composition
 StringA and StringB.")
 
 (defvar latex-math-preview-mathematical-symbol-datasets
-  `(("DelimitersArrows"
+  `(("RecentUsed" . latex-math-preview-symbol-recent-used-math)
+    ("DelimitersArrows"
      ("delimiters" nil
       (("(" "x" ")") ("[" "x" "]") ("\\{" "x" "\\}")
        ("\\lfloor " "x" " \\rfloor") ("\\lceil " "x" " \\rceil")
@@ -734,7 +738,6 @@ StringA and StringB.")
   "List of candidates for insertion of LaTeX mathematical symbol.
 For data structure, refer to `latex-math-preview-text-symbol-datasets'")
 
-
 (defvar latex-math-preview-always-maximize-window nil
   "Always maximize preview window for `latex-math-preview-insert-symbol' if non-nil.")
 
@@ -742,7 +745,9 @@ For data structure, refer to `latex-math-preview-text-symbol-datasets'")
   "Restore last page of symbol list at next insertion
  if this `latex-math-preview-restore-last-page-of-symbol-list' is non-nil.")
 
-(defvar latex-math-preview-inserted-last-symbol '((math . nil) (text . nil))
+(defvar latex-math-preview-recent-inserted-symbol-number 30)
+
+(defvar latex-math-preview-recent-inserted-symbol '((math . nil) (text . nil))
   "Inserted last symbol.")
 
 (defvar latex-math-preview-initial-page-of-symbol-list
@@ -1479,24 +1484,23 @@ If KEY is nil then all directories saving caches is deleted."
     (latex-math-preview-clear-working-directory)
     png))
 
-(defun latex-math-preview-make-symbol-caches (key symbol-datasets type)
+(defun latex-math-preview-make-symbol-caches (key dataset type)
   "Create cache images which are associated with KEY in directory of which name is KEY.
 TYPE is 'math or 'text."
   (let ((dirpath (latex-math-preview-cache-directory key)))
     (if (file-directory-p dirpath)
 	(message "'%s' exists. Cache may be used." dirpath)
-      (let ((dataset (cdr (assoc key symbol-datasets))))
-	(make-directory dirpath t)
-	(message "Creating images. Please wait for a while.")
-	(dolist (subcat dataset)
-	  (let ((desc (car subcat))
-		(packages (cadr subcat))
-		(sym-set (nth 2 subcat)))
-	    (dolist (sym sym-set)
-	      (latex-math-preview-make-symbol-candidate-image
-	       (latex-math-preview-symbol-make
-		sym dirpath (eq latex-math-preview-current-insert-mode 'math)) packages))))
-	(message "Finish making cache images of \"%s\"." key)))))
+      (make-directory dirpath t)
+      (message "Creating images. Please wait for a while.")
+      (dolist (subcat dataset)
+	(let ((desc (car subcat))
+	      (packages (cadr subcat))
+	      (sym-set (nth 2 subcat)))
+	  (dolist (sym sym-set)
+	    (latex-math-preview-make-symbol-candidate-image
+	     (latex-math-preview-symbol-make
+	      sym dirpath (eq latex-math-preview-current-insert-mode 'math)) packages))))
+      (message "Finish making cache images of \"%s\"." key))))
 
 (defun latex-math-preview-make-all-cache-images ()
   "Create all cache images."
@@ -1505,7 +1509,7 @@ TYPE is 'math or 'text."
     (let ((symbol-datasets (symbol-value (cdr name-and-sets)))
 	  (type (car name-and-sets)))
       (dolist (dataset symbol-datasets)
-	(latex-math-preview-make-symbol-caches (car dataset) symbol-datasets type))))
+	(latex-math-preview-make-symbol-caches (car dataset) (cdr dataset) type))))
   (message "Finish making all cache images."))
 
 (defun latex-math-preview-strings-and-images-sizes (sym-list)
@@ -1560,11 +1564,10 @@ Return maximum size of images and maximum length of strings and images"
     (insert (make-string num-dash ?-)))
   (insert "\n"))
 
-(defun latex-math-preview-insert-candidate-images (key symbol-datasets)
+(defun latex-math-preview-insert-candidate-images (key dataset)
   "Insert images and expressions."
   (setq latex-math-preview-information-line-number nil)
-  (let* ((dataset (cdr (assoc key symbol-datasets)))
-	 (dirpath (latex-math-preview-cache-directory key))
+  (let* ((dirpath (latex-math-preview-cache-directory key))
 	 (symset (mapcar (lambda (subcat)
 			   (mapcar (lambda (obj)
 				     (latex-math-preview-symbol-make
@@ -1612,35 +1615,52 @@ Return maximum size of images and maximum length of strings and images"
 	  (setq mode-name "LaTeXPreview"))
 	buf)))
 
+(defun latex-math-preview-insertion-set-current-page-key (key)
+  (setcdr (assq latex-math-preview-current-insert-mode
+		latex-math-preview-current-page-of-symbol-list) key))
+
+(defun latex-math-preview-insertion-current-symbol-datasets ()
+  (symbol-value (cdr (assq latex-math-preview-current-insert-mode
+			   latex-math-preview-list-name-symbol-datasets))))
+
+(defun latex-math-preview-insertion-current-page-data (key)
+  (let ((val (cdr (assoc key (latex-math-preview-insertion-current-symbol-datasets)))))
+    (if (symbolp val) (funcall val) val)))
+
+(defun latex-math-preview-symbol-dataset-item-exist-p (dataset)
+  (catch :has-item
+    (dolist (subcat dataset)
+      (when (> (length (nth 2 subcat)) 0)
+	(throw :has-item t)))
+    nil))
+
 (defun latex-math-preview-create-buffer-for-insertion (key)
   "Create buffer displaying cache images in KEY."
   (unless (and (image-type-available-p 'png) (display-images-p))
     (error "Cannot display PNG in this Emacs"))
-  (setcdr (assq latex-math-preview-current-insert-mode
-		latex-math-preview-current-page-of-symbol-list) key)
-  
-  (let ((symbol-datasets (symbol-value (cdr (assq latex-math-preview-current-insert-mode 
-						  latex-math-preview-list-name-symbol-datasets))))
+  (latex-math-preview-insertion-set-current-page-key key)
+  (let ((dataset (latex-math-preview-insertion-current-page-data key))
 	(win-conf (current-window-configuration))
 	buf)
-    (latex-math-preview-make-symbol-caches key symbol-datasets latex-math-preview-current-insert-mode)
-    (setq buf (latex-math-preview-get-insertion-buffer))
-    (pop-to-buffer buf)
-    (setq latex-math-preview-previous-window-configuration win-conf)
-    (if latex-math-preview-always-maximize-window (delete-other-windows))
-    (with-current-buffer buf
-      (setq buffer-read-only nil)
-      (erase-buffer)
-      (latex-math-preview-insert-key-explanations)
-      (latex-math-preview-insert-candidate-images key symbol-datasets)
-      (goto-char (point-min))
-      (latex-math-preview-move-to-right-item)
-      (setq buffer-read-only t))))
+    (if (latex-math-preview-symbol-dataset-item-exist-p dataset)
+	(progn
+	  (latex-math-preview-make-symbol-caches key dataset latex-math-preview-current-insert-mode)
+	  (setq buf (latex-math-preview-get-insertion-buffer))
+	  (pop-to-buffer buf)
+	  (setq latex-math-preview-previous-window-configuration win-conf)
+	  (if latex-math-preview-always-maximize-window (delete-other-windows))
+	  (with-current-buffer buf
+	    (setq buffer-read-only nil)
+	    (erase-buffer)
+	    (latex-math-preview-insert-key-explanations)
+	    (latex-math-preview-insert-candidate-images key dataset)
+	    (goto-char (point-min))
+	    (latex-math-preview-move-to-right-item)
+	    (setq buffer-read-only t)))
+      (latex-math-preview-next-candidates-for-insertion 1))))
 
 (defun latex-math-preview-insert-symbol-read-page-number ()
-  (completing-read
-   "page: " (symbol-value (cdr (assq latex-math-preview-current-insert-mode
-				     latex-math-preview-list-name-symbol-datasets))) nil t))
+  (completing-read "page: " (latex-math-preview-insertion-current-symbol-datasets) nil t))
 
 (defun latex-math-preview-insert-symbol-base (num)
   (let ((key))
@@ -1686,9 +1706,7 @@ Return maximum size of images and maximum length of strings and images"
 (defun latex-math-preview-get-page-number (dataset)
   "Get number of page for DATASET."
   (let* ((num 0) (cont t)
-	 (symbol-datasets
-	  (symbol-value (cdr (assq latex-math-preview-current-insert-mode
-				   latex-math-preview-list-name-symbol-datasets))))
+	 (symbol-datasets (latex-math-preview-insertion-current-symbol-datasets))
 	 (max-num (length symbol-datasets)))
     (while (and cont (< num max-num))
       (if (string= dataset (car (nth num symbol-datasets))) (setq cont nil))
@@ -1701,9 +1719,7 @@ Return maximum size of images and maximum length of strings and images"
   (let* ((page (latex-math-preview-get-page-number
 		(cdr (assq latex-math-preview-current-insert-mode
 			   latex-math-preview-current-page-of-symbol-list))))
-	 (symbol-datasets
-	  (symbol-value (cdr (assq latex-math-preview-current-insert-mode
-				   latex-math-preview-list-name-symbol-datasets))))
+	 (symbol-datasets (latex-math-preview-insertion-current-symbol-datasets))
 	 (len (length symbol-datasets)))
     (while (< num 0) (setq num (+ num len)))
     (if page
@@ -1732,8 +1748,11 @@ Return maximum size of images and maximum length of strings and images"
     (when sym
       (latex-math-preview-quit-window)
       (latex-math-preview-symbol-insert-item sym)
-      (setcdr (assq latex-math-preview-current-insert-mode
-		    latex-math-preview-inserted-last-symbol) sym))))
+      (let* ((val (assoc latex-math-preview-current-insert-mode latex-math-preview-recent-inserted-symbol))
+	     (list-cdr (cons sym (delete sym (cdr val)))))
+	(when (> (length list-cdr) latex-math-preview-recent-inserted-symbol-number)
+	  (setf (nthcdr latex-math-preview-recent-inserted-symbol-number a) nil))
+	(setcdr val list-cdr)))))
 
 (defun latex-math-preview-put-candidate-mouse-selecting (event)
   "Insert mouse selecting candidate."
@@ -1757,9 +1776,17 @@ Return maximum size of images and maximum length of strings and images"
   "Insert last symbol which is inserted by `latex-math-preview-insert-symbol'"
   (interactive)
   (latex-math-preview-set-current-insert-mode)
-  (let ((last-symbol (cdr (assq latex-math-preview-current-insert-mode
-				latex-math-preview-inserted-last-symbol))))
+  (let ((last-symbol (cadr (assq latex-math-preview-current-insert-mode
+				 latex-math-preview-recent-inserted-symbol))))
     (if last-symbol (latex-math-preview-symbol-insert-item last-symbol))))
+
+(defun latex-math-preview-symbol-recent-used-text ()
+  (list (list "Recent Used" nil
+	      (cdr (assq 'text latex-math-preview-recent-inserted-symbol)))))
+
+(defun latex-math-preview-symbol-recent-used-math ()
+  (list (list "Recent Used" nil
+	      (cdr (assq 'math latex-math-preview-recent-inserted-symbol)))))
 
 ;;-----------------------------------------------------------------------------
 ;; Move to other item
