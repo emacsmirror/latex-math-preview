@@ -1627,8 +1627,9 @@ Return maximum size of images and maximum length of strings and images"
 	buf)))
 
 (defun latex-math-preview-insertion-get-current-page-key ()
-  (cdr (assq latex-math-preview-current-insert-mode
-	     latex-math-preview-current-page-of-symbol-list)))
+  (or (cdr (assq latex-math-preview-current-insert-mode
+		 latex-math-preview-current-page-of-symbol-list))
+      (car (car (latex-math-preview-insertion-current-symbol-datasets)))))
 
 (defun latex-math-preview-insertion-set-current-page-key (key)
   (setcdr (assq latex-math-preview-current-insert-mode
