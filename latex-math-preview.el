@@ -437,7 +437,8 @@
   "Background color of image created by dvipng.")
 
 (defvar latex-math-preview-dvipng-color-option nil
-  "Temporary variable. You must not set this variable.")
+  "The option of dvipng to set colors of background and foreground.
+If the value is nil then the colors automatically set from emacs settings.")
 
 (defvar latex-math-preview-previous-window-configuration nil
   "Window configuration before latex-math-preview window is created.
@@ -1384,7 +1385,7 @@ If you use YaTeX, then you should use YaTeX-in-math-mode-p alternatively."
     (if (and str remove-num-expression)
 	(dolist (env remove-num-expression)
 	  (setq str (replace-regexp-in-string (format "{%s}" env) (format "{%s\*}" env) str))))
-      str))
+    str))
 
 (defun latex-math-preview-expression ()
   "Preview a TeX maths expression at (or surrounding) point.
@@ -1458,9 +1459,6 @@ the notations which are stored in `latex-math-preview-match-expression'."
   (let ((buf (current-buffer)))
     (latex-math-preview-quit-window)
     (kill-buffer buf)))
-
-; Clear dvipng option for coloring.
-(setq latex-math-preview-dvipng-color-option nil)
 
 ;;-----------------------------------------------------------------------------
 ;; Insert Mathematical expression 
