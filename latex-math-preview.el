@@ -1496,20 +1496,21 @@ If KEY is nil then all directories saving caches is deleted."
 (defun latex-math-preview-make-symbol-caches (key dataset type)
   "Create cache images which are associated with KEY in directory of which name is KEY.
 TYPE is 'math or 'text."
-  (let ((dirpath (latex-math-preview-cache-directory key)))
-    (if (file-directory-p dirpath)
-	(message "'%s' exists. Cache may be used." dirpath)
-      (make-directory dirpath t)
-      (message "Creating images. Please wait for a while.")
-      (dolist (subcat dataset)
-	(let ((desc (car subcat))
-	      (packages (cadr subcat))
-	      (sym-set (nth 2 subcat)))
-	  (dolist (sym sym-set)
-	    (latex-math-preview-make-symbol-candidate-image
-	     (latex-math-preview-symbol-make
-	      sym dirpath (eq latex-math-preview-current-insert-mode 'math)) packages))))
-      (message "Finish making cache images of \"%s\"." key))))
+  (when (listp dataset)
+    (let ((dirpath (latex-math-preview-cache-directory key)))
+      (if (file-directory-p dirpath)
+	  (message "'%s' exists. Cache may be used." dirpath)
+	(make-directory dirpath t)
+	(message "Creating images. Please wait for a while.")
+	(dolist (subcat dataset)
+	  (let ((desc (car subcat))
+		(packages (cadr subcat))
+		(sym-set (nth 2 subcat)))
+	    (dolist (sym sym-set)
+	      (latex-math-preview-make-symbol-candidate-image
+	       (latex-math-preview-symbol-make
+		sym dirpath (eq type 'math)) packages))))
+	(message "Finish making cache images of \"%s\"." key)))))
 
 (defun latex-math-preview-make-all-cache-images ()
   "Create all cache images."
