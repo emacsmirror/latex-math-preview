@@ -2,8 +2,8 @@
 
 ;; Author: Takayuki YAMAGUCHI <d@ytak.info>
 ;; Keywords: LaTeX TeX
-;; Version: 0.6.0
-;; Created: Sat Oct 22 15:45:53 2011
+;; Version: 0.6.1
+;; Created: Wed Oct 26 01:22:14 2011
 ;; URL: http://www.emacswiki.org/latex-math-preview.el
 ;; Site: http://www.emacswiki.org/LaTeXMathPreview
 
@@ -303,6 +303,8 @@
 ;;       "cache directory in your system")
 
 ;; ChangeLog:
+;; 2011/10/26 version 0.6.1 yamaguchi
+;;     Some bug fixes and add `latex-math-preview-set-conversion-command'.
 ;; 2011/10/22 version 0.6.0 yamaguchi
 ;;     Some refactorings and add insertion of recent used symbol.
 ;;     Because changed name of cache file is used we need to clear cache of symbols.
