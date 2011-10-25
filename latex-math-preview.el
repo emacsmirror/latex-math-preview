@@ -912,6 +912,16 @@ This variable must not be set.")
   '(pdflatex-to-pdf gs-to-png)
   "Sequence of end of function names to create png image for previewing beamer page.")
 
+(defvar latex-math-preview-conversion-variables
+  '(latex-math-preview-tex-to-png-for-preview
+    latex-math-preview-tex-to-png-for-save
+    latex-math-preview-tex-to-eps-for-save
+    latex-math-preview-tex-to-ps-for-save
+    latex-math-preview-beamer-to-png))
+
+(dolist (var latex-math-preview-conversion-variables)
+  (make-variable-buffer-local var))
+
 (defun latex-math-preview-get-command-path (command-key)
   (or (cdr (assoc command-key latex-math-preview-command-path-alist)) (symbol-name command-key)))
 
@@ -923,7 +933,7 @@ This variable must not be set.")
 (defun latex-math-preview-call-command-process (command args)
   (= 0 (apply 'call-process command nil latex-math-preview-command-buffer nil args)))
 
-(defun latex-math-preview-execute-latex-command (command input opts extension)
+(defun latex-math-preview-latex-command-execute (command input opts extension)
   (let ((dir (or latex-math-preview-working-directory (file-name-directory input) ".")))
     (if (latex-math-preview-call-command-process command `(,@opts ,(concat "-output-directory=" dir) ,input))
 	(concat dir "/" (file-name-sans-extension (file-name-nondirectory input)) "." extension)
@@ -936,7 +946,7 @@ This variable must not be set.")
 
   (defmacro latex-math-preview-define-latex-function (command)
     `(defun ,(intern (concat "latex-math-preview-execute-" (symbol-name command))) (input)
-       (latex-math-preview-execute-latex-command
+       (latex-math-preview-latex-command-execute
 	(latex-math-preview-get-command-path (quote ,(intern (car (split-string (symbol-name command) "-"))))) input
 	(latex-math-preview-get-command-option (quote ,command))
 	,(latex-math-preview-get-command-output-extension command)))))
@@ -1048,31 +1058,43 @@ a list created by splitting COMMAND by \"-\" as a command name."
 	(if (not product) (throw :no-output nil))))
     product))
 
-(defvar latex-math-preview-custom-convert nil)
+(defun latex-math-preview-completing-read-convert-command-sequence ()
+  (let* ((cmd-list
+	  (mapcar
+	   (lambda (cmd-sym)
+	     (replace-regexp-in-string "^latex-math-preview-execute-" "" (symbol-name cmd-sym)))
+	   (apropos-internal "latex-math-preview-execute-" 'functionp)))
+	 (cmd (completing-read "Conversion: " cmd-list nil t))
+	 (cmd-seq))
+    (while (> (length cmd) 0)
+      (setq cmd-seq (append cmd-seq (list cmd)))
+      (setq cmd (completing-read "Conversion: " cmd-list nil t)))
+    (mapcar 'intern cmd-seq)))
+
+(defun latex-math-preview-set-conversion-command ()
+  "Set sequence of conversion commands for current buffer latex file."
+  (interactive)
+  (let ((var (completing-read
+	      "Set variable: "
+	      (mapcar (lambda (sym) (replace-regexp-in-string "^latex-math-preview-" "" (symbol-name sym)))
+		      latex-math-preview-conversion-variables) nil t)))
+    (set (intern (concat "latex-math-preview-" var))
+	 (latex-math-preview-completing-read-convert-command-sequence))))
+
+(defvar latex-math-preview-custom-conversion-to-save-image nil)
 
 (defvar latex-math-preview-convert-command-list nil)
 
 (defun latex-math-preview-reset-custom-convert ()
   (interactive)
   (setq latex-math-preview-convert-command-list nil)
-  (setq latex-math-preview-custom-convert nil))
-
-(defun latex-math-preview-completing-read-convert-command ()
-  (if (not latex-math-preview-convert-command-list)
-      (setq latex-math-preview-convert-command-list
-	    (mapcar (lambda (func) (list (replace-regexp-in-string 
-					  "^latex-math-preview-execute-" "" (symbol-name func))))
-		    (apropos-internal "^latex-math-preview-execute-"))))
-  (completing-read "Command: " latex-math-preview-convert-command-list nil t))
+  (setq latex-math-preview-custom-conversion-to-save-image nil))
 
 (defun latex-math-preview-set-custom-convert ()
   (interactive)
   (latex-math-preview-reset-custom-convert)
-  (catch :end
-    (while t
-      (let ((s (latex-math-preview-completing-read-convert-command)))
-	(if (= 0 (length s)) (throw :end t))
-	(setq latex-math-preview-custom-convert (append latex-math-preview-custom-convert (list (intern s))))))))
+  (setq latex-math-preview-custom-conversion-to-save-image
+	(latex-math-preview-completing-read-convert-command-sequence)))
 
 ;; (defun latex-math-preview-convert-imagemagick-trim (input)
 ;;   (let ((old (make-temp-name input)))
@@ -1411,7 +1433,8 @@ the notations which are stored in `latex-math-preview-match-expression'."
 (defun latex-math-preview-prompt-for-save-image-file (use-custom-conversion)
   (if use-custom-conversion
       (let ((extension (latex-math-preview-get-command-output-extension
-			(nth (1- (length latex-math-preview-custom-convert)) latex-math-preview-custom-convert))))
+			(nth (1- (length latex-math-preview-custom-conversion-to-save-image))
+			     latex-math-preview-custom-conversion-to-save-image))))
 	(concat "Save as" (if extension (concat " (*." extension ")") "")": "))
     "Save as (*.png, *.eps, or *.ps): "))
 
@@ -1429,7 +1452,7 @@ the notations which are stored in `latex-math-preview-match-expression'."
 	(if str
 	    (let ((func-series
 		   (cond
-		    (use-custom-conversion latex-math-preview-custom-convert)
+		    (use-custom-conversion latex-math-preview-custom-conversion-to-save-image)
 		    ((string-match "\\.png$" output) latex-math-preview-tex-to-png-for-save)
 		    ((string-match "\\.eps$" output) latex-math-preview-tex-to-eps-for-save)
 		    ((string-match "\\.ps$" output) latex-math-preview-tex-to-ps-for-save)
@@ -1756,7 +1779,7 @@ Return maximum size of images and maximum length of strings and images"
       (let* ((val (assoc latex-math-preview-current-insert-mode latex-math-preview-recent-inserted-symbol))
 	     (list-cdr (cons sym (delete sym (cdr val)))))
 	(when (> (length list-cdr) latex-math-preview-recent-inserted-symbol-number)
-	  (setf (nthcdr latex-math-preview-recent-inserted-symbol-number a) nil))
+	  (setf (nthcdr latex-matbblllh-preview-recent-inserted-symbol-number list-cdr) nil))
 	(setcdr val list-cdr)))))
 
 (defun latex-math-preview-put-candidate-mouse-selecting (event)
