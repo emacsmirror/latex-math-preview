@@ -1112,7 +1112,9 @@ a list created by splitting COMMAND by \"-\" as a command name."
 ;;-----------------------------------------------------------------------------
 ;; Search usepackage
 
-(defvar latex-math-preview-usepackage-cache nil)
+(defvar latex-math-preview-usepackage-cache nil
+  "List of usepackage. If the value is t we do not set usepackage.
+If the value is nil this cache has not been set yet.")
 (make-variable-buffer-local 'latex-math-preview-usepackage-cache)
 
 (defun latex-math-preview-search-header-usepackage ()
@@ -1140,16 +1142,18 @@ a list created by splitting COMMAND by \"-\" as a command name."
     nil))
 
 (defun latex-math-preview-get-header-usepackage ()
-  "Return cache of usepackage and create cache data if needed"
-  (when (and (not latex-math-preview-usepackage-cache) (string-match "\\.tex$" (buffer-file-name)))
-    (let (cache)
-      (setq cache (latex-math-preview-search-header-usepackage))
-      (if (and (not cache)
-	       (let ((filename (buffer-file-name (current-buffer))))
-		 (and filename (string-match "\\.tex" (buffer-file-name (current-buffer))))))
-	  (setq cache (latex-math-preview-search-header-usepackage-other-file
-		       (read-file-name "Main TeX file: " nil default-directory))))
-      (if (listp latex-math-preview-usepackage-cache)
+  "Return cache of usepackage and create cache data if needed.
+If current buffer has no usepackage line and the corresponding file exists
+then this function ask you main tex file having usepackage lines.
+If current buffer is not a file we are not asked."
+  (when (not latex-math-preview-usepackage-cache)
+    (let ((cache (latex-math-preview-search-header-usepackage)))
+      (when (and (not cache)
+		 (let ((filename (buffer-file-name (current-buffer))))
+		   (and filename (string-match "\\.tex" filename))))
+	(setq cache (latex-math-preview-search-header-usepackage-other-file
+		     (read-file-name "Main TeX file: " nil default-directory))))
+      (if (listp cache)
 	  (progn
 	    (setq latex-math-preview-usepackage-cache nil)
 	    (dolist (line cache)
@@ -1163,7 +1167,7 @@ a list created by splitting COMMAND by \"-\" as a command name."
 		(when filtered-line
 		  (setq latex-math-preview-usepackage-cache
 			(append latex-math-preview-usepackage-cache (list filtered-line)))))))
-	(setq latex-math-preview-usepackage-cachet t))))
+	(setq latex-math-preview-usepackage-cache t))))
   (if (listp latex-math-preview-usepackage-cache) latex-math-preview-usepackage-cache nil))
 
 (defvar latex-math-preview-edit-usepackage-buffer "*latex-math-preview: usepackage cache*")
