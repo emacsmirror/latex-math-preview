@@ -453,7 +453,7 @@ If the value is nil then the colors automatically set from emacs settings.")
 (defvar latex-math-preview-match-expression
   '(
     ;; \[...\]
-    (0 . "\\\\\\[\\(.\\|\n\\)*?\\\\]")
+    (1 . "[^\\\\]\\(\\\\\\[\\(.\\|\n\\)*?\\\\]\\)")
 
     ;; \(...\)
     (0 . "\\\\(\\(.\\|\n\\)*?\\\\)")
