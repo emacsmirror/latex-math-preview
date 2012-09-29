@@ -1117,6 +1117,8 @@ a list created by splitting COMMAND by \"-\" as a command name."
 If the value is nil this cache has not been set yet.")
 (make-variable-buffer-local 'latex-math-preview-usepackage-cache)
 
+;; [TODO] The name of function `latex-math-preview-search-header-usepackage' is not suitable
+;; because for not only usepackage but also definitions of commands.
 (defun latex-math-preview-search-header-usepackage ()
   "Return list of \\usepackage which is used in current buffer."
   (save-excursion
@@ -1124,7 +1126,7 @@ If the value is nil this cache has not been set yet.")
     (let ((beg-doc (if (search-forward "\\begin{document}" nil t) (point) (point-max)))
 	  cmds)
       (goto-char (point-min))
-      (while (re-search-forward "\\\\usepackage[^}]*}" beg-doc t)
+      (while (re-search-forward "\\(\\\\usepackage[^}]*}\\)\\|\\(\\\\DeclareMathOperator{.*}$\\)\\|\\(\\\\providecommand{.*}$\\)" beg-doc t)
 	(let ((tmp-str (match-string-no-properties 0)))
 	  (save-excursion 
 	    (when (not (re-search-backward "\\(^\\|[^\\\\]\\)%" (line-beginning-position) t))
