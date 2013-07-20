@@ -2,8 +2,8 @@
 
 ;; Author: Takayuki YAMAGUCHI <d@ytak.info>
 ;; Keywords: LaTeX TeX
-;; Version: 0.6.2
-;; Created: Sat Jul 20 15:13:17 2013
+;; Version: 0.6.3
+;; Created: Sun Jul 21 00:19:13 2013
 ;; URL: http://www.emacswiki.org/latex-math-preview.el
 ;; Site: http://www.emacswiki.org/LaTeXMathPreview
 
@@ -323,6 +323,8 @@
 ;; If you change the cache directory, please customize this variable.
 
 ;; ChangeLog:
+;; 2013/07/21 version 0.6.3 yamaguchi
+;;     A bug fix and revise commentary
 ;; 2013/07/20 version 0.6.2 yamaguchi
 ;;     Some bug fixes and minor changes
 ;; 2011/10/26 version 0.6.1 yamaguchi
