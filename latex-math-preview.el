@@ -1369,8 +1369,7 @@ If you use YaTeX, then you should use YaTeX-in-math-mode-p alternatively."
       (insert-image-file image)
       (goto-char (point-min))
       (setq buffer-read-only t)))
-  (save-selected-window
-    (pop-to-buffer latex-math-preview-expression-buffer-name))
+  (pop-to-buffer latex-math-preview-expression-buffer-name)
   (when (and latex-math-preview-display-whole-image (not (pos-visible-in-window-p (point-max))))
     (with-current-buffer latex-math-preview-expression-buffer-name (delete-other-windows))))
 
