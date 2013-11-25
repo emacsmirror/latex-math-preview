@@ -1388,6 +1388,7 @@ If you use YaTeX, then you should use YaTeX-in-math-mode-p alternatively."
     (let ((inhibit-read-only t))
       (setq buffer-read-only nil)
       (erase-buffer)
+      (insert "\n ")
       (insert-image-file image)
       (goto-char (point-min))
       (setq buffer-read-only t)))
