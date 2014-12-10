@@ -1331,7 +1331,7 @@ If you use YaTeX, then you should use YaTeX-in-math-mode-p alternatively."
       (forward-line 1))
     (goto-char (point-min))
     (insert "% " (make-string 5 ?-) " Created by latex-math-preview.el at "
-	    (format-time-string "%Y/%m/%d %H:%M:%S") " " (make-string 5 ?-) "\n")
+	    (format-time-string "%Y/%m/%d %H:%M:%S") " " (make-string 5 ?-) "\n% \n% If \\usepackage lines raise errors \n% then we should edit them by M-x latex-math-preview-edit-usepackage\n% \n% If you want to exclude some \\usepackage lines anytime\n% then you should configure the variable latex-math-preview-usepackage-filter-alist\n% \n")
     (save-excursion
       (insert "\n\n% " (make-string 5 ?-) " Error message " (make-string 5 ?-) "\n"))
     (insert-file-contents dot-tex)
