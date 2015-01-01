@@ -1,11 +1,7 @@
 ;;; latex-math-preview.el --- preview LaTeX mathematical expressions.
 
-;; Author: Takayuki YAMAGUCHI <d@ytak.info>
-;; Keywords: LaTeX TeX
-;; Version: 0.6.3
-;; Created: Sun Jul 21 00:19:13 2013
-;; URL: http://www.emacswiki.org/latex-math-preview.el
-;; Site: http://www.emacswiki.org/LaTeXMathPreview
+;; Copyright 2006, 2007, 2008, 2009 Kevin Ryde
+;; Copyright 2009-2013 Takayuki YAMAGUCHI
 
 ;; latex-math-preview.el is a modified version which is based on
 ;; tex-math-preview.el and has been created at July 2009.
@@ -16,9 +12,13 @@
 ;; Please see http://user42.tuxfamily.org/tex-math-preview/index.html
 ;; for details of tex-math-preview.el.
 
-;; Copyright 2006, 2007, 2008, 2009 Kevin Ryde
-;; Copyright 2009-2013 Takayuki YAMAGUCHI
-;;
+;; Author: Takayuki YAMAGUCHI <d@ytak.info>
+;; Keywords: LaTeX TeX
+;; Version: 0.6.3
+;; Created: Sun Jul 21 00:19:13 2013
+;; URL: http://www.emacswiki.org/latex-math-preview.el
+;; Homepage: http://www.emacswiki.org/LaTeXMathPreview
+
 ;; This program is free software; you can redistribute it and/or modify it under
 ;; the terms of the GNU General Public License as published by the Free Software
 ;; Foundation; either version 3 of the License, or (at your option) any later 
@@ -79,17 +79,17 @@
 ;; 
 ;; M-x `latex-math-preview-beamer-frame' makes an image of one frame of beamer,
 ;; which is a LaTeX style for presentation.
-
-;; Requirements;
+;; 
+;; * Requirements
 ;; Because latex-math-preview displays png images in emacs,
 ;; it is not work in emacs on terminal, i.e., latex-math-preview needs emacs on X Window System.
 ;; 
-;; * Version of Emacs *
+;; ** Version of Emacs
 ;; latex-math-preview works probably on emacs with the version larger than 22.
 ;; The author tested latex-math-preview on Emacs 24.2.1 and Ubuntu 13.04.
 ;; Previously, the author confirmed latex-math-preview had no problem on Meadow 3 and Windows XP.
 ;; 
-;; * Image Conversion *
+;; ** Image Conversion
 ;; latex-math-preview uses some commands to convert tex to png, tex to eps, and so on.
 ;; Only for previewing mathematical expressions, latex-math-preview requires
 ;; latex and dvipng commands.
@@ -105,9 +105,9 @@
 ;;  - dvipdfm
 ;;  - dvipdfmx
 ;;  - gs
-
-;;; Install of Emacs Lisp:
-;; * Load latex-math-preview *
+;; 
+;; * Install of Emacs Lisp
+;; ** Load latex-math-preview
 ;; Put latex-math-preview.el to your load-path of Emacs and
 ;; write the following code in ~/.emacs.el.
 ;; 
@@ -116,7 +116,7 @@
 ;;   (autoload 'latex-math-preview-save-image-file "latex-math-preview" nil t)
 ;;   (autoload 'latex-math-preview-beamer-frame "latex-math-preview" nil t)
 ;; 
-;; * Key Bindings *
+;; ** Key Bindings
 ;; Please set key bindings of your TeX mode if desired.
 ;; 
 ;; For example, for YaTeX mode we add the following settings to ~/.emacs.el.
@@ -150,7 +150,7 @@
 ;;            '(lambda ()
 ;;            (local-set-key "\C-cp" 'latex-math-preview-expression)))
 ;; 
-;; * Paths of Programs *
+;; ** Paths of Programs
 ;; latex-math-preview.el uses the commands 'latex', 'dvipng', 'dvips', and so on.
 ;; If these commands are not in the load paths of system or
 ;; you want to use the different commands from ones of system default,
@@ -160,9 +160,8 @@
 ;;    (setq latex-math-preview-command-path-alist
 ;;          '((latex . "/usr/bin/latex") (dvipng . "/usr/bin/dvipng") (dvips . "/usr/bin/dvips")))
 ;; 
-
-;;; Usage:
-;; * latex-math-preview-expression *
+;; * Usage
+;; ** latex-math-preview-expression
 ;; If you type M-x `latex-math-preview-expression', a buffer including a preview image pops up.
 ;; If the cursor points to a mathematical expression, we can preview the expression.
 ;; If a region is selected with transient-mark on, i.e., with usually backgroud-color changed,
@@ -175,7 +174,7 @@
 ;;  k: scroll down preview buffer
 ;;  o: maximize window of preview buffer
 ;; 
-;; * latex-math-preview-insert-symbol *
+;; ** latex-math-preview-insert-symbol
 ;; You can insert a LaTeX symbol from the list of symbols if you type
 ;; M-x `latex-math-preview-insert-symbol'.
 ;; In the buffer you can select the symbol pointed by the current cursor by pressing RET.
@@ -197,21 +196,21 @@
 ;; you can use `latex-math-preview-mathematical-symbol-datasets' or
 ;; `latex-math-preview-insert-text-symbol' directly.
 ;; 
-;; * latex-math-preview-save-image-file *
+;; ** latex-math-preview-save-image-file
 ;; While `latex-math-preview-expression' displays an images in a buffer,
 ;; you can save the images as files.
 ;; If you type M-x `latex-math-preview-save-image-file', you are asked
 ;; about path of an outputted image.
 ;; You must input the path of which extention is 'png' or 'eps'.
 ;; 
-;; * latex-math-preview-beamer-frame *
+;; ** latex-math-preview-beamer-frame
 ;; If we type M-x `latex-math-preview-beamer-frame'
 ;; with the cursor in \frame{ ... } or \begin{frame} ... \end{frame},
 ;; we can preview the page of beamer presentation
 ;; same as `latex-math-preview-expression'.
-
-;;; Settings:
-;; * LaTeX template *
+;; 
+;; * Settings
+;; ** LaTeX template
 ;; latex-math-preview.el makes a temporary LaTeX file and convert it to an image
 ;; by the commands 'latex', 'dvipng', and so on.
 ;; The structure of a temporary latex file is the following.
@@ -241,7 +240,7 @@
 ;; the variable `latex-math-preview-latex-usepackage-for-not-tex-file'.
 ;; When we save image files, the variable `latex-math-preview-template-header-for-save-image' is used.
 ;; 
-;; * Conversion Process *
+;; ** Conversion Process
 ;; The default value of the variable `latex-math-preview-tex-to-png-for-preview' is
 ;; 
 ;;   (defvar latex-math-preview-tex-to-png-for-preview
@@ -292,7 +291,7 @@
 ;; the foreground and background colors of png images respectively.
 ;; If these variables are nil, these colors are the same as these of the default face.
 ;; 
-;; * Matching mathematical expression *
+;; ** Matching mathematical expression
 ;; When you execute the function `latex-math-preview-expression',
 ;; the default settings support the following LaTeX mathematical expressions.
 ;;  $ ... $
@@ -322,7 +321,7 @@
 ;; of which default value is "~/.emacs.d/latex-math-preview-cache".
 ;; If you change the cache directory, please customize this variable.
 
-;; ChangeLog:
+;;; Change Log:
 ;; 2013/07/21 version 0.6.3 yamaguchi
 ;;     A bug fix and revise commentary
 ;; 2013/07/20 version 0.6.2 yamaguchi
