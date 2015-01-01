@@ -193,6 +193,16 @@
       )))
   "Symbol data for syymbol fonts in pifont.sty.")
 
+(defun latex-math-preview-extra-data-initialize ()
+  (unless (boundp 'latex-math-preview-text-symbol-datasets)
+    (require 'latex-math-preview))
+  (add-to-list 'latex-math-preview-text-symbol-datasets
+               latex-math-preview-textcomp-symbol-data)
+  (add-to-list 'latex-math-preview-text-symbol-datasets
+               latex-math-preview-pifont-zapf-dingbats-symbol-data)
+  (add-to-list 'latex-math-preview-text-symbol-datasets
+               latex-math-preview-pifont-symbol-fonts-symbol-data))
+
 (provide 'latex-math-preview-extra-data)
 
 ;;; latex-math-preview-extra-data.el ends here
