@@ -277,7 +277,7 @@
 ;;    (setq latex-math-preview-tex-to-ps-for-save '(platex dvips-to-ps))
 ;;    (setq latex-math-preview-beamer-to-png '(platex dvipdfmx gs-to-png))
 ;; 
-;; * Options of Commands *
+;; ** Options of Commands
 ;; The options of the commands are specified by
 ;; the variable `latex-math-preview-command-option-alist' and
 ;; the options for triming margins of images are specified
@@ -307,7 +307,7 @@
 ;; If you want to preview other LaTeX mathematical expressions,
 ;; please add settings to match them to the variable `latex-math-preview-match-expression'.
 ;; 
-;; * List of symbols for insertion *
+;; ** List of symbols for insertion
 ;; To change symbol set, you may customize the variable
 ;; `latex-math-preview-mathematical-symbol-datasets'.
 ;; The preview buffer of symbol list is popped up with the last opend page.
