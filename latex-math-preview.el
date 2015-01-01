@@ -510,6 +510,7 @@ The integer is the number to access needed string from regular-expressin.")
     (text . latex-math-preview-text-symbol-datasets))
   "Name of list of datasets.")
 
+;;;###autoload
 (defstruct latex-math-preview-symbol source display func args image math)
 
 (defun latex-math-preview-insert-enclosed-symbol (&rest list)
@@ -1440,6 +1441,7 @@ If you use YaTeX, then you should use YaTeX-in-math-mode-p alternatively."
 	  (setq str (replace-regexp-in-string (format "{%s}" env) (format "{%s\*}" env) str))))
     str))
 
+;;;###autoload
 (defun latex-math-preview-expression ()
   "Preview a TeX maths expression at (or surrounding) point.
 The `latex-math-preview-function' variable controls the viewing method. 
@@ -1469,6 +1471,7 @@ the notations which are stored in `latex-math-preview-match-expression'."
 	(concat "Save as" (if extension (concat " (*." extension ")") "")": "))
     "Save as (*.png, *.eps, or *.ps): "))
 
+;;;###autoload
 (defun latex-math-preview-save-image-file (use-custom-conversion &optional output)
   (interactive "P")
   (let ((prompt (latex-math-preview-prompt-for-save-image-file use-custom-conversion)))
@@ -1753,6 +1756,7 @@ Return maximum size of images and maximum length of strings and images"
   (setq latex-math-preview-current-insert-mode
 	(if (funcall latex-math-preview-in-math-mode-p-func) 'math 'text)))
 
+;;;###autoload
 (defun latex-math-preview-insert-symbol (&optional num)
   "Insert LaTeX mathematical symbols with displaying."
   (interactive "p")
@@ -2062,6 +2066,7 @@ Return maximum size of images and maximum length of strings and images"
 	    dot-tex))
       nil)))
 
+;;;###autoload
 (defun latex-math-preview-beamer-frame ()
   "Display beamer frame at current position."
   (interactive)
