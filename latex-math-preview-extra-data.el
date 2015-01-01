@@ -1,12 +1,12 @@
 ;;; latex-math-preview-extra-data.el --- Extra data for latex-math-preview.el.
 
+;; Copyright 2009 Takayuki YAMAGUCHI
+
 ;; Author: Takayuki YAMAGUCHI <d@ytak.info>
 ;; Keywords: LaTeX TeX
 ;; Version: 0.1.0
 ;; Created: Thu Aug  6 17:36:25 2009
 
-;; Copyright 2009 Takayuki YAMAGUCHI
-;;
 ;; This program is free software; you can redistribute it and/or modify it under
 ;; the terms of the GNU General Public License as published by the Free Software
 ;; Foundation; either version 3 of the License, or (at your option) any later 
@@ -19,19 +19,11 @@
 ;; You should have received a copy of the GNU General Public License along with
 ;; this program. If not, see <http://www.gnu.org/licenses/>.
 
-;; Commentary:
-;; You may add
-;; latex-math-preview-textcomp-symbol-data,
-;; latex-math-preview-pifont-zapf-dingbats-symbol-data or
-;; latex-math-preview-pifont-symbol-fonts-symbol-data
-;; to latex-math-preview-text-symbol-datasets
-;; 
-;; (add-to-list 'latex-math-preview-text-symbol-datasets
-;; 	     latex-math-preview-textcomp-symbol-data)
-;; (add-to-list 'latex-math-preview-text-symbol-datasets
-;; 	     latex-math-preview-pifont-zapf-dingbats-symbol-data)
-;; (add-to-list 'latex-math-preview-text-symbol-datasets
-;; 	     latex-math-preview-pifont-symbol-fonts-symbol-data)
+;;;Commentary:
+;; To load extra data for latex-math-preview.el, we add the following code:
+;; (latex-math-preview-extra-data-initialize)
+
+;;; Code:
 
 (defvar latex-math-preview-textcomp-symbol-data
   '("Textcomp" 
