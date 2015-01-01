@@ -1,11 +1,11 @@
 ;;; latex-math-preview-extra-data.el --- Extra data for latex-math-preview.el.
 
-;; Copyright 2009 Takayuki YAMAGUCHI
+;; Copyright 2009-2015 Takayuki YAMAGUCHI
 
 ;; Author: Takayuki YAMAGUCHI <d@ytak.info>
 ;; Keywords: LaTeX TeX
-;; Version: 0.1.0
-;; Created: Thu Aug  6 17:36:25 2009
+;; Version: 0.1.1
+;; Created: Thu Jan  1 15:02:35 2015
 
 ;; This program is free software; you can redistribute it and/or modify it under
 ;; the terms of the GNU General Public License as published by the Free Software
