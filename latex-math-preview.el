@@ -605,9 +605,9 @@ The elements is the data having the following structure.
 \(\"unique id\" \(\"usepackage command 1\" \"usepackage command 2\" ...\)
 \(data of symbol candidates\)\)
 
-Each data of symbol candidates is string or list. In the case of string, 
+Each data of symbol candidates is string or list. In the case of string,
 just insert it in the buffer. If the data is list, list must have three strings,
-that is \(StringA, StringB StringC\). Then, insert the composition 
+that is \(StringA, StringB StringC\). Then, insert the composition
 StringA and StringB.")
 
 (defvar latex-math-preview-mathematical-symbol-datasets
@@ -672,7 +672,7 @@ StringA and StringB.")
        "\\downharpoonleft" "\\rightarrowtail" "\\leftarrowtail" "\\rightleftarrows"
        "\\Lsh" "\\Rsh" "\\rightsquigarrow" "\\leftrightsquigarrow" "\\looparrowleft"
        "\\looparrowright" "\\circeq" "\\succsim" "\\gtrsim" "\\gtrapprox"
-       "\\multimap" "\\therefore" "\\because" "\\doteqdot" "\\triangleq" "\\precsim" 
+       "\\multimap" "\\therefore" "\\because" "\\doteqdot" "\\triangleq" "\\precsim"
        "\\lesssim" "\\lessapprox" "\\eqslantless" "\\eqslantgtr" "\\curlyeqprec"
        "\\curlyeqsucc")))
     ("RelationalOperator3"
@@ -1155,7 +1155,7 @@ If the value is nil this cache has not been set yet.")
       (goto-char (point-min))
       (while (re-search-forward "\\(\\\\usepackage[^}]*}\\)\\|\\(\\\\DeclareMathOperator{.*}$\\)\\|\\(\\\\providecommand{.*}$\\)" beg-doc t)
 	(let ((tmp-str (match-string-no-properties 0)))
-	  (save-excursion 
+	  (save-excursion
 	    (when (not (re-search-backward "\\(^\\|[^\\\\]\\)%" (line-beginning-position) t))
 	      (add-to-list 'cmds tmp-str)))))
       (nreverse cmds))))
@@ -1447,7 +1447,7 @@ If you use YaTeX, then you should use YaTeX-in-math-mode-p alternatively."
 ;;;###autoload
 (defun latex-math-preview-expression ()
   "Preview a TeX maths expression at (or surrounding) point.
-The `latex-math-preview-function' variable controls the viewing method. 
+The `latex-math-preview-function' variable controls the viewing method.
 The LaTeX notations which can be matched are $...$, $$...$$ or
 the notations which are stored in `latex-math-preview-match-expression'."
   (interactive)
@@ -1521,7 +1521,7 @@ the notations which are stored in `latex-math-preview-match-expression'."
     (kill-buffer buf)))
 
 ;;-----------------------------------------------------------------------------
-;; Insert Mathematical expression 
+;; Insert Mathematical expression
 
 (defvar latex-math-preview-insert-symbol-column-size nil)
 (make-variable-buffer-local 'latex-math-preview-insert-symbol-column-size)
