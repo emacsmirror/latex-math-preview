@@ -2079,6 +2079,11 @@ Return maximum size of images and maximum length of strings and images"
       (message "Here is no beamer frame.")))
   (latex-math-preview-clear-working-directory))
 
+;; Load extra data if the file exists
+(when (or (fboundp 'latex-math-preview-extra-data-initialize)
+          (require 'latex-math-preview-extra-data nil t))
+  (latex-math-preview-extra-data-initialize))
+
 (provide 'latex-math-preview)
 
 ;;; latex-math-preview.el ends here
