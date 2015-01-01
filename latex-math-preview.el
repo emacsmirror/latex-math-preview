@@ -1,7 +1,7 @@
 ;;; latex-math-preview.el --- preview LaTeX mathematical expressions.
 
 ;; Copyright 2006, 2007, 2008, 2009 Kevin Ryde
-;; Copyright 2009-2013 Takayuki YAMAGUCHI
+;; Copyright 2009-2015 Takayuki YAMAGUCHI
 
 ;; latex-math-preview.el is a modified version which is based on
 ;; tex-math-preview.el and has been created at July 2009.
