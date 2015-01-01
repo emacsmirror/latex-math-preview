@@ -1699,8 +1699,15 @@ Return maximum size of images and maximum length of strings and images"
 			   latex-math-preview-list-name-symbol-datasets))))
 
 (defun latex-math-preview-insertion-current-page-data (key)
+  "Get symbol data specified by key. If the associated value is a symbol of a function
+then call the function. If the associated value is a symbol of a list then return evaluated value of the list.
+If the associated value is a list then return it. Otherwise, raise an error."
   (let ((val (cdr (assoc key (latex-math-preview-insertion-current-symbol-datasets)))))
-    (if (symbolp val) (funcall val) val)))
+    (cond
+     ((functionp val) (funcall val))
+     ((and (symbolp val) (boundp val)) (eval val))
+     ((listp val) val)
+     ((t) (error "Invalid data set of symbol insertion")))))
 
 (defun latex-math-preview-symbol-dataset-item-exist-p (dataset)
   (catch :has-item
