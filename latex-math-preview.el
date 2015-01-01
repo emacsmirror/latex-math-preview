@@ -1743,12 +1743,14 @@ Return maximum size of images and maximum length of strings and images"
 	       (latex-math-preview-insert-symbol-read-page-number))))
     (latex-math-preview-create-buffer-for-insertion key)))
 
+;;;###autoload
 (defun latex-math-preview-insert-mathematical-symbol (&optional num)
   "Insert LaTeX mathematical symbols with displaying."
   (interactive "p")
   (setq latex-math-preview-current-insert-mode 'math)
   (latex-math-preview-insert-symbol-base num))
 
+;;;###autoload
 (defun latex-math-preview-insert-text-symbol (&optional num)
   "Insert symbols for text part with displaying."
   (interactive "p")
@@ -1835,6 +1837,7 @@ Return maximum size of images and maximum length of strings and images"
     (latex-math-preview-clear-cache-for-insertion key)
     (latex-math-preview-create-buffer-for-insertion key))) 
 
+;;;###autoload
 (defun latex-math-preview-last-symbol-again ()
   "Insert last symbol which is inserted by `latex-math-preview-insert-symbol'"
   (interactive)
