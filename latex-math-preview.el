@@ -14,8 +14,8 @@
 
 ;; Author: Takayuki YAMAGUCHI <d@ytak.info>
 ;; Keywords: LaTeX TeX
-;; Version: 0.6.4
-;; Created: Thu Jan  1 15:04:22 2015
+;; Version: 0.7.0
+;; Created: Thu Jan  1 22:34:39 2015
 ;; URL: http://www.emacswiki.org/latex-math-preview.el
 ;; Homepage: http://www.emacswiki.org/LaTeXMathPreview
 
@@ -322,6 +322,8 @@
 ;; If you change the cache directory, please customize this variable.
 
 ;;; Change Log:
+;; 2015/01/01 version 0.7.0 yamaguchi
+;;     Merge latex-math-preview-extra-data.el
 ;; 2015/01/01 version 0.6.4 yamaguchi
 ;;     To be registered in MELPA
 ;;     Automatically load extra data if it exists
