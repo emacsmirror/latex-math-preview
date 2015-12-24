@@ -322,6 +322,8 @@
 ;; If you change the cache directory, please customize this variable.
 
 ;;; Change Log:
+;; 2015/12/24 version 0.7.1 yamaguchi
+;;     Fix bugs that some caches are not generated
 ;; 2015/01/01 version 0.7.0 yamaguchi
 ;;     Merge latex-math-preview-extra-data.el
 ;; 2015/01/01 version 0.6.4 yamaguchi
