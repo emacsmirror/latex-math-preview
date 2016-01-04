@@ -101,6 +101,7 @@
 ;;  - latex
 ;;  - platex
 ;;  - pdflatex
+;;  - lualatex
 ;;  - dvipdf
 ;;  - dvipdfm
 ;;  - dvipdfmx
@@ -262,6 +263,8 @@
 ;;  - `latex-math-preview-execute-platex'
 ;;  - `latex-math-preview-execute-pdflatex-to-dvi'
 ;;  - `latex-math-preview-execute-pdflatex-to-pdf'
+;;  - `latex-math-preview-execute-lualatex-to-dvi'
+;;  - `latex-math-preview-execute-lualatex-to-pdf'
 ;;  - `latex-math-preview-execute-dvipdf'
 ;;  - `latex-math-preview-execute-dvipdfm'
 ;;  - `latex-math-preview-execute-dvipdfmx'
@@ -1066,6 +1069,7 @@ This variable must not be set.")
 
 (defvar latex-math-preview-command-option-alist
   '((pdflatex-to-pdf "-output-format" "pdf") (pdflatex-to-dvi "-output-format" "dvi")
+    (lualatex-to-pdf "-output-format" "pdf") (lualatex-to-dvi "-output-format" "dvi")
     (dvipng "-x" "1728") (dvips-to-ps "-Ppdf") (dvips-to-eps "-Ppdf")
     (gs-to-png
      "-dSAFER" "-dNOPAUSE" "-sDEVICE=png16m" "-dTextAlphaBits=4" "-dBATCH" "-dGraphicsAlphaBits=4" "-dQUIET")
@@ -1150,6 +1154,8 @@ This variable is buffer local.")
 (latex-math-preview-define-latex-function platex)
 (latex-math-preview-define-latex-function pdflatex-to-dvi)
 (latex-math-preview-define-latex-function pdflatex-to-pdf)
+(latex-math-preview-define-latex-function lualatex-to-dvi)
+(latex-math-preview-define-latex-function lualatex-to-pdf)
 
 (defvar latex-math-preview-convert-dvipng-color-mode nil)
 
