@@ -271,11 +271,11 @@
 ;;  - `latex-math-preview-execute-gs-to-png'
 ;; 
 ;; For example, we recommend the following settings to Japanese users, i.e., platex command's user:
-;;    (setq latex-math-preview-tex-to-png-for-preview '(platex dvipng))
-;;    (setq latex-math-preview-tex-to-png-for-save '(platex dvipng))
-;;    (setq latex-math-preview-tex-to-eps-for-save '(platex dvips-to-eps))
-;;    (setq latex-math-preview-tex-to-ps-for-save '(platex dvips-to-ps))
-;;    (setq latex-math-preview-beamer-to-png '(platex dvipdfmx gs-to-png))
+;;    (setq-default latex-math-preview-tex-to-png-for-preview '(platex dvipng))
+;;    (setq-default latex-math-preview-tex-to-png-for-save '(platex dvipng))
+;;    (setq-default latex-math-preview-tex-to-eps-for-save '(platex dvips-to-eps))
+;;    (setq-default latex-math-preview-tex-to-ps-for-save '(platex dvips-to-ps))
+;;    (setq-default latex-math-preview-beamer-to-png '(platex dvipdfmx gs-to-png))
 ;; 
 ;; ** Options of Commands
 ;; The options of the commands are specified by
@@ -1084,23 +1084,28 @@ This variable must not be set.")
 
 (defvar latex-math-preview-tex-to-png-for-preview
   '(latex dvipng)
-  "Sequence of end of function names to create png image for preview.")
+  "Sequence of end of function names to create png image for preview.
+This variable is buffer local.")
 
 (defvar latex-math-preview-tex-to-png-for-save
   '(latex dvipng)
-  "Sequence of end of function names to create png image for save.")
+  "Sequence of end of function names to create png image for save.
+This variable is buffer local.")
 
 (defvar latex-math-preview-tex-to-eps-for-save
   '(latex dvips-to-eps)
-  "Sequence of end of function names to create eps image for save.")
+  "Sequence of end of function names to create eps image for save.
+This variable is buffer local.")
 
 (defvar latex-math-preview-tex-to-ps-for-save
   '(latex dvips-to-ps)
-  "Sequence of end of function names to create ps image for save.")
+  "Sequence of end of function names to create ps image for save.
+This variable is buffer local.")
 
 (defvar latex-math-preview-beamer-to-png
   '(pdflatex-to-pdf gs-to-png)
-  "Sequence of end of function names to create png image for previewing beamer page.")
+  "Sequence of end of function names to create png image for previewing beamer page.
+This variable is buffer local.")
 
 (defvar latex-math-preview-conversion-variables
   '(latex-math-preview-tex-to-png-for-preview
