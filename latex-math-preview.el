@@ -14,8 +14,8 @@
 
 ;; Author: Takayuki YAMAGUCHI <d@ytak.info>
 ;; Keywords: LaTeX TeX
-;; Version: 0.7.0
-;; Created: Thu Jan  1 22:34:39 2015
+;; Version: 0.7.2
+;; Created: Tue Jan  5 09:57:39 2016
 ;; URL: https://gitlab.com/latex-math-preview/latex-math-preview
 
 ;; This program is free software; you can redistribute it and/or modify it under
@@ -324,6 +324,8 @@
 ;; If you change the cache directory, please customize this variable.
 
 ;;; Change Log:
+;; 2016/01/05 version 0.7.2 yamaguchi
+;;     Support lualatex
 ;; 2015/12/24 version 0.7.1 yamaguchi
 ;;     Fix bugs that some caches are not generated
 ;; 2015/01/01 version 0.7.0 yamaguchi
