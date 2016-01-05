@@ -16,8 +16,7 @@
 ;; Keywords: LaTeX TeX
 ;; Version: 0.7.0
 ;; Created: Thu Jan  1 22:34:39 2015
-;; URL: http://www.emacswiki.org/latex-math-preview.el
-;; Homepage: http://www.emacswiki.org/LaTeXMathPreview
+;; URL: https://gitlab.com/latex-math-preview/latex-math-preview
 
 ;; This program is free software; you can redistribute it and/or modify it under
 ;; the terms of the GNU General Public License as published by the Free Software
