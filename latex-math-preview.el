@@ -1479,7 +1479,7 @@ If you use YaTeX, then you should use YaTeX-in-math-mode-p alternatively."
   (thing-at-point 'latex-math))
 
 (defun latex-math-preview-clear-working-directory ()
-  (when (not latex-math-preview-not-delete-tmpfile)
+  (when (and latex-math-preview-working-directory (not latex-math-preview-not-delete-tmpfile))
     (latex-math-preview-clear-tmp-directory latex-math-preview-working-directory))
   (setq latex-math-preview-working-directory nil))
 
