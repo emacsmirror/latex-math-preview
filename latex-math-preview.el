@@ -1379,7 +1379,9 @@ If current buffer is not a file we are not asked."
   "List of filter for lines of usepackage.
 The value is a list of (REGEXP . nil) or (REGEXP . (lambda (line) ... )).
 If you want to ignore some usepackages, then you add filters to this variable.
-For example, to ignore \\usepackage{txfonts}, we add '(\"txfonts\") to this list.")
+For example, to ignore \\usepackage{txfonts}, we add '(\"txfonts\") to this list.
+If color-related packages can produce unexpected colors in the
+generated images, we can add '(\"color\").")
 
 (or latex-math-preview-edit-usepackage-map
     (let ((map (make-sparse-keymap)))
