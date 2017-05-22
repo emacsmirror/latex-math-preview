@@ -1714,7 +1714,7 @@ If KEY is nil then all directories saving caches is deleted."
     (latex-math-preview-clear-tmp-directory latex-math-preview-cache-directory-for-insertion)
     (message "Finish deleting all image caches.")))
 
-(defun latex-math-preview-make-symbol-candidate-image (latex-symbol package)
+(defun latex-math-preview-make-symbol-candidate-image (latex-symbol packages)
   "Create a cache image from latex file including LATEX-SYMBOL."
   (let* ((latex-math-preview-convert-dvipng-color-mode 'buffer)
 	 (latex-math-preview-trim-image t)
@@ -1880,7 +1880,7 @@ If the associated value is a list then return it. Otherwise, raise an error."
      ((functionp val) (funcall val))
      ((and (symbolp val) (boundp val)) (eval val))
      ((listp val) val)
-     ((t) (error "Invalid data set of symbol insertion")))))
+     (t (error "Invalid data set of symbol insertion")))))
 
 (defun latex-math-preview-symbol-dataset-item-exist-p (dataset)
   (catch :has-item
@@ -1999,7 +1999,7 @@ If the associated value is a list then return it. Otherwise, raise an error."
       (let* ((val (assoc latex-math-preview-current-insert-mode latex-math-preview-recent-inserted-symbol))
 	     (list-cdr (cons sym (delete sym (cdr val)))))
 	(when (> (length list-cdr) latex-math-preview-recent-inserted-symbol-number)
-	  (setf (nthcdr latex-matbblllh-preview-recent-inserted-symbol-number list-cdr) nil))
+	  (setf (nthcdr latex-math-preview-recent-inserted-symbol-number list-cdr) nil))
 	(setcdr val list-cdr)))))
 
 (defun latex-math-preview-put-candidate-mouse-selecting (event)
