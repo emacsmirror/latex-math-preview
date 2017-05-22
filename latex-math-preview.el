@@ -416,7 +416,7 @@
 
 ;;; Code:
 
-(require 'cl)
+(require 'cl-lib)
 (require 'image-mode)
 (require 'thingatpt)
 
@@ -522,7 +522,7 @@ The integer is the number to access needed string from regular-expressin.")
   "Name of list of datasets.")
 
 ;;;###autoload
-(defstruct latex-math-preview-symbol source display func args image math)
+(cl-defstruct latex-math-preview-symbol source display func args image math)
 
 (defun latex-math-preview-insert-enclosed-symbol (&rest list)
   (insert (car list))
