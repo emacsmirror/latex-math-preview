@@ -521,6 +521,9 @@ The integer is the number to access needed string from regular-expressin.")
     (text . latex-math-preview-text-symbol-datasets))
   "Name of list of datasets.")
 
+(defvar latex-math-preview-select-preview-window t
+  "If the value is nil then Emacs will not select the latex-math-preview window when show it.")
+
 ;;;###autoload
 (cl-defstruct latex-math-preview-symbol source display func args image math)
 
@@ -1570,7 +1573,9 @@ If you use YaTeX, then you should use YaTeX-in-math-mode-p alternatively."
       (insert-image-file image)
       (goto-char (point-min))
       (setq buffer-read-only t)))
-  (pop-to-buffer latex-math-preview-expression-buffer-name)
+  (if latex-math-preview-select-preview-window
+    (pop-to-buffer latex-math-preview-expression-buffer-name)
+    (display-buffer latex-math-preview-expression-buffer-name))
   (when (and latex-math-preview-display-whole-image (not (pos-visible-in-window-p (point-max))))
     (with-current-buffer latex-math-preview-expression-buffer-name (delete-other-windows))))
 
@@ -1691,9 +1696,17 @@ the notations which are stored in `latex-math-preview-match-expression'."
 (defun latex-math-preview-delete-buffer ()
   "Delete buffer which is created for preview."
   (interactive)
-  (let ((buf (current-buffer)))
-    (latex-math-preview-quit-window)
-    (kill-buffer buf)))
+  (if latex-math-preview-select-preview-window
+      (let ((buf (current-buffer)))
+        (latex-math-preview-quit-window)
+        (kill-buffer buf))
+    (let ((buf (get-buffer latex-math-preview-expression-buffer-name))
+          (win (get-buffer-window latex-math-preview-expression-buffer-name)))
+      (when buf
+        (when win
+          (with-selected-window win
+            (latex-math-preview-quit-window)))
+        (kill-buffer buf)))))
 
 ;;-----------------------------------------------------------------------------
 ;; Insert Mathematical expression
