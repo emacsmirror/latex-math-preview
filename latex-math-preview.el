@@ -1550,7 +1550,9 @@ If you use YaTeX, then you should use YaTeX-in-math-mode-p alternatively."
 ;;-----------------------------------------------------------------------------
 ;; view png in a buffer
 
-(defvar latex-math-preview-display-whole-image nil)
+(defvar latex-math-preview-display-whole-image
+  "Change preview window to full size when whole image is not displayed if true"
+  nil)
 
 (defun latex-math-preview-get-expression-buffer ()
   (or (get-buffer latex-math-preview-expression-buffer-name)
@@ -1574,10 +1576,11 @@ If you use YaTeX, then you should use YaTeX-in-math-mode-p alternatively."
       (goto-char (point-min))
       (setq buffer-read-only t)))
   (if latex-math-preview-select-preview-window
-    (pop-to-buffer latex-math-preview-expression-buffer-name)
+      (pop-to-buffer latex-math-preview-expression-buffer-name)
     (display-buffer latex-math-preview-expression-buffer-name))
-  (when (and latex-math-preview-display-whole-image (not (pos-visible-in-window-p (point-max))))
-    (with-current-buffer latex-math-preview-expression-buffer-name (delete-other-windows))))
+  (with-selected-window (get-buffer-window latex-math-preview-expression-buffer-name)
+    (when (and latex-math-preview-display-whole-image (not (pos-visible-in-window-p (point-max))))
+      (with-current-buffer latex-math-preview-expression-buffer-name (delete-other-windows)))))
 
 (defun latex-math-preview-get-dvipng-color-option ()
   "Get string for dvipng options '-bg' and '-fg'."
