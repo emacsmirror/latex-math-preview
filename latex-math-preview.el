@@ -1,7 +1,7 @@
 ;;; latex-math-preview.el --- preview LaTeX mathematical expressions.
 
 ;; Copyright 2006, 2007, 2008, 2009 Kevin Ryde
-;; Copyright 2009-2019 Takayuki YAMAGUCHI
+;; Copyright 2009-2021 Takayuki YAMAGUCHI
 
 ;; latex-math-preview.el is a modified version which is based on
 ;; tex-math-preview.el and has been created at July 2009.
@@ -14,8 +14,8 @@
 
 ;; Author: Takayuki YAMAGUCHI <d@ytak.info>
 ;; Keywords: LaTeX TeX
-;; Version: 0.7.3
-;; Created: Wed Jan 23 17:02:18 2019
+;; Version: 0.7.4
+;; Created: Tue Dec 28 15:38:54 2021
 ;; URL: https://gitlab.com/latex-math-preview/latex-math-preview
 
 ;; This program is free software; you can redistribute it and/or modify it under
@@ -324,6 +324,8 @@
 ;; If you change the cache directory, please customize this variable.
 
 ;;; Change Log:
+;; 2021/12/28 version 0.7.4 yamaguchi
+;;     latex-math-preview-expression-mode is derived from fundamental-mode.
 ;; 2019/01/23 version 0.7.3 yamaguchi
 ;;     New variables `latex-math-preview-select-preview-window' and some bug fixes.
 ;; 2016/01/05 version 0.7.2 yamaguchi
