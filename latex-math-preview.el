@@ -419,7 +419,6 @@
 ;;; Code:
 
 (require 'cl-lib)
-(require 'image-mode)
 (require 'thingatpt)
 
 ;;;###autoload
@@ -991,8 +990,8 @@ For data structure, refer to `latex-math-preview-text-symbol-datasets'")
   "Symbol of function is used for determining whether cursor is in mathematical expression.
 If you use YaTeX mode then the recommended value of this variable is YaTeX-in-math-mode-p.")
 
-(define-derived-mode latex-math-preview-expression-mode image-mode "LaTeXPreview"
-  "Major mode for latex-math-preview-expression. This mode is derived from image-mode."
+(define-derived-mode latex-math-preview-expression-mode fundamental-mode "LaTeXPreview"
+  "Major mode for latex-math-preview-expression."
   (define-key latex-math-preview-expression-mode-map "n" 'next-line)
   (define-key latex-math-preview-expression-mode-map "p" 'previous-line)
   (define-key latex-math-preview-expression-mode-map "f" 'forward-char)
